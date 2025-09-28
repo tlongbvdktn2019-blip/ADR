@@ -6,6 +6,17 @@ const nextConfig = {
   // Compress and optimize output
   compress: true,
   // Set default port to avoid conflicts
+  experimental: {
+    serverComponentsExternalPackages: ['@sparticuz/chromium', 'puppeteer-core', 'puppeteer'],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      if (Array.isArray(config.externals)) {
+        config.externals.push('@sparticuz/chromium', 'puppeteer-core', 'puppeteer');
+      }
+    }
+    return config;
+  },
   async redirects() {
     return []
   },

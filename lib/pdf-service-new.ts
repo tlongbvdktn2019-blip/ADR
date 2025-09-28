@@ -543,7 +543,6 @@ export class PDFService {
       return puppeteerCore.launch({
         headless: true,
         executablePath: customExecutablePath,
-        ignoreHTTPSErrors: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -562,8 +561,8 @@ export class PDFService {
         import('puppeteer-core')
       ])
 
-      if (chromium.setHeadlessMode) {
-        chromium.setHeadlessMode(true)
+      if (typeof (chromium as any).setHeadlessMode !== 'undefined') {
+        (chromium as any).setHeadlessMode = true
       }
 
       const executablePath = await chromium.executablePath()
@@ -576,8 +575,7 @@ export class PDFService {
         args: chromium.args,
         defaultViewport: chromium.defaultViewport ?? { width: 1200, height: 1600 },
         executablePath,
-        headless: chromium.headless,
-        ignoreHTTPSErrors: true
+        headless: true
       })
     }
 
