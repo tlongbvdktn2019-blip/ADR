@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { ADRReport } from '@/types/report'
@@ -26,6 +26,14 @@ const defaultOptions: PDFGenerationOptions = {
     left: '0.5cm'
   }
 }
+
+const isServerlessEnvironment = Boolean(
+  process.env.AWS_LAMBDA_FUNCTION_VERSION ||
+  process.env.VERCEL
+)
+
+const getCustomExecutablePath = () =>
+  process.env.CHROME_EXECUTABLE_PATH || process.env.PUPPETEER_EXECUTABLE_PATH || ''
 
 export class PDFService {
   private static getTemplate(): string {
@@ -527,6 +535,67 @@ export class PDFService {
     return updatedHtml
   }
 
+  private static async launchBrowser(): Promise<Browser> {
+    const customExecutablePath = getCustomExecutablePath()
+
+    if (customExecutablePath) {
+      const { default: puppeteerCore } = await import('puppeteer-core')
+      return puppeteerCore.launch({
+        headless: true,
+        executablePath: customExecutablePath,
+        ignoreHTTPSErrors: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-extensions'
+        ]
+      })
+    }
+
+    if (isServerlessEnvironment) {
+      const [{ default: chromium }, { default: puppeteerCore }] = await Promise.all([
+        import('@sparticuz/chromium'),
+        import('puppeteer-core')
+      ])
+
+      if (chromium.setHeadlessMode) {
+        chromium.setHeadlessMode(true)
+      }
+
+      const executablePath = await chromium.executablePath()
+
+      if (!executablePath) {
+        throw new Error('Chromium executablePath not found')
+      }
+
+      return puppeteerCore.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport ?? { width: 1200, height: 1600 },
+        executablePath,
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true
+      })
+    }
+
+    const { default: puppeteer } = await import('puppeteer')
+    return puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-extensions'
+      ]
+    })
+  }
+
   static async generatePDF(
     report: ADRReport, 
     options: PDFGenerationOptions = {}
@@ -539,19 +608,7 @@ export class PDFService {
     console.log('Final options:', finalOptions)
     
     console.log('Launching browser...')
-    // Launch browser with optimized settings for server environment
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-extensions'
-      ]
-    })
+    const browser = await this.launchBrowser()
     console.log('Browser launched successfully')
 
     try {
