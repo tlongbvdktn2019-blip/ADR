@@ -1,6 +1,6 @@
 import type { Browser } from 'puppeteer-core'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { existsSync, readFileSync } from 'fs'
+import { dirname, join } from 'path'
 import { ADRReport } from '@/types/report'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -556,20 +556,48 @@ export class PDFService {
     }
 
     if (isServerlessEnvironment) {
-      const [{ default: chromium }, { default: puppeteerCore }] = await Promise.all([
+      const usingVercel = Boolean(process.env.VERCEL)
+      if (usingVercel && !process.env.AWS_EXECUTION_ENV) {
+        const nodeMajor = Number(process.versions.node.split('.')[0] || 18)
+        process.env.AWS_EXECUTION_ENV = nodeMajor >= 20 ? 'AWS_Lambda_nodejs20.x' : 'AWS_Lambda_nodejs18.x'
+      }
+
+      const [chromiumModule, puppeteerCoreModule] = await Promise.all([
         import('@sparticuz/chromium'),
         import('puppeteer-core')
       ])
 
-      const executablePath = await chromium.executablePath()
+      const chromium = (chromiumModule as any).default ?? chromiumModule
+      const puppeteerCore = (puppeteerCoreModule as any).default ?? puppeteerCoreModule
+
+      if (chromium && 'setHeadlessMode' in chromium) {
+        ;(chromium as any).setHeadlessMode = true
+      }
+      if (chromium && 'setGraphicsMode' in chromium) {
+        ;(chromium as any).setGraphicsMode = false
+      }
+
+      const executablePath = await (chromium as any).executablePath()
 
       if (!executablePath) {
         throw new Error('Chromium executablePath not found')
       }
 
-      return puppeteerCore.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport ?? { width: 1200, height: 1600 },
+      const candidateLibraryPaths = [
+        dirname(executablePath),
+        '/tmp/al2/lib',
+        '/tmp/al2023/lib'
+      ].filter((value): value is string => Boolean(value) && existsSync(value))
+
+      if (candidateLibraryPaths.length) {
+        const currentPaths = process.env.LD_LIBRARY_PATH ? process.env.LD_LIBRARY_PATH.split(':') : []
+        const merged = Array.from(new Set([...candidateLibraryPaths, ...currentPaths]))
+        process.env.LD_LIBRARY_PATH = merged.join(':')
+      }
+
+      return (puppeteerCore as any).launch({
+        args: (chromium as any).args,
+        defaultViewport: (chromium as any).defaultViewport ?? { width: 1200, height: 1600 },
         executablePath,
         headless: true
       })
