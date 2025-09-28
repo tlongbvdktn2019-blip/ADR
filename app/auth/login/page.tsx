@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
+import { useEffect, useState } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -16,6 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user) {
+      return
+    }
+
+    const destination = session.user.role === 'admin' ? '/dashboard' : '/reports'
+    router.replace(destination)
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,14 +42,6 @@ export default function LoginPage() {
         toast.error(result.error)
       } else if (result?.ok) {
         toast.success('Đăng nhập thành công!')
-        
-        // Get session to determine redirect
-        const session = await getSession()
-        if (session?.user?.role === 'admin') {
-          router.push('/dashboard')
-        } else {
-          router.push('/reports')
-        }
       }
     } catch (error) {
       toast.error('Có lỗi xảy ra khi đăng nhập')
