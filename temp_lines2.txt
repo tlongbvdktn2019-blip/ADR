@@ -1,0 +1,17 @@
+64:       toast.error('Vui lòng nhập tiêu đề và nội dung')
+83:         toast.success('Tạo tin tức thành công')
+90:       toast.error('Không thể tạo tin tức')
+141:             <h1 className="text-2xl font-bold text-gray-900">Tạo tin tức mới</h1>
+148:             <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h2>
+190:                   <option value="news">Tin tức</option>
+191:                   <option value="guideline">Hướng dẫn</option>
+192:                   <option value="alert">Cảnh báo</option>
+193:                   <option value="announcement">Thông báo</option>
+194:                   <option value="education">Đào tạo</option>
+200:                   Độ ưu tiên
+257:                   Thêm
+292:                   placeholder="từ khóa, tách, bằng, dấu phẩy"
+348:                 <span className="ml-2 text-sm text-gray-700">Ghim tin tức này lên đầu</span>
+358:                 <span className="ml-2 text-sm text-gray-700">Hiển thị trên trang chủ</span>
+365:                 Ngày hết hạn (tùy chọn)
+374:                 Nếu không chọn, tin tức sẽ không có thời hạn

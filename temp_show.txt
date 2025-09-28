@@ -1,0 +1,18 @@
+64:       toast.error('Vui lòng nhập tiêu đề và nội dung')
+83:         toast.success('Tạo tin tức thành công')
+90:       toast.error('KhĂ´ng thá»ƒ táº¡o tin tá»©c')
+137:             Quay lại
+141:             <h1 className="text-2xl font-bold text-gray-900">Táº¡o tin tá»©c má»›i</h1>
+148:             <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h2>
+153:                 Tiêu đề *
+161:                 placeholder="Nhập tiêu đề tin tức"
+168:                 Tóm tắt
+175:                 placeholder="Nhập tóm tắt ngắn gọn"
+190:                   <option value="news">Tin tá»©c</option>
+191:                   <option value="guideline">HÆ°á»›ng dáº«n</option>
+192:                   <option value="alert">Cáº£nh bĂ¡o</option>
+193:                   <option value="announcement">ThĂ´ng bĂ¡o</option>
+194:                   <option value="education">ÄĂ o táº¡o</option>
+200:                   Äá»™ Æ°u tiĂªn
+207:                   <option value={1}>Ráº¥t cao (1)</option>
+209:                   <option value={3}>Trung bĂ¬nh (3)</option>

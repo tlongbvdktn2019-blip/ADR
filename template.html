@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Phản ứng có hại của thuốc (ADR)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            background-color: #ccc;
+            margin: 0;
+            padding: 15px;
+        }
+        .container {
+            width: 800px;
+            background-color: #fff;
+            margin: auto;
+            border: 2px solid black;
+            padding: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
+        td, th {
+            border: 1px solid black;
+            padding: 4px;
+            vertical-align: top;
+        }
+        input[type="text"], textarea {
+            width: 98%;
+            border: none;
+            border-bottom: 1px dotted #000;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            margin-right: 5px;
+        }
+        .header-title {
+            text-align: center;
+            font-weight: bold;
+        }
+        .header-title h1 {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        .header-title p {
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .section-header {
+            background-color: #000;
+            color: #fff;
+            font-weight: bold;
+            padding: 5px;
+            text-align: left;
+        }
+        .no-border, .no-border td {
+            border: none;
+        }
+        .full-width-cell {
+            padding: 0;
+        }
+        .full-width-cell table {
+            border: none;
+        }
+        .full-width-cell table td {
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
+            border-left: none;
+            border-right: none;
+        }
+        .small-text {
+            font-size: 9px;
+        }
+        .guidance-section {
+            border: 2px dashed black;
+            padding: 10px;
+            margin-top: 15px;
+        }
+        .guidance-section td {
+            border: none;
+            vertical-align: top;
+        }
+        ul {
+            padding-left: 15px;
+            margin: 0;
+        }
+        .signature-box {
+            height: 40px;
+        }
+        .light-blue-bg {
+            background-color: #e6f2ff;
+        }
+        .center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <table class="no-border">
+            <tr>
+                <td style="width: 50%; font-weight: bold; font-size: 12px;">PDF FORM</td>
+                <td style="width: 50%; text-align: right; font-weight: bold; font-size: 16px;">ADR</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="header-title">
+                    <h1>BÁO CÁO PHẢN ỨNG CÓ HẠI CỦA THUỐC</h1>
+                    <p>THÔNG TIN VỀ NGƯỜI BÁO CÁO, BỆNH NHÂN VÀ ĐƠN VỊ BÁO CÁO</p>
+                    <p style="font-weight: normal;">SẼ ĐƯỢC BẢO MẬT</p>
+                </td>
+            </tr>
+        </table>
+        
+        <table class="no-border" style="margin-top: -10px;">
+            <tr>
+                <td style="width: 60%; vertical-align: bottom;">
+                    <i>Xin anh/chị hãy báo cáo kể cả khi không chắc chắn về sản phẩm đã gây ra phản ứng và/hoặc không có đầy đủ các thông tin</i>
+                </td>
+                <td style="width: 40%;">
+                    <table style="border: 2px solid black;">
+                        <tr><td>Nơi báo cáo: <input type="text"></td></tr>
+                        <tr><td>Mã số báo cáo của đơn vị: <input type="text"></td></tr>
+                        <tr><td>Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text"></td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <!-- A. THÔNG TIN VỀ BỆNH NHÂN -->
+        <div class="section-header">A. THÔNG TIN VỀ BỆNH NHÂN</div>
+        <table>
+            <tr>
+                <td style="width: 40%;">1. Họ và tên: <input type="text" style="width: 80%;"></td>
+                <td style="width: 25%;">2. Ngày sinh: <input type="text" style="width: 70%;"><br>Hoặc tuổi: <input type="text" style="width: 70%;"></td>
+                <td style="width: 20%;">3. Giới tính <br> <input type="checkbox"> Nam <input type="checkbox"> Nữ</td>
+                <td style="width: 15%;">4. Cân nặng <br> <input type="text" style="width: 50%;"> kg</td>
+            </tr>
+        </table>
+
+        <!-- B. THÔNG TIN VỀ PHẢN ỨNG CÓ HẠI (ADR) -->
+        <div class="section-header">B. THÔNG TIN VỀ PHẢN ỨNG CÓ HẠI (ADR)</div>
+        <table>
+            <tr>
+                <td style="width: 50%;">5. Ngày xuất hiện phản ứng: <input type="text"></td>
+                <td>6. Phản ứng xuất hiện sau bao lâu (tính từ lần dùng cuối cùng của thuốc nghi ngờ): <input type="text"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="full-width-cell">
+                    <table>
+                        <tr>
+                            <td class="light-blue-bg" style="width: 50%;">7. Mô tả biểu hiện ADR</td>
+                            <td class="light-blue-bg" style="width: 50%;">8. Các xét nghiệm liên quan đến phản ứng</td>
+                        </tr>
+                        <tr>
+                            <td style="height: 100px;"><textarea style="height: 95px;"></textarea></td>
+                            <td style="height: 100px;"><textarea style="height: 95px;"></textarea></td>
+                        </tr>
+                        <tr>
+                            <td class="light-blue-bg">9. Tiền sử (dị ứng, thai nghén, nghiện thuốc lá, nghiện rượu, bệnh gan, bệnh thận...)</td>
+                            <td class="light-blue-bg">10. Cách xử trí phản ứng</td>
+                        </tr>
+                        <tr>
+                            <td style="height: 80px;"><textarea style="height: 75px;"></textarea></td>
+                            <td style="height: 80px;"><textarea style="height: 75px;"></textarea></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" class="full-width-cell">
+                     <table class="no-border">
+                        <tr>
+                            <td style="width: 33.3%;">
+                                11. Mức độ nghiêm trọng của phản ứng<br>
+                                <input type="checkbox"> Tử vong <br>
+                                <input type="checkbox"> Đe dọa tính mạng
+                            </td>
+                            <td style="width: 33.3%;">
+                                <br>
+                                <input type="checkbox"> Nhập viện/Kéo dài thời gian nằm viện <br>
+                                <input type="checkbox"> Tàn tật vĩnh viễn/nặng nề
+                            </td>
+                            <td style="width: 33.3%;">
+                                <br>
+                                <input type="checkbox"> Dị tật thai nhi <br>
+                                <input type="checkbox"> Không nghiêm trọng
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                12. Kết quả sau khi xử trí phản ứng<br>
+                                <input type="checkbox"> Tử vong do ADR<br>
+                                <input type="checkbox"> Tử vong không liên quan đến thuốc
+                            </td>
+                            <td>
+                                <br>
+                                <input type="checkbox"> Chưa hồi phục<br>
+                                <input type="checkbox"> Đang hồi phục
+                            </td>
+                            <td>
+                                <br>
+                                <input type="checkbox"> Hồi phục có di chứng<br>
+                                <input type="checkbox"> Hồi phục không có di chứng
+                            </td>
+                             <td>
+                                <br>
+                                <input type="checkbox"> Không rõ
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        
+        <!-- C. THÔNG TIN VỀ THUỐC NGHI NGỜ GÂY ADR -->
+        <div class="section-header">C. THÔNG TIN VỀ THUỐC NGHI NGỜ GÂY ADR</div>
+        <table>
+            <tr class="center light-blue-bg">
+                <td style="width: 4%;">STT</td>
+                <td style="width: 15%;">13. Thuốc (tên gốc và tên thương mại)</td>
+                <td style="width: 10%;">Dạng bào chế, hàm lượng</td>
+                <td style="width: 10%;">Nhà sản xuất</td>
+                <td style="width: 8%;">Số lô</td>
+                <td style="width: 8%;">Liều dùng một lần</td>
+                <td style="width: 10%;">Số lần dùng trong ngày/ tuần/ tháng</td>
+                <td style="width: 8%;">Đường dùng</td>
+                <td colspan="2">Ngày điều trị (ngày/tháng/năm)</td>
+                <td style="width: 15%;">Lý do dùng thuốc</td>
+            </tr>
+            <tr class="center light-blue-bg">
+                <td colspan="8"></td>
+                <td style="width: 7%;">Bắt đầu</td>
+                <td style="width: 7%;">Kết thúc</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="center">i</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+             <tr>
+                <td class="center">ii</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+             <tr>
+                <td class="center">iii</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+             <tr>
+                <td class="center">iv</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+        </table>
+        
+        <table>
+            <tr class="light-blue-bg">
+                <td class="center" style="width: 4%;">STT (Tương ứng 13.)</td>
+                <td class="center">14. Sau khi ngừng/giảm liều của thuốc bị nghi ngờ, phản ứng có được cải thiện không?</td>
+                <td class="center">15. Tái sử dụng thuốc bị nghi ngờ có xuất hiện lại phản ứng không?</td>
+            </tr>
+            <tr>
+                <td class="center">i</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không ngừng/giảm liều <input type="checkbox"> Không có thông tin</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không tái sử dụng <input type="checkbox"> Không có thông tin</td>
+            </tr>
+            <tr>
+                <td class="center">ii</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không ngừng/giảm liều <input type="checkbox"> Không có thông tin</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không tái sử dụng <input type="checkbox"> Không có thông tin</td>
+            </tr>
+            <tr>
+                <td class="center">iii</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không ngừng/giảm liều <input type="checkbox"> Không có thông tin</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không tái sử dụng <input type="checkbox"> Không có thông tin</td>
+            </tr>
+            <tr>
+                <td class="center">iv</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không ngừng/giảm liều <input type="checkbox"> Không có thông tin</td>
+                <td><input type="checkbox"> Có <input type="checkbox"> Không <input type="checkbox"> Không tái sử dụng <input type="checkbox"> Không có thông tin</td>
+            </tr>
+        </table>
+
+        <!-- Section 16: Concurrent Drugs Table -->
+        <table>
+            <tr class="light-blue-bg">
+                <td colspan="4"><strong>16. THUỐC DÙNG ĐỒNG THỜI</strong></td>
+            </tr>
+            <tr class="center light-blue-bg">
+                <td style="width: 25%;"><strong>Tên thuốc</strong></td>
+                <td style="width: 25%;"><strong>Dạng bào chế, hàm lượng</strong></td>
+                <td style="width: 25%;"><strong>Ngày bắt đầu điều trị</strong></td>
+                <td style="width: 25%;"><strong>Ngày kết thúc điều trị</strong></td>
+            </tr>
+            <!-- 5 empty rows for data population -->
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+        
+        <!-- D. PHẦN THẨM ĐỊNH -->
+        <div class="section-header">D. PHẦN THẨM ĐỊNH ADR CỦA ĐƠN VỊ</div>
+        <table>
+            <tr>
+                <td style="width: 50%;">17. Đánh giá mối liên quan giữa thuốc và ADR: <br>
+                    <input type="checkbox"> Chắc chắn <input type="checkbox"> Không chắc chắn <br>
+                    <input type="checkbox"> Có khả năng <input type="checkbox"> Chưa phân loại <br>
+                    <input type="checkbox"> Có thể <input type="checkbox"> Không thể phân loại
+                </td>
+                <td style="width: 50%;" rowspan="2">19. Phần bình luận của cán bộ y tế (nếu có)
+                    <textarea style="height: 80px;"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>18. Đơn vị thẩm định ADR theo thang nào? <br>
+                    <input type="checkbox"> Thang WHO <input type="checkbox"> Thang Naranjo <input type="checkbox"> Thang khác: <input type="text" style="width: 20%;">
+                </td>
+            </tr>
+        </table>
+        
+        <!-- E. THÔNG TIN VỀ NGƯỜI BÁO CÁO -->
+        <div class="section-header">E. THÔNG TIN VỀ NGƯỜI BÁO CÁO</div>
+        <table>
+            <tr>
+                <td style="width: 50%;">20. Họ và tên: <input type="text" style="width: 80%;"></td>
+                <td>Nghề nghiệp/Chức vụ: <input type="text" style="width: 70%;"></td>
+            </tr>
+            <tr>
+                <td>Điện thoại liên lạc: <input type="text" style="width: 75%;"></td>
+                <td>Email: <input type="text" style="width: 90%;"></td>
+            </tr>
+            <tr>
+                <td>21. Chữ ký: <div class="signature-box"></div></td>
+                <td>
+                    22. Dạng báo cáo: <input type="checkbox"> Lần đầu <input type="checkbox"> Bổ sung <br><br>
+                    23. Ngày báo cáo: <input type="text">
+                </td>
+            </tr>
+        </table>
+        
+        <div style="text-align:center; font-weight:bold; padding: 5px;">Xin chân thành cảm ơn!</div>
+
+        <!-- HƯỚNG DẪN LÀM BÁO CÁO -->
+
+        <div class="guidance-section">
+            <div style="text-align:center; font-weight:bold; font-size: 12px; margin-bottom: 10px;">HƯỚNG DẪN LÀM BÁO CÁO</div>
+            <table class="no-border">
+                <tr>
+                    <td style="width: 33%;">
+                        <b>Xin hãy báo cáo tất cả các phản ứng có hại mà anh/chị nghi ngờ, đặc biệt khi:</b>
+                        <ul>
+                            <li>Các phản ứng nghiêm trọng</li>
+                            <li>Các phản ứng không mong muốn hoặc chưa được biết đến</li>
+                            <li>Tương tác thuốc</li>
+                            <li>Thất bại trong điều trị</li>
+                            <li>Các sai sót trong quá trình sử dụng thuốc.</li>
+                        </ul>
+                        <b>Mẫu báo cáo này được áp dụng cho các phản ứng gây ra bởi:</b>
+                        <ul>
+                            <li>Thuốc và các chế phẩm sinh học</li>
+                            <li>Vắc xin</li>
+                            <li>Các thuốc cổ truyền hoặc thuốc có nguồn gốc dược liệu</li>
+                            <li>Thực phẩm chức năng.</li>
+                        </ul>
+                         <b>Người báo cáo có thể là:</b>
+                        <ul>
+                            <li>Bác sĩ</li>
+                            <li>Dược sĩ</li>
+                            <li>Nha sĩ</li>
+                            <li>Y tá/ điều dưỡng/nữ hộ sinh</li>
+                            <li>Các nhà cung cấp dịch vụ chăm sóc sức khỏe khác.</li>
+                        </ul>
+                    </td>
+                    <td style="width: 67%;">
+                        <b>Cách báo cáo:</b>
+                         <ul>
+                            <li>Điền thông tin vào mẫu báo cáo</li>
+                            <li>Chỉ cần điền những phần anh/chị có thông tin</li>
+                            <li>Có thể đính kèm thêm một vài trang (nếu mẫu báo cáo không đủ khoảng trống để điền thông tin hay có những xét nghiệm liên quan).</li>
+                            <li>Xin hãy gửi báo cáo về Trung tâm Quốc gia về Thông tin thuốc và Theo dõi phản ứng có hại của thuốc theo các địa chỉ sau:</li>
+                        </ul>
+                        <div style="padding-left: 20px;">
+                            <b>Thư:</b> Trung tâm Quốc gia về Thông tin thuốc và Theo dõi phản ứng có hại của thuốc <br>
+                            Trường Đại học Dược Hà Nội <br>
+                            13-15 Lê Thánh Tông, Quận Hoàn Kiếm, Hà Nội <br>
+                            <b>Fax:</b> 024 3933.5642 <br>
+                            <b>Điện thoại:</b> 024 3933.5618 <br>
+                            <b>Website:</b> http://canhgiacduoc.org.vn <br>
+                            <b>Email:</b> di.pvcenter@gmail.com <br><br>
+                            Anh/chị có thể lấy mẫu báo cáo này tại khoa Dược, phòng Kế hoạch tổng hợp của bệnh viện hoặc tải từ trang web http://canhgiacduoc.org.vn. Nếu có bất kỳ thắc mắc nào, anh/chị có thể liên hệ với Trung tâm Quốc gia về Thông tin thuốc và Theo dõi phản ứng có hại của thuốc theo số điện thoại 024 3933 5618 hoặc theo địa chỉ email di.pvcenter@gmail.com.
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- PHẦN DÀNH CHO TRUNG TÂM -->
+        <table>
+            <tr class="light-blue-bg"><td colspan="8"><b>Phần dành cho Trung tâm DI & ADR Quốc gia</b></td></tr>
+            <tr>
+                <td style="width: 25%;">1. Gửi xác nhận tới đơn vị báo cáo</td>
+                <td style="width: 25%;" class="center">..................</td>
+                <td style="width: 25%;">3. Phản ứng đã có trong y văn/ SPC/ CSDL</td>
+                <td style="width: 25%;"><input type="checkbox"></td>
+            </tr>
+            <tr>
+                <td rowspan="2">2. Phân loại phản ứng <br>
+                    <input type="checkbox"> Thuốc mới <input type="checkbox"> Thuốc cũ <br>
+                    <input type="checkbox"> Nghiêm trọng <input type="checkbox"> Không nghiêm trọng
+                </td>
+                <td rowspan="2" class="center">..................</td>
+                <td>4. Nhập dữ liệu vào hệ cơ sở dữ liệu quốc gia</td>
+                <td><input type="checkbox"></td>
+            </tr>
+             <tr>
+                <td>5. Nhập dữ liệu vào phần mềm Vigiflow</td>
+                <td><input type="checkbox"></td>
+            </tr>
+             <tr>
+                <td colspan="4">6. Mức độ nghiêm trọng của phản ứng
+                    <span style="float:right;">
+                    <input type="checkbox"> Đe dọa tính mạng/ gây tử vong
+                    <input type="checkbox"> Nhập viện/ kéo dài thời gian nằm viện
+                    <input type="checkbox"> Gây dị tật/ tàn tật
+                    <input type="checkbox"> Liên quan tới lạm dụng/ phụ thuộc thuốc
+                    <input type="checkbox"> Khác:...........
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td>7. Gửi báo cáo tới hội đồng thẩm định</td>
+                <td class="center">Ngày gửi ............</td>
+                <td>8. Gửi báo cáo cho UMC</td>
+                <td class="center">Ngày gửi ............</td>
+            </tr>
+            <tr>
+                <td colspan="2">9. Kết quả thẩm định
+                    <br> <input type="checkbox"> Chắc chắn
+                    <br> <input type="checkbox"> Có khả năng
+                    <br> <input type="checkbox"> Có thể
+                </td>
+                <td colspan="2"><br>
+                    <input type="checkbox"> Không chắc chắn
+                    <br> <input type="checkbox"> Chưa phân loại
+                    <br> <input type="checkbox"> Không thể phân loại
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">10. Người quản lý báo cáo: .......................................</td>
+                <td>11. Ngày: ....../....../......</td>
+                <td>12. Chữ ký: ......................</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
+
