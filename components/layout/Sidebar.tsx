@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { SVGProps } from 'react'
+import type { ComponentType, SVGProps } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -22,12 +22,12 @@ type UserRole = 'admin' | 'user'
 interface NavItem {
   label: string
   href: string
-  icon: (props: SVGProps<SVGSVGElement>) => JSX.Element
+  icon: ComponentType<SVGProps<SVGSVGElement>>
   roles?: UserRole[]
 }
 
 const baseNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: ChartBarIcon },
+  { label: 'Bảng điều khiển', href: '/dashboard', icon: ChartBarIcon },
   { label: 'Báo cáo ADR', href: '/reports', icon: DocumentTextIcon },
   { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: QrCodeIcon },
   { label: 'Thông tin ADR', href: '/adr-information', icon: InformationCircleIcon },
@@ -35,9 +35,9 @@ const baseNavItems: NavItem[] = [
 ]
 
 const adminNavItems: NavItem[] = [
-  { label: 'Quản lý Users', href: '/admin/users', icon: UsersIcon, roles: ['admin'] },
-  { label: 'Quản lý Quiz', href: '/admin/quiz', icon: ClipboardDocumentListIcon, roles: ['admin'] },
-  { label: 'Quản lý ADR Info', href: '/admin/adr-information', icon: InformationCircleIcon, roles: ['admin'] }
+  { label: 'Quản lý người dùng', href: '/admin/users', icon: UsersIcon, roles: ['admin'] },
+  { label: 'Quản lý bài kiểm tra', href: '/admin/quiz', icon: ClipboardDocumentListIcon, roles: ['admin'] },
+  { label: 'Quản lý tin ADR', href: '/admin/adr-information', icon: InformationCircleIcon, roles: ['admin'] }
 ]
 
 function isActive(pathname: string, href: string) {
@@ -152,3 +152,4 @@ export default function Sidebar() {
     </aside>
   )
 }
+

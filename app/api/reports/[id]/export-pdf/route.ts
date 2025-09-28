@@ -20,6 +20,8 @@ interface RouteParams {
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const reportId = params.id
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -30,26 +32,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const reportId = params.id
-
-    // Get the report with suspected drugs
+    // Get the report with suspected and concurrent drugs
     let query = supabaseAdmin
       .from('adr_reports')
       .select(`
         *,
-        suspected_drugs(*)
+        suspected_drugs(*),
+        concurrent_drugs(*)
       `)
       .eq('id', reportId)
       .single()
 
-    const { data: report, error } = await query
+    const { data: reportData, error } = await query
 
-    if (error || !report) {
+    if (error || !reportData) {
       return NextResponse.json(
         { error: 'Không tìm thấy báo cáo' },
         { status: 404 }
       )
     }
+
+    const report = reportData as ADRReport
 
     // PDF export is allowed for all reports (read-only operation)
     // Both admin and user can export PDF for any report they can view
@@ -61,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: report.id,
       report_code: report.report_code,
       patient_name: report.patient_name,
-      reaction_onset_time: report.reaction_onset_time, // Key field we fixed
+      reaction_onset_time: report.reaction_onset_time,
       suspected_drugs_count: report.suspected_drugs?.length || 0
     })
     
@@ -76,12 +79,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     console.log('Calling PDFService.generatePDF...')
 
     // Generate PDF
-    const pdfBuffer = await PDFService.generatePDF(report as ADRReport)
+    const pdfBuffer = await PDFService.generatePDF(report)
     
     console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
     // Create filename with report code
-    const filename = `ADR_Report_${(report as any)?.report_code || 'unknown'}.pdf`
+    const filename = `ADR_Report_${report.report_code || 'unknown'}.pdf`
 
     // Return PDF file
     return new NextResponse(pdfBuffer as BodyInit, {
@@ -96,52 +99,56 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : null
+
     // Enhanced error logging for debugging
     console.error('=== PDF GENERATION ERROR ===')
     console.error('Report ID:', reportId)
-    console.error('Error type:', error?.constructor?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error stack:', error?.stack)
+    console.error('Error type:', err?.constructor?.name ?? typeof error)
+    console.error('Error message:', err?.message ?? String(error))
+    console.error('Error stack:', err?.stack ?? 'N/A')
     
-    if (error instanceof Error) {
+    if (err) {
       console.error('Full error object:', JSON.stringify({
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: err.name,
+        message: err.message,
+        stack: err.stack
       }, null, 2))
+    } else {
+      console.error('Non-Error thrown value:', error)
     }
     
     // Check if it's a specific type of error
-    if (error instanceof Error) {
-      if (error.message.includes('browser') || error.message.includes('puppeteer')) {
+    if (err) {
+      if (err.message.includes('browser') || err.message.includes('puppeteer')) {
         console.error('PUPPETEER ERROR detected')
         return NextResponse.json(
           { 
             error: 'Lỗi hệ thống khi tạo PDF. Vui lòng thử lại sau.',
-            details: error.message // Add details for debugging
+            details: err.message // Add details for debugging
           },
           { status: 500 }
         )
       }
       
-      if (error.message.includes('timeout')) {
+      if (err.message.includes('timeout')) {
         console.error('TIMEOUT ERROR detected')
         return NextResponse.json(
           { 
             error: 'Timeout khi tạo PDF. Vui lòng thử lại.',
-            details: error.message
+            details: err.message
           },
           { status: 500 }
         )
       }
       
-      if (error.message.includes('template') || error.message.includes('HTML')) {
+      if (err.message.includes('template') || err.message.includes('HTML')) {
         console.error('TEMPLATE ERROR detected')
         return NextResponse.json(
           { 
             error: 'Lỗi template HTML. Vui lòng liên hệ admin.',
-            details: error.message
+            details: err.message
           },
           { status: 500 }
         )
@@ -152,8 +159,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { 
         error: 'Có lỗi xảy ra khi tạo file PDF',
-        details: error?.message || 'Unknown error',
-        type: error?.constructor?.name || 'Unknown'
+        details: err?.message ?? String(error),
+        type: err?.constructor?.name ?? typeof error
       },
       { status: 500 }
     )
@@ -161,6 +168,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const reportId = params.id
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -171,26 +180,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const reportId = params.id
     const body = await request.json()
     const { options = {} } = body // PDF generation options
 
-    // Get the report with suspected drugs
-    const { data: report, error } = await supabaseAdmin
+    // Get the report with suspected and concurrent drugs
+    const { data: reportData, error } = await supabaseAdmin
       .from('adr_reports')
       .select(`
         *,
-        suspected_drugs(*)
+        suspected_drugs(*),
+        concurrent_drugs(*)
       `)
       .eq('id', reportId)
       .single()
 
-    if (error || !report) {
+    if (error || !reportData) {
       return NextResponse.json(
         { error: 'Không tìm thấy báo cáo' },
         { status: 404 }
       )
     }
+
+    const report = reportData as ADRReport
 
     // PDF export is allowed for all reports (read-only operation)
     // Both admin and user can export PDF for any report they can view
@@ -208,13 +219,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     // Generate PDF with custom options
-    const pdfBuffer = await PDFService.generatePDF(report as ADRReport, options)
+    const pdfBuffer = await PDFService.generatePDF(report, options)
     
     console.log('PDF generated successfully (POST), size:', pdfBuffer.length, 'bytes')
 
     // Return PDF as base64 for preview or direct download
     const base64PDF = pdfBuffer.toString('base64')
-    const filename = `ADR_Report_${(report as any)?.report_code || 'unknown'}.pdf`
+    const filename = `ADR_Report_${report.report_code || 'unknown'}.pdf`
 
     return NextResponse.json({
       success: true,
@@ -224,27 +235,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       downloadUrl: `/api/reports/${reportId}/export-pdf` // For direct download
     })
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : null
+
     // Enhanced error logging for debugging (POST method)
     console.error('=== PDF GENERATION ERROR (POST) ===')
     console.error('Report ID:', reportId)
-    console.error('Error type:', error?.constructor?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error stack:', error?.stack)
+    console.error('Error type:', err?.constructor?.name ?? typeof error)
+    console.error('Error message:', err?.message ?? String(error))
+    console.error('Error stack:', err?.stack ?? 'N/A')
     
-    if (error instanceof Error) {
+    if (err) {
       console.error('Full error object:', JSON.stringify({
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: err.name,
+        message: err.message,
+        stack: err.stack
       }, null, 2))
+    } else {
+      console.error('Non-Error thrown value:', error)
     }
 
     return NextResponse.json(
       { 
         error: 'Có lỗi xảy ra khi tạo file PDF',
-        details: error?.message || 'Unknown error',
-        type: error?.constructor?.name || 'Unknown'
+        details: err?.message ?? String(error),
+        type: err?.constructor?.name ?? typeof error
       },
       { status: 500 }
     )

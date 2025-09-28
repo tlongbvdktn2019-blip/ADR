@@ -53,12 +53,17 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
     );
   }
 
-  // Sort data by count and take top 10
   const sortedData = [...data].sort((a, b) => b.count - a.count).slice(0, 10);
+  const normalizedData = sortedData.map(item => ({
+    ...item,
+    count: Number(item.count ?? 0),
+    percentage: Number(item.percentage ?? 0),
+  }));
+  const maxCount = Math.max(...normalizedData.map(item => item.count), 1);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const current = payload[0].payload as TopDrugData;
       return (
         <div className="bg-white p-4 border border-gray-300 rounded shadow-lg max-w-sm">
           <p className="font-medium text-blue-800 mb-2">{label}</p>
@@ -66,12 +71,12 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
             {`Số báo cáo: ${payload[0].value}`}
           </p>
           <p className="text-gray-600 mb-2">
-            {`Tỷ lệ: ${data.percentage}%`}
+            {`Tỷ lệ: ${current.percentage}%`}
           </p>
-          {data.commercialNames && data.commercialNames !== 'Không có' && (
+          {current.commercialNames && current.commercialNames !== 'Không có' && (
             <div className="border-t pt-2">
               <p className="text-xs text-gray-600 font-medium">Tên thương mại:</p>
-              <p className="text-xs text-gray-700 mt-1">{data.commercialNames}</p>
+              <p className="text-xs text-gray-700 mt-1">{current.commercialNames}</p>
             </div>
           )}
         </div>
@@ -81,8 +86,8 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
   };
 
   const CustomizedLabel = ({ x, y, width, value }: any) => {
-    if (width < 30) return null; // Don't show labels on small bars
-    
+    if (width < 30) return null;
+
     return (
       <text
         x={x + width - 5}
@@ -105,15 +110,15 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
           Top 10 thuốc nghi ngờ được báo cáo nhiều nhất
         </h3>
         <div className="text-sm text-gray-500">
-          Tổng: {data.reduce((sum, item) => sum + item.count, 0)} trường hợp
+          Tổng: {normalizedData.reduce((sum, item) => sum + item.count, 0)} trường hợp
         </div>
       </div>
-      
+
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={sortedData}
-            layout="horizontal"
+            data={normalizedData}
+            layout="vertical"
             margin={{
               top: 20,
               right: 30,
@@ -122,25 +127,27 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
+            <XAxis
               type="number"
               stroke="#6b7280"
               fontSize={12}
+              domain={[0, maxCount]}
+              allowDecimals={false}
             />
-            <YAxis 
+            <YAxis
               type="category"
               dataKey="drugName"
               stroke="#6b7280"
               fontSize={12}
-              width={100}
+              width={110}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar 
+            <Bar
               dataKey="count"
               radius={[0, 4, 4, 0]}
               label={<CustomizedLabel />}
             >
-              {sortedData.map((entry, index) => (
+              {normalizedData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={DRUG_COLORS[index % DRUG_COLORS.length]} />
               ))}
             </Bar>
@@ -148,15 +155,14 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
         </ResponsiveContainer>
       </div>
 
-      {/* Top Drugs Summary */}
       <div className="mt-4">
         <h4 className="text-sm font-medium text-gray-900 mb-3">Chi tiết top 5:</h4>
         <div className="space-y-3">
-          {sortedData.slice(0, 5).map((drug, index) => (
+          {normalizedData.slice(0, 5).map((drug, index) => (
             <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center">
-                  <div 
+                  <div
                     className="w-4 h-4 rounded mr-3"
                     style={{ backgroundColor: DRUG_COLORS[index % DRUG_COLORS.length] }}
                   ></div>
@@ -185,8 +191,7 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
         </div>
       </div>
 
-      {/* Drug Safety Alert */}
-      {sortedData.length > 0 && (
+      {normalizedData.length > 0 && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start">
             <div className="w-2 h-2 bg-blue-600 rounded-full mr-2 mt-2"></div>
@@ -195,9 +200,9 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
                 Cảnh báo an toàn thuốc
               </div>
               <div className="text-xs text-blue-700">
-                • {sortedData[0]?.drugName} là thuốc nghi ngờ gây ADR nhiều nhất ({sortedData[0]?.count} trường hợp)
+                • {normalizedData[0]?.drugName} là thuốc nghi ngờ gây ADR nhiều nhất ({normalizedData[0]?.count} trường hợp)
                 <br />
-                • Top 5 thuốc chiếm {sortedData.slice(0, 5).reduce((sum, item) => sum + item.percentage, 0)}% tổng số báo cáo
+                • Top 5 thuốc chiếm {normalizedData.slice(0, 5).reduce((sum, item) => sum + item.percentage, 0)}% tổng số báo cáo
                 <br />
                 • Cần đặc biệt chú ý khi kê đơn và theo dõi chặt chẽ bệnh nhân
                 <br />
@@ -210,12 +215,3 @@ export default function TopDrugsChart({ data, isLoading = false }: TopDrugsChart
     </Card>
   );
 }
-
-
-
-
-
-
-
-
-

@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +13,7 @@ export async function GET(request: NextRequest) {
     
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Không có quyền truy cập' },
+        { error: 'KhĂ´ng cĂ³ quyá»n truy cáº­p' },
         { status: 403 }
       )
     }
@@ -27,7 +31,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching categories:', error)
       return NextResponse.json(
-        { error: 'Không thể lấy danh sách chủ đề' },
+        { error: 'KhĂ´ng thá»ƒ láº¥y danh sĂ¡ch chá»§ Ä‘á»' },
         { status: 500 }
       )
     }
@@ -40,7 +44,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Admin quiz categories GET error:', error)
     return NextResponse.json(
-      { error: 'Lỗi server' },
+      { error: 'Lá»—i server' },
       { status: 500 }
     )
   }
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
     
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Không có quyền truy cập' },
+        { error: 'KhĂ´ng cĂ³ quyá»n truy cáº­p' },
         { status: 403 }
       )
     }
@@ -69,7 +73,7 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!name || !category_key) {
       return NextResponse.json(
-        { error: 'Tên và khóa chủ đề là bắt buộc' },
+        { error: 'TĂªn vĂ  khĂ³a chá»§ Ä‘á» lĂ  báº¯t buá»™c' },
         { status: 400 }
       )
     }
@@ -85,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'Khóa chủ đề đã tồn tại' },
+        { error: 'KhĂ³a chá»§ Ä‘á» Ä‘Ă£ tá»“n táº¡i' },
         { status: 409 }
       )
     }
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating category:', error)
       return NextResponse.json(
-        { error: 'Không thể tạo chủ đề' },
+        { error: 'KhĂ´ng thá»ƒ táº¡o chá»§ Ä‘á»' },
         { status: 500 }
       )
     }
@@ -115,14 +119,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      message: 'Tạo chủ đề thành công'
+      message: 'Táº¡o chá»§ Ä‘á» thĂ nh cĂ´ng'
     })
 
   } catch (error) {
     console.error('Admin quiz categories POST error:', error)
     return NextResponse.json(
-      { error: 'Lỗi server' },
+      { error: 'Lá»—i server' },
       { status: 500 }
     )
   }
 }
+
+
+

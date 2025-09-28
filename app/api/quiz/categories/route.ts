@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +13,7 @@ export async function GET(request: NextRequest) {
     
     if (!session) {
       return NextResponse.json(
-        { error: 'Cần đăng nhập để truy cập' },
+        { error: 'Cáº§n Ä‘Äƒng nháº­p Ä‘á»ƒ truy cáº­p' },
         { status: 401 }
       )
     }
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching quiz categories:', error)
       return NextResponse.json(
-        { error: 'Không thể lấy danh sách chủ đề quiz' },
+        { error: 'KhĂ´ng thá»ƒ láº¥y danh sĂ¡ch chá»§ Ä‘á» quiz' },
         { status: 500 }
       )
     }
@@ -48,8 +52,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Quiz categories GET error:', error)
     return NextResponse.json(
-      { error: 'Lỗi server' },
+      { error: 'Lá»—i server' },
       { status: 500 }
     )
   }
 }
+
+

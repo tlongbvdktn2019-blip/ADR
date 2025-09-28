@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
@@ -6,9 +6,11 @@ import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin', 'latin-ext', 'vietnamese'], display: 'swap' })
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Hệ thống Quản lý ADR',
-  description: 'Hệ thống Quản lý và báo cáo phản ứng có hại của thuốc(ADR)',
+  description: 'Hệ thống Quản lý và báo cáo phản ứng có hại của thuốc (ADR)',
 }
 
 export const viewport = {
@@ -42,5 +44,7 @@ export default function RootLayout({
     </html>
   )
 }
+
+
 
 

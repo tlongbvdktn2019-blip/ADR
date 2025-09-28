@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
-          { error: `Thiếu trường bắt buộc: ${field}` },
+          { error: `Thi???u tr?????ng b???t bu???c: ${field}` },
           { status: 400 }
         )
       }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (!body.suspected_drugs || body.suspected_drugs.length === 0) {
       return NextResponse.json(
-        { error: 'Phải có ít nhất một thuốc nghi ngờ' },
+        { error: 'Ph???i c?? ??t nh???t m???t thu???c nghi ng???' },
         { status: 400 }
       )
     }
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (reportError) {
       console.error('Report creation error:', reportError)
       return NextResponse.json(
-        { error: 'Không thể tạo báo cáo: ' + reportError.message },
+        { error: 'Kh??ng th??? t???o b??o c??o: ' + reportError.message },
         { status: 500 }
       )
     }
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         .eq('id', reportData.id)
       
       return NextResponse.json(
-        { error: 'Không thể tạo thông tin thuốc: ' + drugsError.message },
+        { error: 'Kh??ng th??? t???o th??ng tin thu???c: ' + drugsError.message },
         { status: 500 }
       )
     }
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Báo cáo ADR đã được tạo thành công',
+      message: 'B??o c??o ADR ???? ???????c t???o th??nh c??ng',
       report: {
         id: reportData.id,
         report_code: reportData.report_code,
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'Lỗi máy chủ nội bộ' },
+      { error: 'L???i m??y ch??? n???i b???' },
       { status: 500 }
     )
   }
@@ -202,7 +202,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('role')
       .eq('id', session.user.id)
-      .single()
+      .single<{ role: string }>()
 
     if (!userData) {
       return NextResponse.json(
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Get reports error:', error)
       return NextResponse.json(
-        { error: 'Không thể lấy danh sách báo cáo: ' + error.message },
+        { error: 'Kh??ng th??? l???y danh s??ch b??o c??o: ' + error.message },
         { status: 500 }
       )
     }
@@ -265,8 +265,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'Lỗi máy chủ nội bộ' },
+      { error: 'L???i m??y ch??? n???i b???' },
       { status: 500 }
     )
   }
 }
+
+
+
+

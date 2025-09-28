@@ -126,14 +126,22 @@ export interface InformationQueryParams extends InformationFilters {
 }
 
 // Statistics types
+export interface InformationStatsItem {
+  id: string
+  title: string
+  view_count?: number
+  likes_count?: number
+  published_at?: string
+}
+
 export interface InformationStats {
   total_published: number
   total_draft: number
   total_archived: number
   total_views: number
   total_likes: number
-  most_viewed: ADRInformation[]
-  most_liked: ADRInformation[]
+  most_viewed: InformationStatsItem[]
+  most_liked: InformationStatsItem[]
   recent_activity: {
     new_posts: number
     new_views: number

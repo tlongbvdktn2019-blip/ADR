@@ -4,6 +4,10 @@ import { authOptions } from '../../../../lib/auth-config'
 import { createClient } from '../../../../lib/supabase'
 import { InformationStats } from '../../../../types/adr-information'
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 // GET /api/adr-information/stats - Get statistics (Admin only)
 export async function GET(request: NextRequest) {
   try {
@@ -98,4 +102,7 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+
+
 

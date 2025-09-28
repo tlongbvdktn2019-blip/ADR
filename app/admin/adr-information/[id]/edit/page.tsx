@@ -78,7 +78,7 @@ export default function EditADRInformation() {
 
         if (!response.ok) {
           if (response.status === 404) {
-            toast.error('Không tìm thấy tin tức')
+            toast.error('Kh??ng t??m th???y tin t???c')
             router.replace('/admin/adr-information')
             return
           }
@@ -103,7 +103,7 @@ export default function EditADRInformation() {
         })
       } catch (error) {
         console.error('Error fetching ADR information:', error)
-        toast.error('Không thể tải tin tức')
+        toast.error('Kh??ng th??? t???i tin t???c')
         router.replace('/admin/adr-information')
       } finally {
         setLoading(false)
@@ -115,7 +115,7 @@ export default function EditADRInformation() {
 
   const ensureRequiredFields = (state: FormState) => {
     if (!state.title.trim() || !state.content.trim()) {
-      toast.error('Vui lòng nhập tiêu đề và nội dung')
+      toast.error('Vui l??ng nh???p ti??u ????? v?? n???i dung')
       return false
     }
     return true
@@ -137,7 +137,7 @@ export default function EditADRInformation() {
     payload.summary = state.summary.trim() || undefined
     payload.meta_keywords = state.meta_keywords.trim() || undefined
     payload.meta_description = state.meta_description.trim() || undefined
-    payload.expires_at = state.expires_at ? state.expires_at : null
+    payload.expires_at = state.expires_at.trim() ? state.expires_at : undefined
 
     if (state.status === 'published') {
       payload.published_at = information?.published_at || new Date().toISOString()
@@ -166,11 +166,11 @@ export default function EditADRInformation() {
         throw new Error(data.error || 'Failed to update information')
       }
 
-      toast.success('Cập nhật tin tức thành công')
+      toast.success('C???p nh???t tin t???c th??nh c??ng')
       router.push('/admin/adr-information')
     } catch (error) {
       console.error('Error updating information:', error)
-      toast.error('Không thể cập nhật tin tức')
+      toast.error('Kh??ng th??? c???p nh???t tin t???c')
     } finally {
       setSaving(false)
     }
@@ -228,104 +228,104 @@ export default function EditADRInformation() {
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeftIcon className="w-5 h-5 mr-1" />
-            Quay lại
+            Quay l???i
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa tin tức</h1>
-            <p className="text-gray-600">Cập nhật nội dung, trạng thái và thiết lập hiển thị cho tin tức ADR</p>
+            <h1 className="text-2xl font-bold text-gray-900">Ch???nh s???a tin t???c</h1>
+            <p className="text-gray-600">C???p nh???t n???i dung, tr???ng th??i v?? thi???t l???p hi???n th??? cho tin t???c ADR</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Th??ng tin c?? b???n</h2>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tiêu đề *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ti??u ????? *</label>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập tiêu đề tin tức"
+                placeholder="Nh???p ti??u ????? tin t???c"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tóm tắt</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">T??m t???t</label>
               <textarea
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập tóm tắt ngắn gọn"
+                placeholder="Nh???p t??m t???t ng???n g???n"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Loại tin tức</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Lo???i tin t???c</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as InformationType })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="news">Tin tức</option>
-                  <option value="guideline">Hướng dẫn</option>
-                  <option value="alert">Cảnh báo</option>
-                  <option value="announcement">Thông báo</option>
-                  <option value="education">Đào tạo</option>
+                  <option value="news">Tin t???c</option>
+                  <option value="guideline">H?????ng d???n</option>
+                  <option value="alert">C???nh b??o</option>
+                  <option value="announcement">Th??ng b??o</option>
+                  <option value="education">????o t???o</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Độ ưu tiên</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">????? ??u ti??n</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value, 10) || 1 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={1}>Rất cao (1)</option>
+                  <option value={1}>R???t cao (1)</option>
                   <option value={2}>Cao (2)</option>
-                  <option value={3}>Trung bình (3)</option>
-                  <option value={4}>Thấp (4)</option>
-                  <option value={5}>Rất thấp (5)</option>
+                  <option value={3}>Trung b??nh (3)</option>
+                  <option value={4}>Th???p (4)</option>
+                  <option value={5}>R???t th???p (5)</option>
                 </select>
               </div>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tr???ng th??i</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as InformationStatus })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="draft">Bản nháp</option>
-                <option value="published">Đã xuất bản</option>
-                <option value="archived">Đã lưu trữ</option>
+                <option value="draft">B???n nh??p</option>
+                <option value="published">???? xu???t b???n</option>
+                <option value="archived">???? l??u tr???</option>
               </select>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nội dung *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">N???i dung *</label>
               <textarea
                 required
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={12}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nhập nội dung chi tiết (có thể sử dụng HTML)"
+                placeholder="Nh???p n???i dung chi ti???t (c?? th??? s??? d???ng HTML)"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Có thể sử dụng các thẻ HTML cơ bản: &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;
+                C?? th??? s??? d???ng c??c th??? HTML c?? b???n: &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;
               </p>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tags và từ khóa</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tags v?? t??? kh??a</h2>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
@@ -341,10 +341,10 @@ export default function EditADRInformation() {
                     }
                   }}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập tag"
+                  placeholder="Nh???p tag"
                 />
                 <Button type="button" variant="outline" onClick={addTag}>
-                  Thêm
+                  Th??m
                 </Button>
               </div>
 
@@ -357,9 +357,9 @@ export default function EditADRInformation() {
                         type="button"
                         onClick={() => removeTag(tag)}
                         className="ml-1 text-blue-600 hover:text-blue-800"
-                        aria-label={`Xóa tag ${tag}`}
+                        aria-label={`X??a tag ${tag}`}
                       >
-                        ×
+                        ??
                       </button>
                     </span>
                   ))}
@@ -375,7 +375,7 @@ export default function EditADRInformation() {
                   value={formData.meta_keywords}
                   onChange={(e) => setFormData({ ...formData, meta_keywords: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="từ khóa, tách, bằng, dấu phẩy"
+                  placeholder="t??? kh??a, t??ch, b???ng, d???u ph???y"
                 />
               </div>
 
@@ -386,22 +386,22 @@ export default function EditADRInformation() {
                   value={formData.meta_description}
                   onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Mô tả ngắn cho SEO"
+                  placeholder="M?? t??? ng???n cho SEO"
                 />
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Cài đặt hiển thị</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">C??i ?????t hi???n th???</h2>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Đối tượng mục tiêu</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">?????i t?????ng m???c ti??u</label>
               <div className="space-y-2">
                 {[
-                  { value: 'public', label: 'Công khai' },
-                  { value: 'user', label: 'Người dùng đã đăng ký' },
-                  { value: 'admin', label: 'Quản trị viên' },
+                  { value: 'public', label: 'C??ng khai' },
+                  { value: 'user', label: 'Ng?????i d??ng ???? ????ng k??' },
+                  { value: 'admin', label: 'Qu???n tr??? vi??n' },
                 ].map((audience) => (
                   <label key={audience.value} className="flex items-center">
                     <input
@@ -424,7 +424,7 @@ export default function EditADRInformation() {
                   onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Ghim tin tức này lên đầu</span>
+                <span className="ml-2 text-sm text-gray-700">Ghim tin t???c n??y l??n ?????u</span>
               </label>
 
               <label className="flex items-center">
@@ -434,25 +434,25 @@ export default function EditADRInformation() {
                   onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Hiển thị trên trang chủ</span>
+                <span className="ml-2 text-sm text-gray-700">Hi???n th??? tr??n trang ch???</span>
               </label>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ngày hết hạn (tùy chọn)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ng??y h???t h???n (t??y ch???n)</label>
               <input
                 type="date"
                 value={formData.expires_at}
                 onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-sm text-gray-500 mt-1">Nếu không chọn, tin tức sẽ không có thời hạn</p>
+              <p className="text-sm text-gray-500 mt-1">N???u kh??ng ch???n, tin t???c s??? kh??ng c?? th???i h???n</p>
             </div>
           </div>
 
           <div className="flex justify-end space-x-4">
             <Link href="/admin/adr-information">
-              <Button variant="outline">Hủy bỏ</Button>
+              <Button variant="outline">H???y b???</Button>
             </Link>
 
             {formData.status !== 'published' && (
@@ -462,7 +462,7 @@ export default function EditADRInformation() {
                 disabled={saving}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
-                {saving ? 'Đang xuất bản...' : 'Xuất bản ngay'}
+                {saving ? '??ang xu???t b???n...' : 'Xu???t b???n ngay'}
               </Button>
             )}
 
@@ -470,10 +470,10 @@ export default function EditADRInformation() {
               {saving ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span>Đang lưu...</span>
+                  <span>??ang l??u...</span>
                 </>
               ) : (
-                <span>Lưu thay đổi</span>
+                <span>L??u thay ?????i</span>
               )}
             </Button>
           </div>

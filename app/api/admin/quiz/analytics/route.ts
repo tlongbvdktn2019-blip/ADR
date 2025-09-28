@@ -1,7 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +13,7 @@ export async function GET(request: NextRequest) {
     
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Không có quyền truy cập' },
+        { error: 'KhĂ´ng cĂ³ quyá»n truy cáº­p' },
         { status: 403 }
       )
     }
@@ -160,8 +164,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Admin quiz analytics error:', error)
     return NextResponse.json(
-      { error: 'Lỗi server' },
+      { error: 'Lá»—i server' },
       { status: 500 }
     )
   }
 }
+
+
+

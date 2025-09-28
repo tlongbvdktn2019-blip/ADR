@@ -1,9 +1,9 @@
-﻿import { ButtonHTMLAttributes, forwardRef } from 'react'
+import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { clsx } from 'clsx'
 import LoadingSpinner from './LoadingSpinner'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'danger'
+  variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   fullWidth?: boolean
@@ -27,7 +27,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
       secondary: 'bg-secondary-100 hover:bg-secondary-200 text-secondary-700 focus:ring-secondary-500',
       outline: 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:ring-primary-500',
-      danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
+      danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+      ghost: 'bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-primary-500'
     }
     
     const sizeClasses = {
@@ -61,6 +62,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button'
 
 export default Button
+
+
 
 
 

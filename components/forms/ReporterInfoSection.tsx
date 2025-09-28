@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState, type ChangeEvent } from 'react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { ADRFormData } from '@/app/reports/new/page'
@@ -9,11 +10,49 @@ interface ReporterInfoSectionProps {
   updateData: (updates: Partial<ADRFormData>) => void
 }
 
+const CUSTOM_PROFESSION_VALUE = '__OTHER__'
+
+const PROFESSION_OPTIONS = [
+  { value: 'Bác sĩ', label: 'Bác sĩ' },
+  { value: 'Dược sĩ', label: 'Dược sĩ' },
+  { value: 'Điều dưỡng', label: 'Điều dưỡng' },
+  { value: 'Kỹ thuật viên', label: 'Kỹ thuật viên' },
+  { value: 'Nhân viên y tế', label: 'Nhân viên y tế' },
+  { value: 'Quản lý bệnh viện', label: 'Quản lý bệnh viện' },
+  { value: 'Sinh viên y khoa', label: 'Sinh viên y khoa' },
+  { value: CUSTOM_PROFESSION_VALUE, label: 'Khác (ghi rõ)' },
+]
+
 export default function ReporterInfoSection({ data, updateData }: ReporterInfoSectionProps) {
   const reportTypeOptions = [
     { value: 'initial', label: 'Lần đầu' },
     { value: 'follow_up', label: 'Bổ sung' },
   ]
+
+  const [professionChoice, setProfessionChoice] = useState<string>('')
+
+  useEffect(() => {
+    if (!data.reporter_profession) {
+      setProfessionChoice((current) => current === CUSTOM_PROFESSION_VALUE ? CUSTOM_PROFESSION_VALUE : '')
+      return
+    }
+
+    const matchedOption = PROFESSION_OPTIONS.find((option) => option.value === data.reporter_profession)
+    setProfessionChoice(matchedOption ? matchedOption.value : CUSTOM_PROFESSION_VALUE)
+  }, [data.reporter_profession])
+
+  const handleProfessionChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value
+    setProfessionChoice(value)
+
+    if (value === CUSTOM_PROFESSION_VALUE) {
+      if (PROFESSION_OPTIONS.some((option) => option.value === data.reporter_profession)) {
+        updateData({ reporter_profession: '' })
+      }
+    } else {
+      updateData({ reporter_profession: value })
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -35,13 +74,26 @@ export default function ReporterInfoSection({ data, updateData }: ReporterInfoSe
           required
         />
 
-        <Input
-          label="Nghề nghiệp"
-          value={data.reporter_profession}
-          onChange={(e) => updateData({ reporter_profession: e.target.value })}
-          placeholder="VD: Bác sĩ, Dược sĩ, Điều dưỡng"
-          required
-        />
+        <div className="space-y-4">
+          <Select
+            label="Nghề nghiệp"
+            value={professionChoice}
+            onChange={handleProfessionChange}
+            options={PROFESSION_OPTIONS}
+            placeholder="Chọn nghề nghiệp"
+            required
+            helperText="Chọn nghề nghiệp phù hợp; chọn 'Khác' nếu không có trong danh sách"
+          />
+          {professionChoice === CUSTOM_PROFESSION_VALUE && (
+            <Input
+              label="Nghề nghiệp (ghi rõ)"
+              value={data.reporter_profession}
+              onChange={(e) => updateData({ reporter_profession: e.target.value })}
+              placeholder="Nhập nghề nghiệp khác"
+              required
+            />
+          )}
+        </div>
 
         <Input
           label="Số điện thoại"
@@ -104,7 +156,7 @@ export default function ReporterInfoSection({ data, updateData }: ReporterInfoSe
           </div>
           <div className="ml-3">
             <p className="text-sm text-green-800">
-              <strong>Sẵn sàng gửi báo cáo:</strong> Vui lòng kiểm tra lại toàn bộ thông tin trước khi gửi. 
+              <strong>Sẵn sàng gửi báo cáo:</strong> Vui lòng kiểm tra lại toàn bộ thông tin trước khi gửi.
               Sau khi gửi, báo cáo sẽ được lưu vào hệ thống và có thể được chỉnh sửa sau này.
             </p>
           </div>
@@ -138,5 +190,3 @@ function getCausalityLabel(causality: string) {
   }
   return labels[causality] || causality
 }
-
-

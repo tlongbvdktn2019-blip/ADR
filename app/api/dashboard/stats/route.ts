@@ -1,4 +1,4 @@
-// =====================================================
+﻿// =====================================================
 // DASHBOARD STATS API
 // API endpoint for dashboard statistics
 // =====================================================
@@ -6,7 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
+
+export const dynamic = 'force-dynamic';
+
 
 interface DashboardStats {
   totalReports: number;
@@ -29,9 +32,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createServerClient();
     const isAdmin = (session.user as any).role === 'admin';
-
+    const supabase = createAdminClient();
     // Base query for reports
     let reportsQuery = supabase
       .from('adr_reports')
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
     if (reportsError) {
       console.error('Error fetching reports:', reportsError);
       return NextResponse.json({ 
-        error: 'Không thể tải thống kê' 
+        error: 'KhĂ´ng thá»ƒ táº£i thá»‘ng kĂª' 
       }, { status: 500 });
     }
 
@@ -100,7 +102,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Dashboard stats API error:', error);
     return NextResponse.json({ 
-      error: 'Lỗi server khi tải thống kê' 
+      error: 'Lá»—i server khi táº£i thá»‘ng kĂª' 
     }, { status: 500 });
   }
 }
+
+
+
+

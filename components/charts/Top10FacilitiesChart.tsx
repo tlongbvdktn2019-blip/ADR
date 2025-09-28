@@ -52,8 +52,13 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
     );
   }
 
-  // Sort data by count and take top 10
   const sortedData = [...data].sort((a, b) => b.count - a.count).slice(0, 10);
+  const normalizedData = sortedData.map(item => ({
+    ...item,
+    count: Number(item.count ?? 0),
+    percentage: Number(item.percentage ?? 0),
+  }));
+  const maxCount = Math.max(...normalizedData.map(item => item.count), 1);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -73,8 +78,8 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
   };
 
   const CustomizedLabel = ({ x, y, width, value }: any) => {
-    if (width < 30) return null; // Don't show labels on small bars
-    
+    if (width < 30) return null;
+
     return (
       <text
         x={x + width - 5}
@@ -97,15 +102,15 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
           Top 10 cơ sở có nhiều báo cáo nhất
         </h3>
         <div className="text-sm text-gray-500">
-          Tổng: {data.reduce((sum, item) => sum + item.count, 0)} báo cáo
+          Tổng: {normalizedData.reduce((sum, item) => sum + item.count, 0)} báo cáo
         </div>
       </div>
-      
+
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={sortedData}
-            layout="horizontal"
+            data={normalizedData}
+            layout="vertical"
             margin={{
               top: 20,
               right: 30,
@@ -114,12 +119,14 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
+            <XAxis
               type="number"
               stroke="#6b7280"
               fontSize={12}
+              domain={[0, maxCount]}
+              allowDecimals={false}
             />
-            <YAxis 
+            <YAxis
               type="category"
               dataKey="facilityName"
               stroke="#6b7280"
@@ -128,12 +135,12 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
               tick={{ fontSize: 11 }}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Bar 
+            <Bar
               dataKey="count"
               radius={[0, 4, 4, 0]}
               label={<CustomizedLabel />}
             >
-              {sortedData.map((entry, index) => (
+              {normalizedData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={FACILITY_COLORS[index % FACILITY_COLORS.length]} />
               ))}
             </Bar>
@@ -141,14 +148,13 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
         </ResponsiveContainer>
       </div>
 
-      {/* Top Facilities Summary */}
       <div className="mt-4">
         <h4 className="text-sm font-medium text-gray-900 mb-3">Chi tiết top 5:</h4>
         <div className="space-y-2">
-          {sortedData.slice(0, 5).map((facility, index) => (
+          {normalizedData.slice(0, 5).map((facility, index) => (
             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center">
-                <div 
+                <div
                   className="w-4 h-4 rounded mr-3 flex-shrink-0"
                   style={{ backgroundColor: FACILITY_COLORS[index % FACILITY_COLORS.length] }}
                 ></div>
@@ -174,8 +180,7 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
         </div>
       </div>
 
-      {/* Facilities Alert */}
-      {sortedData.length > 0 && (
+      {normalizedData.length > 0 && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-start">
             <div className="w-2 h-2 bg-red-600 rounded-full mr-2 mt-2 flex-shrink-0"></div>
@@ -184,9 +189,9 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
                 Thông tin quan trọng
               </div>
               <div className="text-xs text-red-700">
-                • {sortedData[0]?.facilityName} là cơ sở có nhiều báo cáo ADR nhất ({sortedData[0]?.count} báo cáo)
+                • {normalizedData[0]?.facilityName} là cơ sở có nhiều báo cáo ADR nhất ({normalizedData[0]?.count} báo cáo)
                 <br />
-                • Top 5 cơ sở chiếm {sortedData.slice(0, 5).reduce((sum, item) => sum + item.percentage, 0)}% tổng số báo cáo
+                • Top 5 cơ sở chiếm {normalizedData.slice(0, 5).reduce((sum, item) => sum + item.percentage, 0)}% tổng số báo cáo
                 <br />
                 • Cần tăng cường giám sát và hỗ trợ các cơ sở có số báo cáo cao
               </div>
@@ -197,12 +202,3 @@ export default function Top10FacilitiesChart({ data, isLoading = false }: Top10F
     </Card>
   );
 }
-
-
-
-
-
-
-
-
-

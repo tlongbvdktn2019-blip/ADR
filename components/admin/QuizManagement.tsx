@@ -113,16 +113,25 @@ export default function QuizManagement({ onClose }: QuizManagementProps) {
         method: 'DELETE'
       })
 
+      const result = await response.json().catch(() => null)
+
       if (!response.ok) {
-        throw new Error('Failed to delete question')
+        const message = (result && (result.error || result.message))
+          || (response.status === 409
+            ? 'Không thể xóa câu hỏi đã được sử dụng trong các phiên làm bài'
+            : 'Không thể xóa câu hỏi')
+        throw new Error(message)
       }
 
-      toast.success('Question deleted successfully')
+      const successMessage = (result && (result.message || result.success && 'Xóa câu hỏi thành công'))
+        || 'Xóa câu hỏi thành công'
+      toast.success(successMessage)
       setDeleteConfirm(null)
       loadQuestions(selectedCategory, selectedDifficulty)
     } catch (error) {
       console.error('Delete question error:', error)
-      toast.error('Failed to delete question')
+      const message = error instanceof Error ? error.message : 'Không thể xóa câu hỏi'
+      toast.error(message)
     }
   }
 

@@ -6,70 +6,68 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
-/**
- * GET /api/dashboard/charts
- * Get chart data for dashboard
- */
+export const dynamic = 'force-dynamic';
+
+type AgeRow = { patient_age: number | null };
+type SeverityRow = { severity_level: string | null };
+type TrendRow = { created_at: string; severity_level: string | null };
+type OutcomeRow = { outcome_after_treatment: string | null };
+type FacilityRow = { organization: string | null };
+type DrugRow = { drug_name: string; commercial_name: string | null };
+type ReportsByDateRow = {
+  report_date: string | null;
+  created_at: string;
+  severity_level: string | null;
+  id: string;
+};
+type OccupationRow = { reporter_profession: string | null };
+
+type ChartData = {
+  ageDistribution?: Array<{ ageRange: string; count: number; percentage: number }>;
+  severityDistribution?: Array<{ severity: string; severityKey: string; count: number; percentage: number }>;
+  monthlyTrends?: Array<{ month: string; monthKey: string; total: number; serious: number; nonSerious: number }>;
+  drugDistribution?: Array<{ drugName: string; count: number; percentage: number }>;
+  outcomeDistribution?: Array<{ outcome: string; outcomeKey: string; count: number; percentage: number }>;
+  topFacilities?: Array<{ facilityName: string; count: number; percentage: number }>;
+  topDrugs?: Array<{ drugName: string; count: number; commercialNames: string; percentage: number }>;
+  occupationAnalysis?: Array<{ profession: string; count: number; percentage: number }>;
+  reportsByDate?: Array<{ date: string; dateKey: string; total: number; serious: number; nonSerious: number }>;
+};
+
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 [CHARTS API] Starting dashboard charts API call...');
-    
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      console.log('❌ [CHARTS API] No session or user ID found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ [CHARTS API] Session found:', {
-      userId: session.user.id,
-      userRole: (session.user as any).role,
-      userEmail: session.user.email
-    });
-
-    const supabase = createServerClient();
-    const isAdmin = (session.user as any).role === 'admin';
-    
-    console.log('🔑 [CHARTS API] User is admin:', isAdmin);
-
-    // Get query parameters
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const chartType = searchParams.get('type');
 
-    // No filtering by user role - both admin and user can view charts for all reports
-    // This provides system-wide analytics while maintaining edit restrictions
-    const baseCondition = {};
+    const chartData: ChartData = {};
 
-    let chartData: any = {};
-
-    // Age Distribution Chart
+    // Age distribution
     if (!chartType || chartType === 'age') {
-      console.log('👥 [CHARTS API] Fetching age distribution data...');
-      
-      const { data: ageData, error: ageError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
-        .select('patient_age')
-        .match(baseCondition);
+        .select('patient_age');
 
-      if (ageError) {
-        console.error('❌ [CHARTS API] Age data error:', ageError);
-      } else {
-        console.log(`✅ [CHARTS API] Age data fetched: ${ageData?.length || 0} records`);
-      }
-
-      if (!ageError && ageData) {
-        const ageGroups = {
+      if (!error && data) {
+        const rows = data as AgeRow[];
+        const ageGroups: Record<string, number> = {
           '0-18': 0,
           '19-30': 0,
           '31-50': 0,
           '51-65': 0,
-          '66+': 0
+          '66+': 0,
         };
 
-        ageData.forEach(report => {
-          const age = report.patient_age;
+        rows.forEach(({ patient_age }) => {
+          const age = patient_age ?? 0;
           if (age <= 18) ageGroups['0-18']++;
           else if (age <= 30) ageGroups['19-30']++;
           else if (age <= 50) ageGroups['31-50']++;
@@ -77,92 +75,94 @@ export async function GET(request: NextRequest) {
           else ageGroups['66+']++;
         });
 
+        const total = rows.length || 1;
         chartData.ageDistribution = Object.entries(ageGroups).map(([range, count]) => ({
           ageRange: range,
           count,
-          percentage: ageData.length > 0 ? Math.round((count / ageData.length) * 100) : 0
+          percentage: Math.round((count / total) * 100),
         }));
       }
     }
 
-    // Severity Level Chart
+    // Severity distribution
     if (!chartType || chartType === 'severity') {
-      const { data: severityData, error: severityError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
-        .select('severity_level')
-        .match(baseCondition);
+        .select('severity_level');
 
-      if (!severityError && severityData) {
-        const severityCount: { [key: string]: number } = {};
-        
-        severityData.forEach(report => {
-          const level = report.severity_level || 'unknown';
+      if (!error && data) {
+        const rows = data as SeverityRow[];
+        const severityCount: Record<string, number> = {};
+
+        rows.forEach(({ severity_level }) => {
+          const level = severity_level || 'unknown';
           severityCount[level] = (severityCount[level] || 0) + 1;
         });
 
-        const severityLabels: { [key: string]: string } = {
-          'death': 'Tử vong',
-          'life_threatening': 'Nguy hiểm tính mạng',
-          'hospitalization': 'Nhập viện',
-          'prolongation': 'Kéo dài nằm viện',
-          'disability': 'Tàn tật',
-          'congenital_anomaly': 'Dị tật bẩm sinh',
-          'other_important': 'Quan trọng khác',
-          'not_serious': 'Không nghiêm trọng',
-          'unknown': 'Chưa xác định'
+        const labels: Record<string, string> = {
+          death: 'Tử vong',
+          life_threatening: 'Nguy hiểm tính mạng',
+          hospitalization: 'Nhập viện',
+          prolongation: 'Kéo dài nằm viện',
+          disability: 'Tàn tật',
+          congenital_anomaly: 'Dị tật bẩm sinh',
+          other_important: 'Quan trọng khác',
+          not_serious: 'Không nghiêm trọng',
+          unknown: 'Chưa xác định',
         };
 
-        chartData.severityDistribution = Object.entries(severityCount).map(([level, count]) => ({
-          severity: severityLabels[level] || level,
-          severityKey: level,
-          count,
-          percentage: severityData.length > 0 ? Math.round((count / severityData.length) * 100) : 0
-        })).sort((a, b) => b.count - a.count);
+        const total = rows.length || 1;
+        chartData.severityDistribution = Object.entries(severityCount)
+          .map(([level, count]) => ({
+            severity: labels[level] || level,
+            severityKey: level,
+            count,
+            percentage: Math.round((count / total) * 100),
+          }))
+          .sort((a, b) => b.count - a.count);
       }
     }
 
-    // Monthly Trends Chart (last 12 months)
+    // Monthly trends (last 12 months)
     if (!chartType || chartType === 'trends') {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-      const { data: trendsData, error: trendsError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
         .select('created_at, severity_level')
         .gte('created_at', twelveMonthsAgo.toISOString())
-        .match(baseCondition)
         .order('created_at', { ascending: true });
 
-      if (!trendsError && trendsData) {
-        const monthlyData: { [key: string]: { total: number; serious: number } } = {};
-        
-        trendsData.forEach(report => {
-          const month = new Date(report.created_at).toISOString().slice(0, 7); // YYYY-MM
-          if (!monthlyData[month]) {
-            monthlyData[month] = { total: 0, serious: 0 };
+      if (!error && data) {
+        const rows = data as TrendRow[];
+        const monthly: Record<string, { total: number; serious: number }> = {};
+        const seriousLevels = new Set(['death', 'life_threatening', 'hospitalization', 'disability']);
+
+        rows.forEach(({ created_at, severity_level }) => {
+          const monthKey = new Date(created_at).toISOString().slice(0, 7);
+          if (!monthly[monthKey]) {
+            monthly[monthKey] = { total: 0, serious: 0 };
           }
-          monthlyData[month].total++;
-          
-          const seriousLevels = ['death', 'life_threatening', 'hospitalization', 'disability'];
-          if (seriousLevels.includes(report.severity_level)) {
-            monthlyData[month].serious++;
+          monthly[monthKey].total++;
+          if (severity_level && seriousLevels.has(severity_level)) {
+            monthly[monthKey].serious++;
           }
         });
 
-        // Fill missing months with 0
-        const months = [];
+        const months: Array<{ month: string; monthKey: string; total: number; serious: number; nonSerious: number }> = [];
         const now = new Date();
         for (let i = 11; i >= 0; i--) {
           const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthKey = date.toISOString().slice(0, 7);
-          const monthName = date.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
-          
+          const key = date.toISOString().slice(0, 7);
+          const label = date.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+          const totals = monthly[key] || { total: 0, serious: 0 };
           months.push({
-            month: monthName,
-            monthKey,
-            total: monthlyData[monthKey]?.total || 0,
-            serious: monthlyData[monthKey]?.serious || 0,
-            nonSerious: (monthlyData[monthKey]?.total || 0) - (monthlyData[monthKey]?.serious || 0)
+            month: label,
+            monthKey: key,
+            total: totals.total,
+            serious: totals.serious,
+            nonSerious: totals.total - totals.serious,
           });
         }
 
@@ -170,255 +170,220 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Drug Category Analysis (top 10 drugs)
+    // Drug distribution
     if (!chartType || chartType === 'drugs') {
-      const { data: drugData, error: drugError } = await supabase
+      const { data, error } = await supabase
         .from('suspected_drugs')
-        .select('drug_name, adr_reports!inner(reporter_id)')
-        .match(isAdmin ? {} : { 'adr_reports.reporter_id': session.user.id });
+        .select('drug_name');
 
-      if (!drugError && drugData) {
-        const drugCount: { [key: string]: number } = {};
-        
-        drugData.forEach(drug => {
-          const drugName = drug.drug_name.toLowerCase();
-          drugCount[drugName] = (drugCount[drugName] || 0) + 1;
+      if (!error && data) {
+        const rows = data as DrugRow[];
+        const count: Record<string, number> = {};
+
+        rows.forEach(({ drug_name }) => {
+          const key = (drug_name || 'khác').trim().toLowerCase();
+          count[key] = (count[key] || 0) + 1;
         });
 
-        chartData.drugDistribution = Object.entries(drugCount)
-          .map(([drug, count]) => ({
+        const total = rows.length || 1;
+        chartData.drugDistribution = Object.entries(count)
+          .map(([drug, value]) => ({
             drugName: drug.charAt(0).toUpperCase() + drug.slice(1),
-            count,
-            percentage: drugData.length > 0 ? Math.round((count / drugData.length) * 100) : 0
+            count: value,
+            percentage: Math.round((value / total) * 100),
           }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 10); // Top 10
+          .slice(0, 10);
       }
     }
 
-    // Outcome Analysis
+    // Outcome distribution
     if (!chartType || chartType === 'outcomes') {
-      const { data: outcomeData, error: outcomeError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
-        .select('outcome_after_treatment')
-        .match(baseCondition);
+        .select('outcome_after_treatment');
 
-      if (!outcomeError && outcomeData) {
-        const outcomeCount: { [key: string]: number } = {};
-        
-        outcomeData.forEach(report => {
-          const outcome = report.outcome_after_treatment || 'unknown';
-          outcomeCount[outcome] = (outcomeCount[outcome] || 0) + 1;
+      if (!error && data) {
+        const rows = data as OutcomeRow[];
+        const counts: Record<string, number> = {};
+
+        rows.forEach(({ outcome_after_treatment }) => {
+          const outcome = outcome_after_treatment || 'unknown';
+          counts[outcome] = (counts[outcome] || 0) + 1;
         });
 
-        const outcomeLabels: { [key: string]: string } = {
-          'completely_recovered': 'Hoàn toàn khỏi',
-          'recovering': 'Đang hồi phục',
-          'not_recovered': 'Chưa khỏi',
-          'recovered_with_sequelae': 'Khỏi có di chứng',
-          'death': 'Tử vong',
-          'unknown': 'Chưa xác định'
+        const labels: Record<string, string> = {
+          completely_recovered: 'Hoàn toàn khỏi',
+          recovering: 'Đang hồi phục',
+          not_recovered: 'Chưa khỏi',
+          recovered_with_sequelae: 'Khỏi có di chứng',
+          death: 'Tử vong',
+          unknown: 'Chưa xác định',
         };
 
-        chartData.outcomeDistribution = Object.entries(outcomeCount).map(([outcome, count]) => ({
-          outcome: outcomeLabels[outcome] || outcome,
-          outcomeKey: outcome,
-          count,
-          percentage: outcomeData.length > 0 ? Math.round((count / outcomeData.length) * 100) : 0
-        })).sort((a, b) => b.count - a.count);
+        const total = rows.length || 1;
+        chartData.outcomeDistribution = Object.entries(counts).map(([key, value]) => ({
+          outcome: labels[key] || key,
+          outcomeKey: key,
+          count: value,
+          percentage: Math.round((value / total) * 100),
+        }));
       }
     }
 
-    // Top 10 Facilities Analysis 
+    // Top 10 facilities
     if (!chartType || chartType === 'facilities') {
-      const { data: facilityData, error: facilityError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
-        .select('organization')
-        .match(baseCondition);
+        .select('organization');
 
-      if (!facilityError && facilityData) {
-        const facilityCount: { [key: string]: number } = {};
-        
-        facilityData.forEach(report => {
-          const facility = report.organization || 'Chưa xác định';
-          facilityCount[facility] = (facilityCount[facility] || 0) + 1;
+      if (!error && data) {
+        const rows = data as FacilityRow[];
+        const counts: Record<string, number> = {};
+
+        rows.forEach(({ organization }) => {
+          const key = organization?.trim() || 'Chưa xác định';
+          counts[key] = (counts[key] || 0) + 1;
         });
 
-        chartData.topFacilities = Object.entries(facilityCount)
-          .map(([facility, count]) => ({
+        const total = rows.length || 1;
+        chartData.topFacilities = Object.entries(counts)
+          .map(([facility, value]) => ({
             facilityName: facility,
-            count,
-            percentage: facilityData.length > 0 ? Math.round((count / facilityData.length) * 100) : 0
+            count: value,
+            percentage: Math.round((value / total) * 100),
           }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 10); // Top 10
+          .slice(0, 10);
       }
     }
 
-    // Top 10 Suspected Drugs (Enhanced)
+    // Top 10 suspected drugs (detailed)
     if (!chartType || chartType === 'topDrugs') {
-      const { data: suspectedDrugData, error: suspectedDrugError } = await supabase
+      const { data, error } = await supabase
         .from('suspected_drugs')
-        .select('drug_name, commercial_name, adr_reports!inner(id)')
-        .match(baseCondition);
+        .select('drug_name, commercial_name');
 
-      if (!suspectedDrugError && suspectedDrugData) {
-        const drugCount: { [key: string]: { count: number; commercial: string[] } } = {};
-        
-        suspectedDrugData.forEach(drug => {
-          const drugName = drug.drug_name.toLowerCase();
-          if (!drugCount[drugName]) {
-            drugCount[drugName] = { count: 0, commercial: [] };
+      if (!error && data) {
+        const rows = data as DrugRow[];
+        const stats: Record<string, { count: number; commercial: Set<string> }> = {};
+
+        rows.forEach(({ drug_name, commercial_name }) => {
+          const key = (drug_name || 'khác').trim().toLowerCase();
+          if (!stats[key]) {
+            stats[key] = { count: 0, commercial: new Set<string>() };
           }
-          drugCount[drugName].count++;
-          if (drug.commercial_name && !drugCount[drugName].commercial.includes(drug.commercial_name)) {
-            drugCount[drugName].commercial.push(drug.commercial_name);
+          stats[key].count++;
+          if (commercial_name) {
+            stats[key].commercial.add(commercial_name);
           }
         });
 
-        chartData.topDrugs = Object.entries(drugCount)
-          .map(([drug, data]) => ({
+        const total = rows.length || 1;
+        chartData.topDrugs = Object.entries(stats)
+          .map(([drug, info]) => ({
             drugName: drug.charAt(0).toUpperCase() + drug.slice(1),
-            count: data.count,
-            commercialNames: data.commercial.join(', ') || 'Không có',
-            percentage: suspectedDrugData.length > 0 ? Math.round((data.count / suspectedDrugData.length) * 100) : 0
+            count: info.count,
+            commercialNames: info.commercial.size > 0 ? Array.from(info.commercial).join(', ') : 'Không có',
+            percentage: Math.round((info.count / total) * 100),
           }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 10); // Top 10
+          .slice(0, 10);
       }
     }
 
-    // Reports by Occupation Analysis
+    // Occupation analysis
     if (!chartType || chartType === 'occupation') {
-      const { data: occupationData, error: occupationError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
-        .select('reporter_profession')
-        .match(baseCondition);
+        .select('reporter_profession');
 
-      if (!occupationError && occupationData) {
-        const occupationCount: { [key: string]: number } = {};
-        
-        occupationData.forEach(report => {
-          const profession = report.reporter_profession || 'Chưa xác định';
-          occupationCount[profession] = (occupationCount[profession] || 0) + 1;
+      if (!error && data) {
+        const rows = data as OccupationRow[];
+        const counts: Record<string, number> = {};
+
+        rows.forEach(({ reporter_profession }) => {
+          const key = reporter_profession?.trim() || 'Chưa xác định';
+          counts[key] = (counts[key] || 0) + 1;
         });
 
-        chartData.occupationAnalysis = Object.entries(occupationCount)
-          .map(([profession, count]) => ({
-            profession: profession,
-            count,
-            percentage: occupationData.length > 0 ? Math.round((count / occupationData.length) * 100) : 0
+        const total = rows.length || 1;
+        chartData.occupationAnalysis = Object.entries(counts)
+          .map(([profession, value]) => ({
+            profession,
+            count: value,
+            percentage: Math.round((value / total) * 100),
           }))
           .sort((a, b) => b.count - a.count);
       }
     }
 
-    // Reports by Month Analysis - FIXED VERSION (from working detailed debug)
+    // Reports by date
     if (!chartType || chartType === 'reportsByDate') {
-      console.log('📅 [CHARTS API] Fetching monthly reports data (FIXED)...');
-      
-      // Get ALL reports - same as detailed debug that works
-      const { data: dateData, error: dateError } = await supabase
+      const { data, error } = await supabase
         .from('adr_reports')
         .select('report_date, created_at, severity_level, id')
         .order('created_at', { ascending: true });
 
-      if (dateError) {
-        console.error('❌ [CHARTS API] Monthly reports data error:', dateError);
-      } else {
-        console.log(`✅ [CHARTS API] Monthly reports data fetched: ${dateData?.length || 0} records`);
-      }
+      if (!error && data) {
+        const rows = data as ReportsByDateRow[];
 
-      if (!dateError && dateData) {
-        console.log(`✅ [CHARTS API] Processing ${dateData.length} reports for monthly grouping...`);
-
-        if (!dateData || dateData.length === 0) {
-          console.log('❌ [CHARTS API] No reports found');
+        if (rows.length === 0) {
           chartData.reportsByDate = [];
         } else {
-          // COPY EXACT LOGIC FROM WORKING DETAILED DEBUG API
-          const monthlyCount: { [key: string]: { total: number; serious: number } } = {};
-          
-          dateData.forEach((report: any, index: number) => {
-            // Use report_date FIRST, fallback to created_at (same as detailed debug)
+          const monthlyCount: Record<string, { total: number; serious: number }> = {};
+          const seriousLevels = new Set(['death', 'life_threatening', 'hospitalization', 'disability', 'congenital_anomaly']);
+
+          rows.forEach((report) => {
             let dateToUse = report.report_date;
             if (!dateToUse && report.created_at) {
               dateToUse = report.created_at.split('T')[0];
             }
-
             if (!dateToUse) {
-              console.log(`⚠️ [CHARTS API] Report ${report.id} - NO DATE - SKIPPING`);
               return;
             }
-
-            // Extract month key
             const monthKey = dateToUse.slice(0, 7);
-
             if (!monthlyCount[monthKey]) {
               monthlyCount[monthKey] = { total: 0, serious: 0 };
-              console.log(`📅 [CHARTS API] Created month: ${monthKey}`);
             }
-
             monthlyCount[monthKey].total++;
-
-            const seriousLevels = ['death', 'life_threatening', 'hospitalization', 'disability', 'congenital_anomaly'];
-            if (seriousLevels.includes(report.severity_level)) {
+            if (report.severity_level && seriousLevels.has(report.severity_level)) {
               monthlyCount[monthKey].serious++;
             }
           });
 
-          console.log(`📊 [CHARTS API] Processing complete. Monthly buckets: ${Object.keys(monthlyCount).length}`);
-
-          // Create final monthly trends - EXACT COPY FROM WORKING DETAILED DEBUG
           const monthsWithData = Object.keys(monthlyCount).sort();
-          const reportsByMonth = monthsWithData.map(monthKey => {
+          chartData.reportsByDate = monthsWithData.map((monthKey) => {
             const [year, month] = monthKey.split('-');
-            const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-            const monthDisplay = date.toLocaleDateString('vi-VN', { 
-              month: 'short', 
-              year: 'numeric'
-            });
-
+            const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+            const label = date.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+            const values = monthlyCount[monthKey];
             return {
-              date: monthDisplay,
+              date: label,
               dateKey: monthKey,
-              total: monthlyCount[monthKey].total,
-              serious: monthlyCount[monthKey].serious,
-              nonSerious: monthlyCount[monthKey].total - monthlyCount[monthKey].serious
+              total: values.total,
+              serious: values.serious,
+              nonSerious: values.total - values.serious,
             };
           });
-
-          console.log(`✅ [CHARTS API] Final result: ${reportsByMonth.length} months with data`);
-          
-          chartData.reportsByDate = reportsByMonth;
         }
       }
     }
 
-    console.log('📈 [CHARTS API] Final chart data summary:', {
-      totalDataSets: Object.keys(chartData).length,
-      dataSets: Object.keys(chartData),
-      recordCounts: Object.entries(chartData).reduce((acc, [key, value]: [string, any]) => ({
-        ...acc,
-        [key]: Array.isArray(value) ? value.length : 'N/A'
-      }), {})
-    });
-
     return NextResponse.json({
       success: true,
       data: chartData,
-      debug: {
-        isAdmin,
-        userId: session.user.id,
-        totalDataSets: Object.keys(chartData).length
-      }
     });
-
   } catch (error) {
     console.error('❌ [CHARTS API] Dashboard charts API error:', error);
-    return NextResponse.json({ 
-      error: 'Không thể tải dữ liệu biểu đồ',
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Không thể tải dữ liệu biểu đồ',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
+
+
