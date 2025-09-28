@@ -561,10 +561,6 @@ export class PDFService {
         import('puppeteer-core')
       ])
 
-      if (typeof (chromium as any).setHeadlessMode !== 'undefined') {
-        (chromium as any).setHeadlessMode = true
-      }
-
       const executablePath = await chromium.executablePath()
 
       if (!executablePath) {
@@ -594,6 +590,30 @@ export class PDFService {
     })
   }
 
+  private static async launchBrowserWithRetry(attempts = 3): Promise<Browser> {
+    let lastError: unknown
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await this.launchBrowser()
+      } catch (error) {
+        lastError = error
+        const message = (error as Error)?.message ?? ''
+        const code = (error as NodeJS.ErrnoException)?.code ?? ''
+
+        if (attempt < attempts && (code === 'ETXTBSY' || message.includes('ETXTBSY'))) {
+          const backoff = 250 * attempt
+          console.warn('Chromium launch failed with ETXTBSY (attempt ' + attempt + '/' + attempts + '), retrying in ' + backoff + 'ms')
+          await new Promise((resolve) => setTimeout(resolve, backoff))
+          continue
+        }
+
+        throw error
+      }
+    }
+
+    throw (lastError ?? new Error('Unable to launch Chromium'))
+  }
   static async generatePDF(
     report: ADRReport, 
     options: PDFGenerationOptions = {}
@@ -606,7 +626,7 @@ export class PDFService {
     console.log('Final options:', finalOptions)
     
     console.log('Launching browser...')
-    const browser = await this.launchBrowser()
+    const browser = await this.launchBrowserWithRetry()
     console.log('Browser launched successfully')
 
     try {
