@@ -3,7 +3,8 @@
 // Service for generating PDF allergy cards from HTML template
 // =====================================================
 
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import fs from 'fs/promises';
 import path from 'path';
 import { QRCodeService } from './qr-service';
@@ -53,11 +54,7 @@ export class AllergyCardPDFService {
       htmlTemplate = this.populateTemplate(htmlTemplate, templateData);
 
       // Generate PDF using Puppeteer
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-
+      const browser = await this.getBrowser();
       const page = await browser.newPage();
       
       // Set content and wait for images to load
@@ -85,6 +82,33 @@ export class AllergyCardPDFService {
       console.error('PDF generation error:', error);
       throw new Error('Không thể tạo file PDF thẻ dị ứng');
     }
+  }
+
+  private static async getBrowser(): Promise<Browser> {
+    const isDev = process.env.NODE_ENV === 'development'
+
+    if (isDev) {
+      // Local development - try to use full Chromium if available
+      try {
+        return puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        })
+      } catch (error) {
+        console.warn('Failed to launch local Chromium, falling back to @sparticuz/chromium')
+      }
+    }
+
+    // Production/Vercel - use @sparticuz/chromium
+    const executablePath = await chromium.executablePath()
+
+    return puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
+      headless: true,
+      ignoreDefaultArgs: ['--disable-extensions'],
+    })
   }
 
   /**

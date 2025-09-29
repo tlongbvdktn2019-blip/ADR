@@ -5,7 +5,10 @@ import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { ADRReport } from '@/types/report'
-import { PDFService } from '@/lib/pdf-service-new'
+import { PDFServiceVercel } from '@/lib/pdf-service-vercel'
+
+// Force Node.js runtime (not Edge)
+export const runtime = 'nodejs'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     console.log('Calling PDFService.generatePDF...')
 
     // Generate PDF
-    const pdfBuffer = await PDFService.generatePDF(report)
+    const pdfBuffer = await PDFServiceVercel.generatePDF(report)
     
     console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
@@ -219,7 +222,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     // Generate PDF with custom options
-    const pdfBuffer = await PDFService.generatePDF(report, options)
+    const pdfBuffer = await PDFServiceVercel.generatePDF(report, options)
     
     console.log('PDF generated successfully (POST), size:', pdfBuffer.length, 'bytes')
 

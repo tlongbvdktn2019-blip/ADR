@@ -9,6 +9,9 @@ import { authOptions } from '@/lib/auth-config';
 import { createServerClient } from '@/lib/supabase';
 import { AllergyCardPDFService } from '@/lib/allergy-card-pdf-service';
 
+// Force Node.js runtime (not Edge)
+export const runtime = 'nodejs'
+
 /**
  * GET /api/allergy-cards/[id]/export-pdf
  * Export allergy card as PDF
