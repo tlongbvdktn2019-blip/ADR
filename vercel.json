@@ -1,19 +1,7 @@
 {
   "functions": {
-    "app/api/reports/[id]/export-pdf/route.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "app/api/allergy-cards/[id]/export-pdf/route.ts": {
-      "runtime": "nodejs20.x", 
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "app/api/reports/[id]/print-view/route.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 10,
-      "memory": 512
+    "app/api/**": {
+      "maxDuration": 10
     }
   }
 }
