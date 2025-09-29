@@ -7,18 +7,8 @@ const nextConfig = {
   compress: true,
   // Set default port to avoid conflicts
   experimental: {
-    serverComponentsExternalPackages: ['@sparticuz/chromium', 'puppeteer-core', 'puppeteer'],
+    serverComponentsExternalPackages: [],
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      if (Array.isArray(config.externals)) {
-        config.externals.push('@sparticuz/chromium', 'puppeteer-core', 'puppeteer');
-      }
-    }
-    return config;
-  },
-  // Optimize for Vercel deployment
-  output: 'standalone',
   // Increase function timeout for PDF generation
   async headers() {
     return [

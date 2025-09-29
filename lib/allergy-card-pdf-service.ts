@@ -1,304 +1,144 @@
 // =====================================================
-// ALLERGY CARD PDF SERVICE
-// Service for generating PDF allergy cards from HTML template
+// ALLERGY CARD PDF SERVICE - TEMPORARY HTML FALLBACK
+// Service for generating allergy cards (HTML version)
 // =====================================================
 
-import puppeteer, { Browser } from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import fs from 'fs/promises';
 import path from 'path';
 import { QRCodeService } from './qr-service';
 import { AllergyCard, AllergyCardTemplateData } from '@/types/allergy-card';
 
 /**
- * Service for generating PDF allergy cards
+ * Service for generating allergy cards (HTML version)
  */
 export class AllergyCardPDFService {
   
   /**
-   * Generate PDF buffer from allergy card data
+   * Generate HTML response instead of PDF (temporary solution)
    */
-  static async generatePDF(card: AllergyCard): Promise<Buffer> {
+  static async generateHTML(card: AllergyCard): Promise<string> {
     try {
-      // Load HTML template
-      const templatePath = path.join(process.cwd(), 'capthe.html');
-      let htmlTemplate = await fs.readFile(templatePath, 'utf-8');
-
       // Generate QR code data URL
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
       const qrData = QRCodeService.createQRData(card, baseUrl);
       const qrCodeDataUrl = await QRCodeService.generateQRCodeDataURL(qrData);
 
-      // Prepare template data
-      const templateData: AllergyCardTemplateData = {
-        hospitalName: card.hospital_name,
-        department: card.department,
-        patientName: card.patient_name,
-        patientGender: card.patient_gender,
-        patientAge: card.patient_age,
-        patientIdNumber: card.patient_id_number,
-        allergies: (card.allergies || []).slice(0, 5).map(allergy => ({
-          allergenName: allergy.allergen_name,
-          isSuspected: allergy.certainty_level === 'suspected',
-          isConfirmed: allergy.certainty_level === 'confirmed',
-          clinicalManifestation: allergy.clinical_manifestation || ''
-        })),
-        doctorName: card.doctor_name,
-        doctorPhone: card.doctor_phone,
-        issuedDate: new Date(card.issued_date).toLocaleDateString('vi-VN'),
-        qrCodeDataUrl,
-        cardCode: card.card_code
-      };
+      // Generate simple HTML representation
+      const html = `
+      <!DOCTYPE html>
+      <html lang="vi">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thẻ Dị Ứng - ${card.patient_name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .card { border: 2px solid #e74c3c; border-radius: 10px; padding: 20px; margin: 20px 0; background: #fff; }
+          .header { text-align: center; border-bottom: 2px solid #e74c3c; padding-bottom: 15px; margin-bottom: 20px; }
+          .title { color: #e74c3c; font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+          .subtitle { color: #666; font-size: 16px; }
+          .section { margin: 15px 0; }
+          .label { font-weight: bold; color: #333; margin-bottom: 5px; }
+          .value { color: #555; margin-bottom: 10px; }
+          .allergy-item { background: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #e74c3c; border-radius: 3px; }
+          .qr-code { text-align: center; margin: 20px 0; }
+          .qr-code img { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+          .print-btn { background: #2563eb; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; }
+          .emergency { background: #ffe6e6; padding: 15px; border-radius: 5px; border: 1px solid #e74c3c; margin: 20px 0; }
+          @media print { .print-btn, .no-print { display: none !important; } }
+        </style>
+        <script>
+          function printCard() { window.print(); }
+          function closeWindow() { window.close(); }
+        </script>
+      </head>
+      <body>
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+          <button class="print-btn" onclick="printCard()">🖨️ In thẻ</button>
+          <button class="print-btn" onclick="closeWindow()" style="background: #666;">✖️ Đóng</button>
+        </div>
 
-      // Populate HTML template
-      htmlTemplate = this.populateTemplate(htmlTemplate, templateData);
+        <div class="card">
+          <div class="header">
+            <div class="title">THẺ DỊ ỨNG</div>
+            <div class="subtitle">ALLERGY CARD</div>
+          </div>
 
-      // Generate PDF using Puppeteer
-      const browser = await this.getBrowser();
-      const page = await browser.newPage();
-      
-      // Set content and wait for images to load
-      await page.setContent(htmlTemplate, { 
-        waitUntil: 'networkidle0' 
-      });
+          <div class="section">
+            <div class="label">🏥 Cơ sở y tế:</div>
+            <div class="value">${card.hospital_name}</div>
+            <div class="label">🏢 Khoa:</div>
+            <div class="value">${card.department}</div>
+          </div>
 
-      // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '0.5cm',
-          right: '0.5cm',
-          bottom: '0.5cm',
-          left: '0.5cm'
-        }
-      });
+          <div class="section">
+            <div class="label">👤 Tên bệnh nhân:</div>
+            <div class="value">${card.patient_name}</div>
+            <div class="label">⚥ Giới tính:</div>
+            <div class="value">${card.patient_gender}</div>
+            <div class="label">🎂 Tuổi:</div>
+            <div class="value">${card.patient_age}</div>
+            <div class="label">🆔 CCCD/CMT:</div>
+            <div class="value">${card.patient_id_number}</div>
+          </div>
 
-      await browser.close();
+          <div class="section">
+            <div class="label">⚠️ Các chất gây dị ứng:</div>
+            ${(card.allergies || []).map(allergy => `
+              <div class="allergy-item">
+                <strong>${allergy.allergen_name}</strong>
+                <br><small>Mức độ: ${allergy.certainty_level === 'confirmed' ? 'Chắc chắn' : 'Nghi ngờ'}</small>
+                ${allergy.clinical_manifestation ? `<br><small>Biểu hiện: ${allergy.clinical_manifestation}</small>` : ''}
+              </div>
+            `).join('')}
+          </div>
 
-      return Buffer.from(pdfBuffer);
+          <div class="section">
+            <div class="label">👨‍⚕️ Bác sĩ kê đơn:</div>
+            <div class="value">${card.doctor_name}</div>
+            <div class="label">📞 Điện thoại:</div>
+            <div class="value">${card.doctor_phone}</div>
+          </div>
 
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      throw new Error('Không thể tạo file PDF thẻ dị ứng');
-    }
-  }
+          <div class="section">
+            <div class="label">📅 Ngày cấp:</div>
+            <div class="value">${new Date(card.issued_date).toLocaleDateString('vi-VN')}</div>
+            <div class="label">🔢 Mã thẻ:</div>
+            <div class="value">${card.card_code}</div>
+          </div>
 
-  private static async getBrowser(): Promise<Browser> {
-    const isDev = process.env.NODE_ENV === 'development'
+          <div class="qr-code">
+            <img src="${qrCodeDataUrl}" alt="QR Code" style="width: 100px; height: 100px;" />
+            <br><small>Quét mã QR để xem chi tiết</small>
+          </div>
 
-    if (isDev) {
-      // Local development - try to use full Chromium if available
-      try {
-        return puppeteer.launch({
-          headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox']
-        })
-      } catch (error) {
-        console.warn('Failed to launch local Chromium, falling back to @sparticuz/chromium')
-      }
-    }
+          <div class="emergency">
+            <strong style="color: #e74c3c;">⚠️ LƯU Ý KHẨN CẤP:</strong><br>
+            Trong trường hợp khẩn cấp, vui lòng thông báo ngay cho nhân viên y tế về tình trạng dị ứng của bệnh nhân.
+          </div>
+        </div>
 
-    // Production/Vercel - use @sparticuz/chromium
-    const executablePath = await chromium.executablePath()
+        <div class="no-print" style="text-align: center; margin-top: 30px; color: #666;">
+          <p><em>Được tạo bởi hệ thống CODEX ADR</em></p>
+          <p><small>Để in thành PDF: Ctrl+P → Chọn "Save as PDF"</small></p>
+        </div>
+      </body>
+      </html>
+      `;
 
-    return puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: true,
-      ignoreDefaultArgs: ['--disable-extensions'],
-    })
-  }
-
-  /**
-   * Populate HTML template with card data
-   */
-  private static populateTemplate(html: string, data: AllergyCardTemplateData): string {
-    let populatedHtml = html;
-
-    // Replace QR code placeholder
-    populatedHtml = populatedHtml.replace(
-      /src="https:\/\/placehold\.co\/90x90\/ffffff\/000000\?text=QR\+CODE"/g,
-      `src="${data.qrCodeDataUrl}"`
-    );
-
-    // Replace hospital and department information
-    populatedHtml = populatedHtml.replace(
-      /Bệnh viện: \.+/g,
-      `Bệnh viện: ${data.hospitalName}`
-    );
-    
-    populatedHtml = populatedHtml.replace(
-      /Khoa\/Trung tâm: \.+/g,
-      `Khoa/Trung tâm: ${data.department || '.............................'}`
-    );
-
-    // Replace patient information
-    populatedHtml = populatedHtml.replace(
-      /Họ tên: \.+/g,
-      `Họ tên: ${data.patientName}`
-    );
-
-    // Handle gender checkboxes
-    if (data.patientGender === 'male') {
-      populatedHtml = populatedHtml.replace(/Nam □/, 'Nam ☑');
-    } else if (data.patientGender === 'female') {
-      populatedHtml = populatedHtml.replace(/Nữ □/, 'Nữ ☑');
-    }
-
-    populatedHtml = populatedHtml.replace(
-      /Tuổi: \.+/g,
-      `Tuổi: ${data.patientAge}`
-    );
-
-    // Replace ID number
-    populatedHtml = populatedHtml.replace(
-      /Số CMND hoặc thẻ căn cước hoặc số định danh công dân: \.+/g,
-      `Số CMND hoặc thẻ căn cước hoặc số định danh công dân: ${data.patientIdNumber || '.............................'}`
-    );
-
-    // Replace allergy table rows
-    const allergyTableBody = this.generateAllergyTableRows(data.allergies);
-    populatedHtml = populatedHtml.replace(
-      /<tbody>[\s\S]*?<\/tbody>/g,
-      `<tbody>${allergyTableBody}</tbody>`
-    );
-
-    // Replace doctor information
-    populatedHtml = populatedHtml.replace(
-      /Họ và tên: \.+/g,
-      `Họ và tên: ${data.doctorName}`
-    );
-
-    populatedHtml = populatedHtml.replace(
-      /ĐT: \.+/g,
-      `ĐT: ${data.doctorPhone || '.............................'}`
-    );
-
-    populatedHtml = populatedHtml.replace(
-      /Ngày cấp thẻ: \.+/g,
-      `Ngày cấp thẻ: ${data.issuedDate}`
-    );
-
-    // Add card code to header
-    populatedHtml = populatedHtml.replace(
-      /<div class="header">[\s\S]*?<\/div>/g,
-      `<div class="header">
-        <p>PHỤ LỤC VII</p>
-        <p style="margin-top: 10px; font-size: 12px; color: #666;">Mã thẻ: ${data.cardCode}</p>
-      </div>`
-    );
-
-    return populatedHtml;
-  }
-
-  /**
-   * Generate allergy table rows HTML
-   */
-  private static generateAllergyTableRows(allergies: AllergyCardTemplateData['allergies']): string {
-    let rows = '';
-
-    // Add allergy rows (up to 5)
-    for (let i = 0; i < 5; i++) {
-      const allergy = allergies[i];
-      
-      if (allergy) {
-        rows += `
-          <tr>
-            <td style="text-align: left; padding-left: 8px;">${allergy.allergenName}</td>
-            <td>${allergy.isSuspected ? '☑' : '□'}</td>
-            <td>${allergy.isConfirmed ? '☑' : '□'}</td>
-            <td style="text-align: left; padding-left: 8px;">${allergy.clinicalManifestation}</td>
-          </tr>
-        `;
-      } else {
-        // Empty row
-        rows += `
-          <tr>
-            <td>&nbsp;</td>
-            <td>□</td>
-            <td>□</td>
-            <td></td>
-          </tr>
-        `;
-      }
-    }
-
-    return rows;
-  }
-
-  /**
-   * Generate preview HTML (for development/testing)
-   */
-  static async generatePreviewHTML(card: AllergyCard): Promise<string> {
-    try {
-      // Load HTML template
-      const templatePath = path.join(process.cwd(), 'capthe.html');
-      let htmlTemplate = await fs.readFile(templatePath, 'utf-8');
-
-      // Generate QR code data URL
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-      const qrData = QRCodeService.createQRData(card, baseUrl);
-      const qrCodeDataUrl = await QRCodeService.generateQRCodeDataURL(qrData);
-
-      // Prepare template data
-      const templateData: AllergyCardTemplateData = {
-        hospitalName: card.hospital_name,
-        department: card.department,
-        patientName: card.patient_name,
-        patientGender: card.patient_gender,
-        patientAge: card.patient_age,
-        patientIdNumber: card.patient_id_number,
-        allergies: (card.allergies || []).slice(0, 5).map(allergy => ({
-          allergenName: allergy.allergen_name,
-          isSuspected: allergy.certainty_level === 'suspected',
-          isConfirmed: allergy.certainty_level === 'confirmed',
-          clinicalManifestation: allergy.clinical_manifestation || ''
-        })),
-        doctorName: card.doctor_name,
-        doctorPhone: card.doctor_phone,
-        issuedDate: new Date(card.issued_date).toLocaleDateString('vi-VN'),
-        qrCodeDataUrl,
-        cardCode: card.card_code
-      };
-
-      // Populate and return HTML
-      return this.populateTemplate(htmlTemplate, templateData);
+      return html;
 
     } catch (error) {
-      console.error('HTML preview generation error:', error);
-      throw new Error('Không thể tạo preview HTML');
+      console.error('HTML generation error:', error);
+      throw new Error('Không thể tạo thẻ dị ứng HTML');
     }
   }
 
   /**
-   * Validate card data before PDF generation
+   * Legacy method - returns HTML instead of PDF buffer
    */
-  static validateCardData(card: AllergyCard): string[] {
-    const errors: string[] = [];
-
-    if (!card.patient_name) {
-      errors.push('Thiếu tên bệnh nhân');
-    }
-
-    if (!card.hospital_name) {
-      errors.push('Thiếu tên bệnh viện');
-    }
-
-    if (!card.doctor_name) {
-      errors.push('Thiếu tên bác sĩ');
-    }
-
-    if (!card.allergies || card.allergies.length === 0) {
-      errors.push('Không có thông tin dị ứng');
-    }
-
-    if (!card.card_code) {
-      errors.push('Thiếu mã thẻ');
-    }
-
-    return errors;
+  static async generatePDF(card: AllergyCard): Promise<string> {
+    console.log('⚠️ AllergyCardPDFService: Using HTML fallback instead of PDF generation');
+    return this.generateHTML(card);
   }
 }
-
