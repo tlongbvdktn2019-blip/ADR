@@ -12,6 +12,7 @@ import {
   EyeIcon,
   PencilIcon,
   DocumentArrowDownIcon,
+  PrinterIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   BuildingOfficeIcon,
@@ -99,6 +100,11 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
 
   const canEdit = (report: ADRReport) => 
     session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
+
+  const handlePrintReport = (reportId: string) => {
+    const printUrl = `/api/reports/${reportId}/print-view`
+    window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+  }
 
   if (loading) {
     return (
@@ -305,6 +311,16 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
                                   <span className="hidden sm:inline">Xem</span>
                                 </Button>
                               </Link>
+
+                              {/* Print */}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handlePrintReport(report.id)}
+                              >
+                                <PrinterIcon className="w-4 h-4 mr-1" />
+                                <span className="hidden xl:inline">In</span>
+                              </Button>
 
                               {/* Edit - only if user can edit */}
                               {canEdit(report) && (

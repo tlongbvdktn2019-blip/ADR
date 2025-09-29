@@ -12,6 +12,7 @@ import {
   ArrowLeftIcon,
   PencilIcon,
   DocumentArrowDownIcon,
+  PrinterIcon,
   UserIcon,
   CalendarIcon,
   ExclamationTriangleIcon,
@@ -38,6 +39,7 @@ export default function ReportDetail({ report }: ReportDetailProps) {
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState('overview')
   const [exportingPDF, setExportingPDF] = useState(false)
+  const [openingPrintView, setOpeningPrintView] = useState(false)
   
   const canEdit = session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
   const canSendEmail = session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
@@ -114,6 +116,28 @@ export default function ReportDetail({ report }: ReportDetailProps) {
     }
   }
 
+  const handlePrintReport = async (reportId: string) => {
+    setOpeningPrintView(true)
+    
+    try {
+      // Open print view in new tab
+      const printUrl = `/api/reports/${reportId}/print-view`
+      const printWindow = window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+      
+      if (!printWindow) {
+        throw new Error('Không thể mở cửa sổ in. Vui lòng kiểm tra popup blocker.')
+      }
+      
+      toast.success('Đã mở view in thành công!')
+      
+    } catch (error) {
+      console.error('Print view error:', error)
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi mở view in')
+    } finally {
+      setOpeningPrintView(false)
+    }
+  }
+
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: UserIcon },
     { id: 'patient', label: 'Bệnh nhân', icon: UserIcon },
@@ -162,6 +186,14 @@ export default function ReportDetail({ report }: ReportDetailProps) {
               </Button>
             </Link>
           )}
+          <Button 
+            onClick={() => handlePrintReport(report.id)}
+            disabled={openingPrintView}
+            variant="outline"
+          >
+            <PrinterIcon className="w-4 h-4 mr-2" />
+            {openingPrintView ? 'Đang mở...' : 'In báo cáo'}
+          </Button>
           <Button 
             onClick={() => handleExportPDF(report.id)}
             disabled={exportingPDF}
