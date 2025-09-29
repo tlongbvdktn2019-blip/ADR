@@ -5,8 +5,6 @@ import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { ADRReport } from '@/types/report'
-import { MinimalPDFService } from '@/lib/pdf-service-minimal'
-import { SimplePDFService } from '@/lib/pdf-service-vercel-simple'
 
 // Force Node.js runtime (not Edge)
 export const runtime = 'nodejs'
@@ -36,168 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Get the report with suspected and concurrent drugs
-    let query = supabaseAdmin
-      .from('adr_reports')
-      .select(`
-        *,
-        suspected_drugs(*),
-        concurrent_drugs(*)
-      `)
-      .eq('id', reportId)
-      .single()
-
-    const { data: reportData, error } = await query
-
-    if (error || !reportData) {
-      return NextResponse.json(
-        { error: 'Không tìm thấy báo cáo' },
-        { status: 404 }
-      )
-    }
-
-    const report = reportData as ADRReport
-
-    // PDF export is allowed for all reports (read-only operation)
-    // Both admin and user can export PDF for any report they can view
-
-    // Debug logging: Check data format
-    console.log('=== PDF GENERATION DEBUG ===')
-    console.log('Report ID:', reportId)
-    console.log('Report basic info:', {
-      id: report.id,
-      report_code: report.report_code,
-      patient_name: report.patient_name,
-      reaction_onset_time: report.reaction_onset_time,
-      suspected_drugs_count: report.suspected_drugs?.length || 0
-    })
-    
-    // Validate critical fields
-    if (!report.patient_name) {
-      console.warn('WARNING: Missing patient_name')
-    }
-    if (!report.adr_occurrence_date) {
-      console.warn('WARNING: Missing adr_occurrence_date')
-    }
-    
-    console.log('Calling PDFService.generatePDF...')
-
-    // Try MinimalPDFService first, fallback to SimplePDFService if fails
-    let pdfBuffer: Buffer
-    try {
-      pdfBuffer = await MinimalPDFService.generatePDF(report)
-      console.log('✅ MinimalPDFService succeeded')
-    } catch (puppeteerError) {
-      console.warn('⚠️ MinimalPDFService failed, using fallback HTML response')
-      console.error('Puppeteer error:', puppeteerError)
-      
-      // Return HTML fallback instead of PDF
-      return await SimplePDFService.generateFallbackResponse(report)
-    }
-    
-    console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes')
-
-    // Create filename with report code
-    const filename = `ADR_Report_${report.report_code || 'unknown'}.pdf`
-
-    // Return PDF file
-    return new NextResponse(pdfBuffer as BodyInit, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': pdfBuffer.length.toString(),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-
-  } catch (error: unknown) {
-    const err = error instanceof Error ? error : null
-
-    // Enhanced error logging for debugging
-    console.error('=== PDF GENERATION ERROR ===')
-    console.error('Report ID:', reportId)
-    console.error('Error type:', err?.constructor?.name ?? typeof error)
-    console.error('Error message:', err?.message ?? String(error))
-    console.error('Error stack:', err?.stack ?? 'N/A')
-    
-    if (err) {
-      console.error('Full error object:', JSON.stringify({
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      }, null, 2))
-    } else {
-      console.error('Non-Error thrown value:', error)
-    }
-    
-    // Check if it's a specific type of error
-    if (err) {
-      if (err.message.includes('browser') || err.message.includes('puppeteer')) {
-        console.error('PUPPETEER ERROR detected')
-        return NextResponse.json(
-          { 
-            error: 'Lỗi hệ thống khi tạo PDF. Vui lòng thử lại sau.',
-            details: err.message // Add details for debugging
-          },
-          { status: 500 }
-        )
-      }
-      
-      if (err.message.includes('timeout')) {
-        console.error('TIMEOUT ERROR detected')
-        return NextResponse.json(
-          { 
-            error: 'Timeout khi tạo PDF. Vui lòng thử lại.',
-            details: err.message
-          },
-          { status: 500 }
-        )
-      }
-      
-      if (err.message.includes('template') || err.message.includes('HTML')) {
-        console.error('TEMPLATE ERROR detected')
-        return NextResponse.json(
-          { 
-            error: 'Lỗi template HTML. Vui lòng liên hệ admin.',
-            details: err.message
-          },
-          { status: 500 }
-        )
-      }
-    }
-
-    console.error('UNKNOWN ERROR - returning generic message')
-    return NextResponse.json(
-      { 
-        error: 'Có lỗi xảy ra khi tạo file PDF',
-        details: err?.message ?? String(error),
-        type: err?.constructor?.name ?? typeof error
-      },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  const reportId = params.id
-
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { options = {} } = body // PDF generation options
-
-    // Get the report with suspected and concurrent drugs
+    // Get the report for HTML generation
     const { data: reportData, error } = await supabaseAdmin
       .from('adr_reports')
       .select(`
@@ -217,79 +54,281 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const report = reportData as ADRReport
 
-    // PDF export is allowed for all reports (read-only operation)
-    // Both admin and user can export PDF for any report they can view
-
-    // Debug logging for POST method
-    console.log('=== PDF GENERATION DEBUG (POST) ===')
+    console.log('=== SIMPLE HTML PDF SOLUTION ===')
     console.log('Report ID:', reportId)
-    console.log('Options:', options)
-    console.log('Report basic info:', {
-      id: report.id,
-      report_code: report.report_code,
-      patient_name: report.patient_name,
-      reaction_onset_time: report.reaction_onset_time,
-      suspected_drugs_count: report.suspected_drugs?.length || 0
-    })
-
-    // Try MinimalPDFService first, fallback if needed
-    let pdfBuffer: Buffer
-    try {
-      pdfBuffer = await MinimalPDFService.generatePDF(report)
-      console.log('✅ MinimalPDFService succeeded (POST)')
-    } catch (puppeteerError) {
-      console.warn('⚠️ MinimalPDFService failed (POST), returning error with fallback info')
-      console.error('Puppeteer error:', puppeteerError)
-      
-      return NextResponse.json({
-        success: false,
-        error: 'PDF generation failed',
-        fallbackUrl: `/api/reports/${reportId}/export-pdf-fallback`,
-        message: 'Try the fallback URL for HTML print version'
-      }, { status: 500 })
-    }
     
-    console.log('PDF generated successfully (POST), size:', pdfBuffer.length, 'bytes')
+    // Return HTML page that can be printed as PDF
+    const html = `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>ADR Report ${report.report_code}</title>
+      <style>
+        @media print {
+          body { margin: 0; }
+          .no-print { display: none !important; }
+          .page-break { page-break-before: always; }
+        }
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 20px; 
+          line-height: 1.6; 
+        }
+        .header { 
+          text-align: center; 
+          margin-bottom: 30px; 
+          border-bottom: 2px solid #333; 
+          padding-bottom: 20px; 
+        }
+        .title { 
+          font-size: 20px; 
+          font-weight: bold; 
+          color: #2563eb; 
+          margin-bottom: 10px;
+        }
+        .section { 
+          margin-bottom: 25px; 
+        }
+        .section-title {
+          background-color: #f3f4f6;
+          padding: 10px;
+          border-left: 4px solid #2563eb;
+          font-weight: bold;
+          margin-bottom: 15px;
+        }
+        .field { 
+          margin-bottom: 10px; 
+          display: flex;
+        }
+        .label { 
+          font-weight: bold; 
+          display: inline-block; 
+          width: 200px; 
+          flex-shrink: 0;
+        }
+        .value {
+          flex: 1;
+        }
+        .print-instructions {
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background: #e3f2fd;
+          padding: 15px;
+          border-radius: 5px;
+          border: 1px solid #2196f3;
+          max-width: 300px;
+          z-index: 1000;
+        }
+        .btn {
+          background: #2563eb;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          margin: 5px;
+        }
+        .btn:hover {
+          background: #1d4ed8;
+        }
+      </style>
+      <script>
+        function printDocument() {
+          window.print();
+        }
+        
+        function closeWindow() {
+          window.close();
+        }
+        
+        // Auto-print after 1 second
+        setTimeout(() => {
+          const autoPrint = confirm("Tự động mở hộp thoại in PDF?");
+          if (autoPrint) {
+            window.print();
+          }
+        }, 1000);
+      </script>
+    </head>
+    <body>
+      <div class="print-instructions no-print">
+        <h4 style="margin-top: 0; color: #1976d2;">📄 Hướng dẫn in PDF</h4>
+        <ol style="padding-left: 20px; font-size: 14px;">
+          <li>Nhấn <strong>Ctrl+P</strong> (PC) hoặc <strong>Cmd+P</strong> (Mac)</li>
+          <li>Chọn <strong>"Save as PDF"</strong></li>
+          <li>Nhấn <strong>"Save"</strong></li>
+        </ol>
+        <button class="btn" onclick="printDocument()">🖨️ In PDF</button>
+        <button class="btn" onclick="closeWindow()" style="background: #666;">✖️ Đóng</button>
+      </div>
 
-    // Return PDF as base64 for preview or direct download
-    const base64PDF = pdfBuffer.toString('base64')
-    const filename = `ADR_Report_${report.report_code || 'unknown'}.pdf`
+      <div class="header">
+        <div class="title">BÁO CÁO PHẢN ỨNG CÓ HẠI CỦA THUỐC</div>
+        <div style="font-size: 16px; color: #666;">Mã báo cáo: <strong>${report.report_code}</strong></div>
+        <div style="font-size: 14px; color: #888; margin-top: 5px;">
+          Ngày tạo: ${new Date(report.created_at).toLocaleDateString('vi-VN')}
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">I. THÔNG TIN BỆNH NHÂN</div>
+        <div class="field">
+          <span class="label">Họ và tên:</span> 
+          <span class="value">${report.patient_name || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Tuổi:</span> 
+          <span class="value">${report.patient_age || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Giới tính:</span> 
+          <span class="value">${report.patient_gender === 'male' ? 'Nam' : report.patient_gender === 'female' ? 'Nữ' : 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Cân nặng:</span> 
+          <span class="value">${report.patient_weight ? report.patient_weight + ' kg' : 'N/A'}</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">II. THÔNG TIN PHẢN ỨNG CÓ HẠI</div>
+        <div class="field">
+          <span class="label">Ngày xảy ra ADR:</span> 
+          <span class="value">${report.adr_occurrence_date ? new Date(report.adr_occurrence_date).toLocaleDateString('vi-VN') : 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Thời gian xuất hiện:</span> 
+          <span class="value">${report.reaction_onset_time || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Mô tả phản ứng:</span> 
+          <span class="value">${report.adr_description || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Mức độ nghiêm trọng:</span> 
+          <span class="value">${report.severity_level || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Kết quả sau điều trị:</span> 
+          <span class="value">${report.outcome_after_treatment || 'N/A'}</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">III. THUỐC NGHI NGỜ GÂY ADR</div>
+        ${report.suspected_drugs && report.suspected_drugs.length > 0 
+          ? report.suspected_drugs.map(drug => `
+            <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px;">
+              <div class="field">
+                <span class="label">Tên thuốc:</span>
+                <span class="value">${drug.drug_name || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Tên thương mại:</span>
+                <span class="value">${drug.commercial_name || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Liều dùng:</span>
+                <span class="value">${drug.dosage_and_frequency || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Đường dùng:</span>
+                <span class="value">${drug.route_of_administration || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Ngày bắt đầu:</span>
+                <span class="value">${drug.start_date ? new Date(drug.start_date).toLocaleDateString('vi-VN') : 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Ngày kết thúc:</span>
+                <span class="value">${drug.end_date ? new Date(drug.end_date).toLocaleDateString('vi-VN') : 'N/A'}</span>
+              </div>
+            </div>
+          `).join('')
+          : '<p style="color: #666; font-style: italic;">Không có thông tin thuốc nghi ngờ</p>'
+        }
+      </div>
+      
+      <div class="section">
+        <div class="section-title">IV. THÔNG TIN NGƯỜI BÁO CÁO</div>
+        <div class="field">
+          <span class="label">Người báo cáo:</span> 
+          <span class="value">${report.reporter_name || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Chuyên môn:</span> 
+          <span class="value">${report.reporter_profession || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Cơ sở y tế:</span> 
+          <span class="value">${report.organization || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Điện thoại:</span> 
+          <span class="value">${report.reporter_phone || 'N/A'}</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">V. ĐÁNH GIÁ MỐI LIÊN QUAN</div>
+        <div class="field">
+          <span class="label">Đánh giá mối liên quan:</span> 
+          <span class="value">${report.causality_assessment || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Thang đánh giá:</span> 
+          <span class="value">${report.assessment_scale || 'N/A'}</span>
+        </div>
+        <div class="field">
+          <span class="label">Nhận xét:</span> 
+          <span class="value">${report.medical_staff_comment || 'N/A'}</span>
+        </div>
+      </div>
 
-    return NextResponse.json({
-      success: true,
-      filename,
-      size: pdfBuffer.length,
-      pdf: base64PDF, // For preview purposes
-      downloadUrl: `/api/reports/${reportId}/export-pdf` // For direct download
+      <div class="page-break"></div>
+      
+      <div style="text-align: center; margin-top: 50px; color: #666;">
+        <p>--- Hết báo cáo ---</p>
+        <p style="font-size: 12px;">
+          Được tạo bởi hệ thống CODEX ADR | ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}
+        </p>
+      </div>
+    </body>
+    </html>
+    `
+
+    return new NextResponse(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
 
   } catch (error: unknown) {
     const err = error instanceof Error ? error : null
 
-    // Enhanced error logging for debugging (POST method)
-    console.error('=== PDF GENERATION ERROR (POST) ===')
+    console.error('=== HTML PDF GENERATION ERROR ===')
     console.error('Report ID:', reportId)
-    console.error('Error type:', err?.constructor?.name ?? typeof error)
-    console.error('Error message:', err?.message ?? String(error))
-    console.error('Error stack:', err?.stack ?? 'N/A')
-    
-    if (err) {
-      console.error('Full error object:', JSON.stringify({
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      }, null, 2))
-    } else {
-      console.error('Non-Error thrown value:', error)
-    }
+    console.error('Error:', err?.message ?? String(error))
 
     return NextResponse.json(
       { 
-        error: 'Có lỗi xảy ra khi tạo file PDF',
+        error: 'Có lỗi xảy ra khi tạo báo cáo PDF',
         details: err?.message ?? String(error),
-        type: err?.constructor?.name ?? typeof error
+        solution: 'PDF generation is temporarily using HTML print mode'
       },
       { status: 500 }
     )
   }
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  // Redirect POST to GET for simplicity
+  return NextResponse.redirect(new URL(`/api/reports/${params.id}/export-pdf`, request.url))
 }
