@@ -17,6 +17,22 @@ const nextConfig = {
     }
     return config;
   },
+  // Optimize for Vercel deployment
+  output: 'standalone',
+  // Increase function timeout for PDF generation
+  async headers() {
+    return [
+      {
+        source: '/api/reports/:id*/export-pdf',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+    ]
+  },
   async redirects() {
     return []
   },
