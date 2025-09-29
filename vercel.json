@@ -19,6 +19,11 @@
       "runtime": "nodejs20.x",
       "maxDuration": 60,
       "memory": 2048
+    },
+    "app/api/reports/[id]/export-pdf-fallback/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 10,
+      "memory": 512
     }
   },
   "env": {

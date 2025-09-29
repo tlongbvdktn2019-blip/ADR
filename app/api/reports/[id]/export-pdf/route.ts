@@ -6,6 +6,7 @@ import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { ADRReport } from '@/types/report'
 import { MinimalPDFService } from '@/lib/pdf-service-minimal'
+import { SimplePDFService } from '@/lib/pdf-service-vercel-simple'
 
 // Force Node.js runtime (not Edge)
 export const runtime = 'nodejs'
@@ -81,8 +82,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     console.log('Calling PDFService.generatePDF...')
 
-    // Generate PDF using minimal service
-    const pdfBuffer = await MinimalPDFService.generatePDF(report)
+    // Try MinimalPDFService first, fallback to SimplePDFService if fails
+    let pdfBuffer: Buffer
+    try {
+      pdfBuffer = await MinimalPDFService.generatePDF(report)
+      console.log('✅ MinimalPDFService succeeded')
+    } catch (puppeteerError) {
+      console.warn('⚠️ MinimalPDFService failed, using fallback HTML response')
+      console.error('Puppeteer error:', puppeteerError)
+      
+      // Return HTML fallback instead of PDF
+      return await SimplePDFService.generateFallbackResponse(report)
+    }
     
     console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
@@ -221,8 +232,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       suspected_drugs_count: report.suspected_drugs?.length || 0
     })
 
-    // Generate PDF with minimal service
-    const pdfBuffer = await MinimalPDFService.generatePDF(report)
+    // Try MinimalPDFService first, fallback if needed
+    let pdfBuffer: Buffer
+    try {
+      pdfBuffer = await MinimalPDFService.generatePDF(report)
+      console.log('✅ MinimalPDFService succeeded (POST)')
+    } catch (puppeteerError) {
+      console.warn('⚠️ MinimalPDFService failed (POST), returning error with fallback info')
+      console.error('Puppeteer error:', puppeteerError)
+      
+      return NextResponse.json({
+        success: false,
+        error: 'PDF generation failed',
+        fallbackUrl: `/api/reports/${reportId}/export-pdf-fallback`,
+        message: 'Try the fallback URL for HTML print version'
+      }, { status: 500 })
+    }
     
     console.log('PDF generated successfully (POST), size:', pdfBuffer.length, 'bytes')
 
