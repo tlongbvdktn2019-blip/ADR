@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { ADRReport } from '@/types/report'
-import { PDFServiceVercel } from '@/lib/pdf-service-vercel'
+import { MinimalPDFService } from '@/lib/pdf-service-minimal'
 
 // Force Node.js runtime (not Edge)
 export const runtime = 'nodejs'
@@ -81,8 +81,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     console.log('Calling PDFService.generatePDF...')
 
-    // Generate PDF
-    const pdfBuffer = await PDFServiceVercel.generatePDF(report)
+    // Generate PDF using minimal service
+    const pdfBuffer = await MinimalPDFService.generatePDF(report)
     
     console.log('PDF generated successfully, size:', pdfBuffer.length, 'bytes')
 
@@ -221,8 +221,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       suspected_drugs_count: report.suspected_drugs?.length || 0
     })
 
-    // Generate PDF with custom options
-    const pdfBuffer = await PDFServiceVercel.generatePDF(report, options)
+    // Generate PDF with minimal service
+    const pdfBuffer = await MinimalPDFService.generatePDF(report)
     
     console.log('PDF generated successfully (POST), size:', pdfBuffer.length, 'bytes')
 

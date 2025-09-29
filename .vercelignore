@@ -1,0 +1,12 @@
+node_modules
+.git
+.env*
+*.log
+test-pdf-output.pdf
+scripts/test-*
+lib/pdf-service.ts
+lib/pdf-service-new.ts
+lib/pdf-service-optimized.ts
+lib/pdf-service-vercel.ts
+*.md
+README.md
