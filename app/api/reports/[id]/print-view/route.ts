@@ -6,6 +6,9 @@ import { ADRReport } from '@/types/report'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
+// Force Node.js runtime (not Edge)
+export const runtime = 'nodejs'
+
 interface RouteParams {
   params: {
     id: string

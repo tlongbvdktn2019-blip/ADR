@@ -24,7 +24,7 @@ async function getUserRole(userId: string): Promise<string | null> {
       .from('users')
       .select('role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error getting user role:', error);
@@ -46,7 +46,7 @@ async function getUserData(userId: string): Promise<any | null> {
       .from('users')
       .select('organization, role, name, email')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error getting user data:', error);

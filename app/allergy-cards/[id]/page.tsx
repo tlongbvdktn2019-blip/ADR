@@ -14,6 +14,7 @@ import {
   ArrowLeftIcon,
   PencilIcon,
   DocumentArrowDownIcon,
+  PrinterIcon,
   ShareIcon,
   ExclamationTriangleIcon,
   UserIcon,
@@ -65,35 +66,6 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
     }
   };
 
-  const handleExportPDF = async () => {
-    if (!card) return;
-
-    try {
-      const response = await fetch(`/api/allergy-cards/${card.id}/export-pdf`);
-      
-      if (!response.ok) {
-        throw new Error('Không thể xuất PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `The_Di_Ung_${card.card_code}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Đã xuất PDF thành công');
-
-    } catch (error) {
-      console.error('Export PDF error:', error);
-      toast.error('Có lỗi khi xuất PDF');
-    }
-  };
-
   const handleShare = async () => {
     if (!card) return;
 
@@ -115,6 +87,14 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
       console.error('Share error:', error);
       toast.error('Không thể chia sẻ');
     }
+  };
+
+  const handlePrint = () => {
+    if (!card) return;
+    
+    // Open print preview in new window
+    const printUrl = `/api/allergy-cards/${card.id}/print-view`;
+    window.open(printUrl, '_blank');
   };
 
   const getSeverityBadgeColor = (severity?: SeverityLevel) => {
@@ -211,20 +191,20 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
             <div className="flex gap-3">
               <Button
                 variant="outline"
+                onClick={handlePrint}
+                className="flex items-center gap-2"
+              >
+                <PrinterIcon className="w-4 h-4" />
+                In thẻ
+              </Button>
+
+              <Button
+                variant="outline"
                 onClick={handleShare}
                 className="flex items-center gap-2"
               >
                 <ShareIcon className="w-4 h-4" />
                 Chia sẻ
-              </Button>
-              
-              <Button
-                variant="outline"
-                onClick={handleExportPDF}
-                className="flex items-center gap-2"
-              >
-                <DocumentArrowDownIcon className="w-4 h-4" />
-                Xuất PDF
               </Button>
               
               {canEdit && (

@@ -16,6 +16,7 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   DocumentArrowDownIcon,
+  PrinterIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
@@ -197,31 +198,9 @@ export default function AllergyCardsPage() {
     });
   };
 
-  const handleExportPDF = async (cardId: string, cardCode: string) => {
-    try {
-      const response = await fetch(`/api/allergy-cards/${cardId}/export-pdf`);
-      
-      if (!response.ok) {
-        throw new Error('Không thể xuất PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `The_Di_Ung_${cardCode}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Đã xuất PDF thành công');
-
-    } catch (error) {
-      console.error('Export PDF error:', error);
-      toast.error('Có lỗi khi xuất PDF');
-    }
+  const handlePrintCard = (cardId: string) => {
+    const printUrl = `/api/allergy-cards/${cardId}/print-view`;
+    window.open(printUrl, '_blank');
   };
 
   const getSeverityBadgeColor = (severity?: SeverityLevel) => {
@@ -492,21 +471,21 @@ export default function AllergyCardsPage() {
                                   <EyeIcon className="w-4 h-4" />
                                 </Button>
                               </Link>
+
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                title="In thẻ"
+                                onClick={() => handlePrintCard(card.id)}
+                              >
+                                <PrinterIcon className="w-4 h-4" />
+                              </Button>
                               
                               <Link href={`/allergy-cards/${card.id}/edit`}>
                                 <Button variant="outline" size="sm" title="Chỉnh sửa">
                                   <PencilIcon className="w-4 h-4" />
                                 </Button>
                               </Link>
-                              
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                title="Xuất PDF"
-                                onClick={() => handleExportPDF(card.id, card.card_code)}
-                              >
-                                <DocumentArrowDownIcon className="w-4 h-4" />
-                              </Button>
                               
                               {(isAdmin || card.issued_by_user_id === session?.user?.id) && (
                                 <Button

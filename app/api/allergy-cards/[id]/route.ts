@@ -22,7 +22,7 @@ async function getUserRole(userId: string): Promise<string | null> {
       .from('users')
       .select('role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error getting user role:', error);
