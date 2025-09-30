@@ -47,6 +47,20 @@ export async function GET(
       });
     }
 
+    // Fetch suspected drugs if card is linked to an ADR report
+    let suspectedDrugs = [];
+    if (card.report_id) {
+      const { data: drugs } = await supabase
+        .from('suspected_drugs')
+        .select('*')
+        .eq('report_id', card.report_id);
+      
+      suspectedDrugs = drugs || [];
+    }
+
+    // Add suspected drugs to card data
+    card.suspected_drugs = suspectedDrugs;
+
     // Check if card has expired
     if (card.expiry_date) {
       const expiryDate = new Date(card.expiry_date);

@@ -111,6 +111,15 @@ export interface QRCodeData {
     symptoms?: string;
   }[];
   
+  // Suspected drugs information (from ADR report if available)
+  suspectedDrugs?: {
+    drugName: string;
+    commercialName?: string;
+    dosageForm?: string;
+    indication?: string;
+    reactionImprovedAfterStopping?: string;
+  }[];
+  
   // Metadata
   issuedDate: string;
   emergencyInstructions: string;

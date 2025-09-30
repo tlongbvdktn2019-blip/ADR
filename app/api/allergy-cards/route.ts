@@ -260,6 +260,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Không thể lấy thông tin thẻ vừa tạo' }, { status: 500 });
     }
 
+    // Fetch suspected drugs if card is linked to an ADR report
+    let suspectedDrugs = [];
+    if (completeCard.report_id) {
+      const { data: drugs } = await adminSupabase
+        .from('suspected_drugs')
+        .select('*')
+        .eq('report_id', completeCard.report_id);
+      
+      suspectedDrugs = drugs || [];
+    }
+
+    // Add suspected drugs to card data
+    completeCard.suspected_drugs = suspectedDrugs;
+
     // Generate QR code
     const baseUrl = request.nextUrl.origin;
     const qrData: QRCodeData = QRCodeService.createQRData(completeCard, baseUrl);

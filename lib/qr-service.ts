@@ -14,7 +14,7 @@ export class QRCodeService {
   /**
    * Generate QR code data from allergy card
    */
-  static createQRData(card: AllergyCard, baseUrl: string): QRCodeData {
+  static createQRData(card: any, baseUrl: string): QRCodeData {
     const qrData: QRCodeData = {
       // Card identification
       cardCode: card.card_code,
@@ -31,19 +31,28 @@ export class QRCodeService {
       doctorPhone: card.doctor_phone,
       
       // Critical allergy information
-      allergies: (card.allergies || []).map(allergy => ({
+      allergies: (card.allergies || []).map((allergy: any) => ({
         name: allergy.allergen_name,
         certainty: allergy.certainty_level,
         severity: allergy.severity_level,
         symptoms: allergy.clinical_manifestation
       })),
       
+      // Suspected drugs from ADR report (if available)
+      suspectedDrugs: (card.suspected_drugs || []).map((drug: any) => ({
+        drugName: drug.drug_name,
+        commercialName: drug.commercial_name,
+        dosageForm: drug.dosage_form,
+        indication: drug.indication,
+        reactionImprovedAfterStopping: drug.reaction_improved_after_stopping
+      })),
+      
       // Metadata
       issuedDate: card.issued_date,
       emergencyInstructions: "Trong trường hợp khẩn cấp, tiêm adrenalin ngay và gọi 115",
       
-      // Verification URL for detailed information
-      verificationUrl: `${baseUrl}/allergy-cards/verify/${card.card_code}`
+      // Verification URL for detailed information (public access for Zalo, camera QR, etc.)
+      verificationUrl: `${baseUrl}/allergy-cards/view/${card.card_code}`
     };
     
     return qrData;
@@ -51,12 +60,15 @@ export class QRCodeService {
   
   /**
    * Generate QR code as Data URL (base64)
+   * Creates QR with public URL for universal scanning (Zalo, camera, etc.)
    */
   static async generateQRCodeDataURL(qrData: QRCodeData): Promise<string> {
     try {
-      const jsonString = JSON.stringify(qrData);
+      // Use verification URL instead of JSON for universal QR scanner compatibility
+      // This allows Zalo, camera, and any QR scanner to open the card info
+      const qrContent = qrData.verificationUrl;
       
-      const qrCodeDataURL = await QRCode.toDataURL(jsonString, {
+      const qrCodeDataURL = await QRCode.toDataURL(qrContent, {
         margin: 2,
         color: {
           dark: '#000000',
@@ -75,12 +87,14 @@ export class QRCodeService {
   
   /**
    * Generate QR code as Buffer for file saving
+   * Uses URL format for universal compatibility
    */
   static async generateQRCodeBuffer(qrData: QRCodeData): Promise<Buffer> {
     try {
-      const jsonString = JSON.stringify(qrData);
+      // Use verification URL for universal QR scanner compatibility
+      const qrContent = qrData.verificationUrl;
       
-      const qrCodeBuffer = await QRCode.toBuffer(jsonString, {
+      const qrCodeBuffer = await QRCode.toBuffer(qrContent, {
         margin: 1,
         color: {
           dark: '#000000',
@@ -147,11 +161,16 @@ export class QRCodeService {
       .map(a => `${a.name} (${a.certainty === 'confirmed' ? 'Chắc chắn' : 'Nghi ngờ'})`)
       .join(', ');
     
+    const suspectedDrugsList = qrData.suspectedDrugs && qrData.suspectedDrugs.length > 0
+      ? qrData.suspectedDrugs.map(d => d.drugName).join(', ')
+      : '';
+    
     return `🚨 DỊ ỨNG KHẨN CẤP
     
 BN: ${qrData.patientName} (${qrData.patientAge} tuổi)
     
 DỊ ỨNG: ${allergyList || 'Chưa xác định'}
+${suspectedDrugsList ? `\n⚠️ THUỐC NGHI NGỜ: ${suspectedDrugsList}` : ''}
     
 BS: ${qrData.doctorName}
 BV: ${qrData.hospitalName}
@@ -233,20 +252,13 @@ Ngày cấp: ${new Date(qrData.issuedDate).toLocaleDateString('vi-VN')}`;
   }
   
   /**
-   * Generate emergency contact card QR (very compact)
+   * Generate emergency contact card QR (uses URL for universal access)
    */
-  static async generateEmergencyQR(card: AllergyCard): Promise<string> {
-    const emergencyData = {
-      n: card.patient_name,
-      a: card.patient_age,
-      al: (card.allergies || [])
-        .filter(a => a.certainty_level === 'confirmed' && a.severity_level && ['severe', 'life_threatening'].includes(a.severity_level))
-        .map(a => a.allergen_name)
-        .join(','),
-      e: "Tiêm adrenalin + gọi 115"
-    };
+  static async generateEmergencyQR(card: AllergyCard, baseUrl: string): Promise<string> {
+    // Use same URL format for consistency and universal compatibility
+    const emergencyUrl = `${baseUrl}/allergy-cards/view/${card.card_code}`;
     
-    return await QRCode.toDataURL(JSON.stringify(emergencyData), {
+    return await QRCode.toDataURL(emergencyUrl, {
       width: 150,
       errorCorrectionLevel: 'H',
       color: {
@@ -258,13 +270,21 @@ Ngày cấp: ${new Date(qrData.issuedDate).toLocaleDateString('vi-VN')}`;
   
   /**
    * Check if QR data is from allergy card system
+   * Supports both URL format (new) and JSON format (legacy)
    */
   static isAllergyCardQR(qrString: string): boolean {
+    // Check if it's a URL pointing to our allergy card view
+    if (qrString.includes('/allergy-cards/view/AC-')) {
+      return true;
+    }
+    
+    // Check if it's legacy JSON format
     try {
       const data = JSON.parse(qrString);
       return data.cardCode && data.cardCode.startsWith('AC-');
     } catch {
-      return false;
+      // Check if it's a direct card code
+      return /^AC-\d{4}-\d{6}$/.test(qrString.trim().toUpperCase());
     }
   }
 }

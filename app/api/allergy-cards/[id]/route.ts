@@ -77,6 +77,16 @@ export async function GET(
       return NextResponse.json({ error: 'Không có quyền truy cập' }, { status: 403 });
     }
 
+    // Fetch suspected drugs if card is linked to an ADR report
+    if (card.report_id) {
+      const { data: drugs } = await supabase
+        .from('suspected_drugs')
+        .select('*')
+        .eq('report_id', card.report_id);
+      
+      card.suspected_drugs = drugs || [];
+    }
+
     return NextResponse.json({ card });
 
   } catch (error) {
@@ -196,6 +206,16 @@ export async function PUT(
       .single();
 
     if (updatedCard) {
+      // Fetch suspected drugs if card is linked to an ADR report
+      if (updatedCard.report_id) {
+        const { data: drugs } = await supabase
+          .from('suspected_drugs')
+          .select('*')
+          .eq('report_id', updatedCard.report_id);
+        
+        updatedCard.suspected_drugs = drugs || [];
+      }
+
       // Regenerate QR code with updated data
       const baseUrl = request.nextUrl.origin;
       const qrData: QRCodeData = QRCodeService.createQRData(updatedCard, baseUrl);
