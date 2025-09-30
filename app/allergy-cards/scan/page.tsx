@@ -5,9 +5,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import toast from 'react-hot-toast';
+import jsQR from 'jsqr';
 import { 
   QrCodeIcon, 
   ExclamationTriangleIcon,
@@ -15,7 +16,8 @@ import {
   ClipboardDocumentListIcon,
   InformationCircleIcon,
   ArrowLeftIcon,
-  BeakerIcon
+  BeakerIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -29,6 +31,7 @@ export default function QRScannerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasCamera, setHasCamera] = useState(true);
   const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check camera permission on component mount
   useEffect(() => {
@@ -205,9 +208,95 @@ export default function QRScannerPage() {
     setIsScanning(false);
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file hình ảnh');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Read file as image
+      const imageDataUrl = await readFileAsDataURL(file);
+      
+      // Create image element
+      const img = new Image();
+      img.src = imageDataUrl;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      // Create canvas and draw image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('Cannot get canvas context');
+      }
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Decode QR code
+      const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (!qrCode) {
+        toast.error('Không tìm thấy mã QR trong hình ảnh. Vui lòng chọn hình ảnh khác.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Process the QR code data
+      await handleScan(qrCode.data);
+
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast.error('Có lỗi khi xử lý hình ảnh. Vui lòng thử lại.');
+      setIsLoading(false);
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
         
         {/* Header */}
         <div className="mb-8">
@@ -242,23 +331,38 @@ export default function QRScannerPage() {
                   <ExclamationTriangleIcon className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Không thể truy cập camera</h3>
                   <p className="text-gray-600 mb-4">
-                    Vui lòng cấp quyền camera để quét mã QR
+                    Vui lòng cấp quyền camera để quét mã QR hoặc tải lên hình ảnh QR
                   </p>
-                  <Button onClick={checkCameraPermission}>
-                    Thử lại
-                  </Button>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={checkCameraPermission}>
+                      Thử lại
+                    </Button>
+                    <Button onClick={handleUploadClick} variant="outline" className="flex items-center gap-2">
+                      <PhotoIcon className="w-5 h-5" />
+                      Tải ảnh QR
+                    </Button>
+                  </div>
                 </div>
               ) : !isScanning ? (
                 <div className="py-8">
                   <QrCodeIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Sẵn sàng quét mã QR</h3>
                   <p className="text-gray-600 mb-4">
-                    Nhấn nút bên dưới để bắt đầu quét mã QR trên thẻ dị ứng
+                    Quét bằng camera hoặc tải lên hình ảnh QR có sẵn
                   </p>
-                  <Button onClick={startScanning} className="flex items-center gap-2 mx-auto">
-                    <QrCodeIcon className="w-5 h-5" />
-                    Bắt đầu quét
-                  </Button>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    <Button onClick={startScanning} className="flex items-center gap-2">
+                      <QrCodeIcon className="w-5 h-5" />
+                      Quét bằng camera
+                    </Button>
+                    <Button onClick={handleUploadClick} variant="outline" className="flex items-center gap-2">
+                      <PhotoIcon className="w-5 h-5" />
+                      Tải ảnh QR lên
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-4">
+                    💡 Mẹo: Bạn có thể chụp ảnh QR trước hoặc dùng ảnh có sẵn trong máy
+                  </p>
                 </div>
               ) : (
                 <div>
@@ -295,9 +399,13 @@ export default function QRScannerPage() {
                     </div>
                   )}
                   
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex gap-2 justify-center flex-wrap">
                     <Button variant="outline" onClick={toggleCamera}>
                       {cameraFacingMode === 'environment' ? '📷 Đổi sang Camera trước' : '📷 Đổi sang Camera sau'}
+                    </Button>
+                    <Button variant="outline" onClick={handleUploadClick} className="flex items-center gap-2">
+                      <PhotoIcon className="w-4 h-4" />
+                      Tải ảnh QR
                     </Button>
                     <Button variant="outline" onClick={stopScanning}>
                       Dừng quét
