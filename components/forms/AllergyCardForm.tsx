@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { PlusIcon, TrashIcon, QrCodeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import SimpleSelect from '@/components/ui/SimpleSelect';
@@ -37,7 +37,6 @@ export function AllergyCardForm({
 }: AllergyCardFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Form setup with react-hook-form
   const {
@@ -59,6 +58,7 @@ export function AllergyCardForm({
       issued_date: initialData.issued_date,
       expiry_date: initialData.expiry_date || '',
       notes: initialData.notes || '',
+      google_drive_url: (initialData as any).google_drive_url || '',
       allergies: initialData.allergies?.map(a => ({
         allergen_name: a.allergen_name,
         certainty_level: a.certainty_level,
@@ -85,6 +85,7 @@ export function AllergyCardForm({
       issued_date: new Date().toISOString().split('T')[0],
       expiry_date: '',
       notes: '',
+      google_drive_url: '',
       allergies: [{ 
         allergen_name: '', 
         certainty_level: 'suspected' as CertaintyLevel, 
@@ -170,15 +171,15 @@ export function AllergyCardForm({
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <QrCodeIcon className="w-8 h-8 text-blue-600" />
+          <ClipboardDocumentListIcon className="w-8 h-8 text-blue-600" />
           <h1 className="text-3xl font-bold text-gray-900">
             {mode === 'edit' ? 'Chỉnh sửa thẻ dị ứng' : 'Cấp thẻ dị ứng mới'}
           </h1>
         </div>
         <p className="text-gray-600">
           {mode === 'edit' 
-            ? 'Cập nhật thông tin thẻ dị ứng và mã QR sẽ được tự động tạo lại'
-            : 'Nhập thông tin bệnh nhân và dị ứng để tạo thẻ dị ứng với mã QR'
+            ? 'Cập nhật thông tin thẻ dị ứng của bệnh nhân'
+            : 'Nhập thông tin bệnh nhân và dị ứng để tạo thẻ dị ứng'
           }
         </p>
       </div>
@@ -404,6 +405,15 @@ export function AllergyCardForm({
                 label="Ngày hết hạn"
                 type="date"
                 {...register('expiry_date')}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                label="Link Google Drive thẻ dị ứng"
+                {...register('google_drive_url')}
+                placeholder="https://drive.google.com/file/d/..."
+                helperText="Link đến file PDF/hình ảnh thẻ dị ứng trên Google Drive. QR code sẽ chứa link này."
               />
             </div>
 

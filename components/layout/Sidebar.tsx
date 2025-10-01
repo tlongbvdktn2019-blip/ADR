@@ -8,13 +8,13 @@ import { useSession } from 'next-auth/react'
 import {
   ChartBarIcon,
   DocumentTextIcon,
-  QrCodeIcon,
   AcademicCapIcon,
   InformationCircleIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
   PlusCircleIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  HeartIcon
 } from '@heroicons/react/24/outline'
 
 type UserRole = 'admin' | 'user'
@@ -29,7 +29,7 @@ interface NavItem {
 const baseNavItems: NavItem[] = [
   { label: 'Bảng điều khiển', href: '/dashboard', icon: ChartBarIcon },
   { label: 'Báo cáo ADR', href: '/reports', icon: DocumentTextIcon },
-  { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: QrCodeIcon },
+  { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: HeartIcon },
   { label: 'Thông tin ADR', href: '/adr-information', icon: InformationCircleIcon },
   { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon }
 ]

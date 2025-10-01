@@ -7,11 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { createServerClient, createAdminClient } from '@/lib/supabase';
-import { QRCodeService } from '@/lib/qr-service';
+import { QRDriveService } from '@/lib/qr-drive-service';
 import { 
   AllergyCard, 
-  AllergyCardFormData, 
-  QRCodeData 
+  AllergyCardFormData
 } from '@/types/allergy-card';
 
 // Helper function to safely get user role
@@ -153,6 +152,7 @@ export async function PUT(
       doctor_phone: formData.doctor_phone,
       expiry_date: formData.expiry_date && formData.expiry_date.trim() !== '' ? formData.expiry_date : null,
       notes: formData.notes,
+      google_drive_url: formData.google_drive_url,
       updated_at: new Date().toISOString()
     };
 
@@ -216,22 +216,23 @@ export async function PUT(
         updatedCard.suspected_drugs = drugs || [];
       }
 
-      // Regenerate QR code with updated data
-      const baseUrl = request.nextUrl.origin;
-      const qrData: QRCodeData = QRCodeService.createQRData(updatedCard, baseUrl);
-      const qrCodeDataURL = await QRCodeService.generateQRCodeDataURL(qrData);
-
-      // Update QR code in database
-      await supabase
-        .from('allergy_cards')
-        .update({
-          qr_code_data: JSON.stringify(qrData),
-          qr_code_url: qrCodeDataURL
-        })
-        .eq('id', cardId);
-
-      updatedCard.qr_code_data = JSON.stringify(qrData);
-      updatedCard.qr_code_url = qrCodeDataURL;
+      // Regenerate QR code if Google Drive URL is provided
+      if (formData.google_drive_url && formData.google_drive_url.trim() !== '') {
+        try {
+          const qrCodeUrl = await QRDriveService.generateQRFromDriveUrl(formData.google_drive_url);
+          
+          // Update QR code in database
+          await supabase
+            .from('allergy_cards')
+            .update({ qr_code_url: qrCodeUrl })
+            .eq('id', cardId);
+            
+          updatedCard.qr_code_url = qrCodeUrl;
+        } catch (error) {
+          console.error('QR generation error:', error);
+          // Continue without QR if generation fails
+        }
+      }
     }
 
     return NextResponse.json({

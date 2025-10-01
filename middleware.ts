@@ -12,8 +12,13 @@ export default withAuth(
           return true
         }
 
-        // Allow public access to allergy card view (for QR scan from Zalo, camera, etc.)
+        // Allow public access to allergy card view (via QR code)
         if (req.nextUrl.pathname.startsWith('/allergy-cards/view/')) {
+          return true
+        }
+
+        // Allow public API access for card view
+        if (req.nextUrl.pathname.startsWith('/api/allergy-cards/view/')) {
           return true
         }
 

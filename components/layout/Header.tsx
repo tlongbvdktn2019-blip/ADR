@@ -12,7 +12,7 @@ import {
   UserIcon,
   ChartBarIcon,
   DocumentTextIcon,
-  QrCodeIcon,
+  HeartIcon,
   UsersIcon,
   AcademicCapIcon,
   LockClosedIcon,
@@ -122,7 +122,7 @@ export default function Header() {
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setAdrDropdownOpen(false)}
                     >
-                      <QrCodeIcon className="w-4 h-4 mr-3" />
+                      <HeartIcon className="w-4 h-4 mr-3" />
                       Thẻ dị ứng
                     </Link>
                   </div>

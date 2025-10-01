@@ -1,309 +1,152 @@
 // =====================================================
-// QR SCANNER PAGE FOR ALLERGY CARDS
-// Page for scanning QR codes and displaying allergy information
+// QR SCANNER PAGE - GOOGLE DRIVE VERSION
+// Quét QR để mở file thẻ dị ứng từ Google Drive
 // =====================================================
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Scanner } from '@yudiel/react-qr-scanner';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import jsQR from 'jsqr';
 import { 
   QrCodeIcon, 
-  ExclamationTriangleIcon,
-  PhoneIcon,
-  ClipboardDocumentListIcon,
-  InformationCircleIcon,
   ArrowLeftIcon,
-  BeakerIcon,
-  PhotoIcon
+  DocumentIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { QRCodeData, QRScanResult } from '@/types/allergy-card';
+import QRScanner from '@/components/ui/QRScanner';
 
 export default function QRScannerPage() {
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<QRScanResult | null>(null);
-  const [allergyData, setAllergyData] = useState<QRCodeData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasCamera, setHasCamera] = useState(true);
-  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scannedUrl, setScannedUrl] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
-  // Check camera permission on component mount
-  useEffect(() => {
-    checkCameraPermission();
-  }, []);
-
-  const checkCameraPermission = async () => {
+  // Xử lý quét QR (hỗ trợ mã thẻ, URL, Google Drive)
+  const handleManualInput = async (qrContent: string) => {
+    setIsProcessing(true);
+    
     try {
-      // Try to get any available camera without strict constraints
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: 'environment' } } 
-      });
-      // Stop the stream immediately, we just needed to check permission
-      stream.getTracks().forEach(track => track.stop());
-      setHasCamera(true);
-    } catch (error) {
-      console.error('Camera access error:', error);
-      
-      // Try again with basic video constraint
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-        setHasCamera(true);
-        // If we only have front camera, use it
-        setCameraFacingMode('user');
-      } catch (fallbackError) {
-        console.error('Camera access denied:', fallbackError);
-        setHasCamera(false);
-        toast.error('Không thể truy cập camera. Vui lòng cấp quyền camera.');
-      }
-    }
-  };
+      const trimmedContent = qrContent.trim();
 
-  const handleScan = async (result: string) => {
-    if (!result || isLoading) return;
-
-    setIsLoading(true);
-    setIsScanning(false);
-
-    try {
-      let qrData: QRCodeData;
-      
-      // Check if result is a URL (new QR format for Zalo/camera compatibility)
-      if (result.startsWith('http://') || result.startsWith('https://')) {
-        // Extract card code from URL: /allergy-cards/view/AC-YYYY-XXXXXX
-        const urlMatch = result.match(/\/allergy-cards\/view\/([A-Z0-9-]+)$/);
+      // 1. Kiểm tra xem có phải MÃ THẺ không (AC-YYYY-XXXXXX)
+      if (/^AC-\d{4}-\d{6}$/.test(trimmedContent)) {
+        toast.loading('Đang tra cứu thẻ dị ứng...');
         
-        if (urlMatch && urlMatch[1]) {
-          const cardCode = urlMatch[1].toUpperCase();
+        // Gọi API tra cứu thẻ bằng mã thẻ
+        const response = await fetch(`/api/allergy-cards/lookup/${trimmedContent}`);
+        const result = await response.json();
+        
+        if (response.ok && result.card) {
+          toast.dismiss();
+          toast.success('Đã tìm thấy thẻ dị ứng! Đang chuyển hướng...');
           
-          // Fetch card data from API
-          const response = await fetch(`/api/allergy-cards/verify/${cardCode}`);
-          const apiResult = await response.json();
-          
-          if (!apiResult.success || !apiResult.data) {
-            toast.error(apiResult.error || 'Không thể xác thực thẻ dị ứng');
-            setIsLoading(false);
-            return;
+          // Hiển thị cảnh báo nếu có
+          if (result.warning) {
+            setTimeout(() => toast(result.warning, {
+              icon: '⚠️',
+              duration: 4000,
+            }), 1000);
           }
           
-          qrData = apiResult.data;
+          setTimeout(() => {
+            router.push(`/allergy-cards/view/${result.card.id}`);
+            setIsProcessing(false);
+          }, 1000);
+          return;
         } else {
-          toast.error('Đường dẫn QR không hợp lệ');
-          setIsLoading(false);
+          toast.dismiss();
+          toast.error(result.error || 'Không tìm thấy thẻ dị ứng');
+          setIsProcessing(false);
           return;
         }
-      } else {
-        // Try to parse as JSON (old QR format) or direct card code
-        try {
-          qrData = JSON.parse(result);
-          
-          // Validate if it's our allergy card QR
-          if (!qrData.cardCode || !qrData.cardCode.startsWith('AC-')) {
-            throw new Error('Not an allergy card QR');
-          }
-          
-        } catch (parseError) {
-          // If not JSON, treat as card code and fetch from API
-          const cardCode = result.trim().toUpperCase();
-          
-          if (!cardCode.match(/^AC-\d{4}-\d{6}$/)) {
-            toast.error('Mã QR không phải là mã thẻ dị ứng hợp lệ');
-            setIsLoading(false);
-            return;
-          }
+      }
 
-          // Fetch card data from API
-          const response = await fetch(`/api/allergy-cards/verify/${cardCode}`);
-          const apiResult = await response.json();
-          
-          if (!apiResult.success || !apiResult.data) {
-            toast.error(apiResult.error || 'Không thể xác thực thẻ dị ứng');
-            setIsLoading(false);
-            return;
-          }
-          
-          qrData = apiResult.data;
+      // 2. Kiểm tra xem có phải URL thẻ dị ứng không
+      if (trimmedContent.includes('/allergy-cards/view/')) {
+        const match = trimmedContent.match(/\/allergy-cards\/view\/([a-f0-9-]+)/);
+        if (match) {
+          const cardId = match[1];
+          toast.success('Đã quét thẻ dị ứng! Đang chuyển hướng...');
+          setTimeout(() => {
+            router.push(`/allergy-cards/view/${cardId}`);
+            setIsProcessing(false);
+          }, 500);
+          return;
         }
       }
 
-      // Verify data with API for extra security
-      const verifyResponse = await fetch(`/api/allergy-cards/verify/${qrData.cardCode}/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ qrData: JSON.stringify(qrData) }),
-      });
-
-      const verifyResult = await verifyResponse.json();
-      
-      if (!verifyResult.success) {
-        toast.error(verifyResult.error || 'Thẻ dị ứng không hợp lệ');
-        setScanResult(verifyResult);
-        setIsLoading(false);
+      // 3. Kiểm tra xem có phải Google Drive URL không
+      if (trimmedContent.includes('drive.google.com')) {
+        setScannedUrl(trimmedContent);
+        toast.success('Đã quét Google Drive! Đang mở file...');
+        
+        setTimeout(() => {
+          window.open(trimmedContent, '_blank');
+          setIsProcessing(false);
+        }, 1000);
         return;
       }
 
-      // Success - display allergy information
-      setAllergyData(qrData);
-      setScanResult(verifyResult);
-      toast.success('Đã quét thành công thẻ dị ứng!');
-      
-      // Play sound for emergency alert if severe allergies
-      const hasSevereAllergy = qrData.allergies.some(a => 
-        a.severity === 'severe' || a.severity === 'life_threatening'
-      );
-      
-      if (hasSevereAllergy) {
-        // Could add audio alert here
-        toast.error('⚠️ CẢNH BÁO: Bệnh nhân có dị ứng nghiêm trọng!', {
-          duration: 8000
-        });
+      // 4. Thử parse JSON (cho QR data offline)
+      try {
+        const data = JSON.parse(trimmedContent);
+        if (data.type === 'allergy_card') {
+          // Nếu có code, dùng code để tra cứu
+          if (data.code) {
+            handleManualInput(data.code); // Recursive call với card code
+            return;
+          }
+          // Fallback dùng ID
+          if (data.id) {
+            toast.success('Đã quét thẻ dị ứng! Đang chuyển hướng...');
+            setTimeout(() => {
+              router.push(`/allergy-cards/view/${data.id}`);
+              setIsProcessing(false);
+            }, 500);
+            return;
+          }
+        }
+      } catch {
+        // Not JSON, continue
       }
 
+      // Không nhận dạng được định dạng QR
+      toast.error('Mã QR không hợp lệ. Vui lòng quét mã QR của thẻ dị ứng.');
+      setIsProcessing(false);
+      
     } catch (error) {
-      console.error('QR scan error:', error);
+      console.error('Error processing QR:', error);
       toast.error('Có lỗi xảy ra khi xử lý mã QR');
-    } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleError = (error: unknown) => {
-    console.error('QR Scanner error:', error);
-    
-    // Handle OverconstrainedError - camera facing mode not supported
-    if (error instanceof Error && error.name === 'OverconstrainedError') {
-      console.log('Switching to front camera due to OverconstrainedError');
-      setCameraFacingMode('user');
-      toast.error('Không thể dùng camera sau. Chuyển sang camera trước.');
-    } else {
-      toast.error('Lỗi khi quét mã QR');
-    }
-  };
-  
-  const toggleCamera = () => {
-    setCameraFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
+  // Xử lý khi quét QR bằng camera
+  const handleCameraScan = (data: string) => {
+    console.log('Camera scanned:', data);
+    setShowScanner(false); // Ẩn camera sau khi quét
+    handleManualInput(data); // Xử lý kết quả
   };
 
-  const startScanning = () => {
-    setScanResult(null);
-    setAllergyData(null);
-    setIsScanning(true);
-  };
-
-  const stopScanning = () => {
-    setIsScanning(false);
-  };
-
-  const resetScanner = () => {
-    setScanResult(null);
-    setAllergyData(null);
-    setIsScanning(false);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Vui lòng chọn file hình ảnh');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Read file as image
-      const imageDataUrl = await readFileAsDataURL(file);
-      
-      // Create image element
-      const img = new Image();
-      img.src = imageDataUrl;
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      // Create canvas and draw image
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Cannot get canvas context');
-      }
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      // Decode QR code
-      const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (!qrCode) {
-        toast.error('Không tìm thấy mã QR trong hình ảnh. Vui lòng chọn hình ảnh khác.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Process the QR code data
-      await handleScan(qrCode.data);
-
-    } catch (error) {
-      console.error('Error processing image:', error);
-      toast.error('Có lỗi khi xử lý hình ảnh. Vui lòng thử lại.');
-      setIsLoading(false);
-    } finally {
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  // Xử lý lỗi camera
+  const handleScanError = (error: string) => {
+    console.error('Scanner error:', error);
+    toast.error(error);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
-        
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Button
               variant="outline"
-              onClick={() => window.history.back()}
+              onClick={() => router.back()}
               className="flex items-center gap-2"
             >
               <ArrowLeftIcon className="w-4 h-4" />
@@ -313,367 +156,144 @@ export default function QRScannerPage() {
           
           <div className="flex items-center gap-3 mb-2">
             <QrCodeIcon className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Quét mã QR thẻ dị ứng
-            </h1>
-          </div>
-          <p className="text-gray-600">
-            Quét mã QR trên thẻ dị ứng để xem thông tin dị ứng khẩn cấp của bệnh nhân
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Quét mã QR thẻ dị ứng
+          </h1>
+        </div>
+        <p className="text-gray-600">
+          Quét mã QR để xem thông tin thẻ dị ứng hoặc file từ Google Drive
+        </p>
         </div>
 
-        {/* Scanner Section */}
-        {!allergyData && (
-          <Card className="p-6 mb-6">
-            <div className="text-center">
-              {!hasCamera ? (
-                <div className="py-8">
-                  <ExclamationTriangleIcon className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Không thể truy cập camera</h3>
-                  <p className="text-gray-600 mb-4">
-                    Vui lòng cấp quyền camera để quét mã QR hoặc tải lên hình ảnh QR
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Button onClick={checkCameraPermission}>
-                      Thử lại
-                    </Button>
-                    <Button onClick={handleUploadClick} variant="outline" className="flex items-center gap-2">
-                      <PhotoIcon className="w-5 h-5" />
-                      Tải ảnh QR
-                    </Button>
-                  </div>
-                </div>
-              ) : !isScanning ? (
-                <div className="py-8">
-                  <QrCodeIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Sẵn sàng quét mã QR</h3>
-                  <p className="text-gray-600 mb-4">
-                    Quét bằng camera hoặc tải lên hình ảnh QR có sẵn
-                  </p>
-                  <div className="flex gap-3 justify-center flex-wrap">
-                    <Button onClick={startScanning} className="flex items-center gap-2">
-                      <QrCodeIcon className="w-5 h-5" />
-                      Quét bằng camera
-                    </Button>
-                    <Button onClick={handleUploadClick} variant="outline" className="flex items-center gap-2">
-                      <PhotoIcon className="w-5 h-5" />
-                      Tải ảnh QR lên
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-4">
-                    💡 Mẹo: Bạn có thể chụp ảnh QR trước hoặc dùng ảnh có sẵn trong máy
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div className="mb-4">
-                    <Scanner
-                      key={cameraFacingMode} // Re-mount when camera changes
-                      onScan={(detectedCodes) => {
-                        if (detectedCodes && detectedCodes.length > 0) {
-                          handleScan(detectedCodes[0].rawValue);
-                        }
-                      }}
-                      onError={handleError}
-                      constraints={{
-                        facingMode: { ideal: cameraFacingMode }
-                      }}
-                      styles={{
-                        container: {
-                          width: '100%',
-                          maxWidth: '400px',
-                          margin: '0 auto'
-                        },
-                        video: {
-                          width: '100%',
-                          height: 'auto'
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  {isLoading && (
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      <LoadingSpinner size="sm" />
-                      <span>Đang xử lý mã QR...</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2 justify-center flex-wrap">
-                    <Button variant="outline" onClick={toggleCamera}>
-                      {cameraFacingMode === 'environment' ? '📷 Đổi sang Camera trước' : '📷 Đổi sang Camera sau'}
-                    </Button>
-                    <Button variant="outline" onClick={handleUploadClick} className="flex items-center gap-2">
-                      <PhotoIcon className="w-4 h-4" />
-                      Tải ảnh QR
-                    </Button>
-                    <Button variant="outline" onClick={stopScanning}>
-                      Dừng quét
-                    </Button>
-                  </div>
-                  
-                  <p className="text-sm text-gray-500 mt-4">
-                    Hướng camera về phía mã QR trên thẻ dị ứng
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {cameraFacingMode === 'environment' ? '📱 Đang dùng camera sau' : '🤳 Đang dùng camera trước'}
-                  </p>
-                </div>
-              )}
+        {/* Info Card */}
+        <Card className="p-6 mb-6 bg-blue-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <DocumentIcon className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-2">
+                Cách sử dụng
+              </h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>Quét QR trên thẻ:</strong> Dùng camera điện thoại quét mã QR</li>
+                <li>• <strong>Hoặc nhập mã thẻ:</strong> Nhập mã thẻ (ví dụ: AC-2024-000001) vào ô bên dưới</li>
+                <li>• Hệ thống sẽ tự động tra cứu và hiển thị thông tin dị ứng</li>
+                <li>• QR code chứa mã thẻ để dễ dàng tra cứu nhanh trong trường hợp khẩn cấp</li>
+              </ul>
             </div>
-          </Card>
-        )}
+          </div>
+        </Card>
 
-        {/* Scan Results */}
-        {scanResult && !scanResult.success && (
-          <Card className="p-6 mb-6">
+        {/* Scanner Section */}
+        <Card className="p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Quét mã QR bằng camera</h2>
+            {!showScanner && (
+              <Button
+                onClick={() => setShowScanner(true)}
+                className="flex items-center gap-2"
+              >
+                <QrCodeIcon className="w-5 h-5" />
+                Bật camera
+              </Button>
+            )}
+          </div>
+          
+          <div className="space-y-4">
+            {/* Camera Scanner - NOW IMPLEMENTED */}
+            {showScanner ? (
+              <QRScanner 
+                onScan={handleCameraScan}
+                onError={handleScanError}
+              />
+            ) : (
+              <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <QrCodeIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">
+                  Nhấn "Bật camera" để bắt đầu quét QR
+                </p>
+                <p className="text-sm text-gray-500">
+                  Camera sẽ tự động phát hiện và quét mã QR trên thẻ dị ứng
+                </p>
+              </div>
+            )}
+
+            <div className="text-center text-gray-500 text-sm">
+              hoặc
+            </div>
+
+            {/* Manual Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nhập mã thẻ hoặc link từ QR
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="VD: AC-2024-000001 hoặc dán link từ QR"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onPaste={(e) => {
+                    const pastedText = e.clipboardData.getData('text');
+                    if (pastedText) {
+                      setTimeout(() => handleManualInput(pastedText), 100);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value) {
+                      handleManualInput(e.currentTarget.value);
+                    }
+                  }}
+                  disabled={isProcessing}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Nhập mã thẻ dị ứng (định dạng: AC-YYYY-XXXXXX) hoặc dán link và nhấn Enter
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Result */}
+        {scannedUrl && (
+          <Card className="p-6 bg-green-50 border-green-200">
             <div className="flex items-start gap-3">
-              <ExclamationTriangleIcon className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-red-900 mb-1">Lỗi quét mã QR</h3>
-                <p className="text-red-700">{scanResult.error}</p>
-                <Button 
-                  variant="outline" 
-                  onClick={resetScanner}
-                  className="mt-3"
+              <DocumentIcon className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 mb-2">
+                  Đã quét thành công!
+                </h3>
+                <p className="text-sm text-green-800 mb-3">
+                  Link: {scannedUrl}
+                </p>
+                <Button
+                  onClick={() => window.open(scannedUrl, '_blank')}
+                  className="flex items-center gap-2"
                 >
-                  Quét lại
+                  <DocumentIcon className="w-4 h-4" />
+                  Mở file thẻ dị ứng
                 </Button>
               </div>
             </div>
           </Card>
         )}
 
-        {/* Allergy Information Display */}
-        {allergyData && (
-          <div className="space-y-6">
-            
-            {/* Emergency Alert */}
-            {allergyData.allergies.some(a => a.severity === 'severe' || a.severity === 'life_threatening') && (
-              <Card className="p-6 border-red-200 bg-red-50">
-                <div className="flex items-start gap-3">
-                  <ExclamationTriangleIcon className="w-8 h-8 text-red-600 flex-shrink-0" />
-                  <div>
-                    <h2 className="text-xl font-bold text-red-900 mb-2">
-                      ⚠️ CẢNH BÁO DỊ ỨNG NGHIÊM TRỌNG
-                    </h2>
-                    <p className="text-red-800 font-medium">
-                      Bệnh nhân có dị ứng nghiêm trọng. Cần cẩn thận khi sử dụng thuốc!
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Patient Information */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <InformationCircleIcon className="w-6 h-6 text-blue-600" />
-                Thông tin bệnh nhân
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Họ tên</label>
-                  <p className="text-lg font-semibold">{allergyData.patientName}</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Tuổi</label>
-                  <p className="text-lg">{allergyData.patientAge}</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Giới tính</label>
-                  <p className="text-lg">
-                    {allergyData.patientGender === 'male' ? 'Nam' : 
-                     allergyData.patientGender === 'female' ? 'Nữ' : 'Khác'}
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Mã thẻ</label>
-                  <p className="text-lg font-mono">{allergyData.cardCode}</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Allergy Details */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <ClipboardDocumentListIcon className="w-6 h-6 text-orange-600" />
-                Thông tin dị ứng
-              </h2>
-              
-              <div className="space-y-4">
-                {allergyData.allergies.map((allergy, index) => (
-                  <div 
-                    key={index}
-                    className={`p-4 rounded-lg border ${
-                      allergy.severity === 'severe' || allergy.severity === 'life_threatening' 
-                        ? 'border-red-200 bg-red-50' 
-                        : 'border-gray-200 bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-lg">{allergy.name}</h3>
-                      <div className="flex gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          allergy.certainty === 'confirmed' 
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {allergy.certainty === 'confirmed' ? 'Chắc chắn' : 'Nghi ngờ'}
-                        </span>
-                        
-                        {allergy.severity && (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            allergy.severity === 'life_threatening' ? 'bg-red-200 text-red-900' :
-                            allergy.severity === 'severe' ? 'bg-orange-200 text-orange-900' :
-                            allergy.severity === 'moderate' ? 'bg-yellow-200 text-yellow-900' :
-                            'bg-green-200 text-green-900'
-                          }`}>
-                            {
-                              allergy.severity === 'life_threatening' ? 'Nguy hiểm' :
-                              allergy.severity === 'severe' ? 'Nghiêm trọng' :
-                              allergy.severity === 'moderate' ? 'Vừa' : 'Nhẹ'
-                            }
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {allergy.symptoms && (
-                      <p className="text-gray-700">{allergy.symptoms}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Suspected Drugs Information */}
-            {allergyData.suspectedDrugs && allergyData.suspectedDrugs.length > 0 && (
-              <Card className="p-6 border-red-200 bg-red-50">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-red-900">
-                  <BeakerIcon className="w-6 h-6 text-red-600" />
-                  Thuốc nghi ngờ gây dị ứng ({allergyData.suspectedDrugs.length})
-                </h2>
-                
-                <div className="space-y-4">
-                  {allergyData.suspectedDrugs.map((drug, index) => (
-                    <div 
-                      key={index}
-                      className="p-4 rounded-lg border border-red-300 bg-white"
-                    >
-                      <div className="mb-3">
-                        <h3 className="font-bold text-lg text-red-900">{drug.drugName}</h3>
-                        {drug.commercialName && (
-                          <p className="text-sm text-red-700 mt-1">
-                            Tên thương mại: <span className="font-medium">{drug.commercialName}</span>
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {drug.dosageForm && (
-                          <p className="text-sm text-gray-700">
-                            <span className="font-medium">Dạng bào chế:</span> {drug.dosageForm}
-                          </p>
-                        )}
-                        
-                        {drug.indication && (
-                          <p className="text-sm text-gray-700">
-                            <span className="font-medium">Chỉ định:</span> {drug.indication}
-                          </p>
-                        )}
-                        
-                        {drug.reactionImprovedAfterStopping && drug.reactionImprovedAfterStopping !== 'no_information' && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                            <p className="text-sm text-yellow-800">
-                              <span className="font-medium">Phản ứng sau khi ngừng thuốc:</span>{' '}
-                              {drug.reactionImprovedAfterStopping === 'yes' ? 'Cải thiện' : 
-                               drug.reactionImprovedAfterStopping === 'no' ? 'Không cải thiện' :
-                               drug.reactionImprovedAfterStopping === 'not_stopped' ? 'Không ngừng thuốc' :
-                               'Không rõ'}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="mt-4 p-3 bg-red-100 rounded-lg border border-red-300">
-                  <p className="text-red-900 font-bold text-sm">
-                    ⚠️ CẢNH BÁO: Tránh sử dụng các thuốc trên cho bệnh nhân này!
-                  </p>
-                  <p className="text-red-800 text-sm mt-1">
-                    Các thuốc này đã từng gây phản ứng dị ứng cho bệnh nhân.
-                  </p>
-                </div>
-              </Card>
-            )}
-
-            {/* Emergency Contact */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <PhoneIcon className="w-6 h-6 text-green-600" />
-                Liên hệ khẩn cấp
-              </h2>
-              
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Bác sĩ điều trị</label>
-                  <p className="text-lg font-semibold">{allergyData.doctorName}</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Bệnh viện</label>
-                  <p className="text-lg">{allergyData.hospitalName}</p>
-                </div>
-                
-                {allergyData.doctorPhone && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Số điện thoại</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-mono">{allergyData.doctorPhone}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`tel:${allergyData.doctorPhone}`)}
-                        className="flex items-center gap-1"
-                      >
-                        <PhoneIcon className="w-4 h-4" />
-                        Gọi
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-yellow-800 font-medium">
-                    {allergyData.emergencyInstructions}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex gap-4 justify-center">
-              <Button onClick={resetScanner} variant="outline">
-                Quét thẻ khác
-              </Button>
-              
-              <Button 
-                onClick={() => window.open(allergyData.verificationUrl, '_blank')}
-                variant="outline"
-              >
-                Xem thông tin đầy đủ
-              </Button>
+        {/* Warning */}
+        <Card className="p-6 mt-6 bg-yellow-50 border-yellow-200">
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-semibold text-yellow-900 mb-2">
+                Lưu ý quan trọng
+              </h3>
+              <ul className="text-sm text-yellow-800 space-y-1">
+                <li>• File thẻ dị ứng được lưu trữ an toàn trên Google Drive</li>
+                <li>• Đảm bảo có kết nối internet để xem file</li>
+                <li>• Nếu không mở được file, kiểm tra quyền truy cập</li>
+                <li>• Liên hệ bác sĩ điều trị nếu cần hỗ trợ</li>
+              </ul>
             </div>
-            
           </div>
-        )}
+        </Card>
+
       </div>
     </div>
   );

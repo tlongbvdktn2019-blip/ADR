@@ -5,7 +5,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { QRCodeService } from './qr-service';
+import { QRCardService } from './qr-card-service';
 import { AllergyCard, AllergyCardTemplateData } from '@/types/allergy-card';
 
 /**
@@ -20,8 +20,7 @@ export class AllergyCardPDFService {
     try {
       // Generate QR code data URL
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-      const qrData = QRCodeService.createQRData(card, baseUrl);
-      const qrCodeDataUrl = await QRCodeService.generateQRCodeDataURL(qrData);
+      const qrCodeDataUrl = await QRCardService.generateCardQR(card.card_code, baseUrl);
 
       // Generate simple HTML representation
       const html = `

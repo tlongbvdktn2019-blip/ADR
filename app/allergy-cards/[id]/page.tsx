@@ -10,7 +10,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
-  QrCodeIcon,
+  ClipboardDocumentListIcon,
   ArrowLeftIcon,
   PencilIcon,
   DocumentArrowDownIcon,
@@ -19,7 +19,6 @@ import {
   ExclamationTriangleIcon,
   UserIcon,
   BuildingOffice2Icon,
-  ClipboardDocumentListIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
@@ -177,7 +176,7 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <QrCodeIcon className="w-8 h-8 text-blue-600" />
+              <ClipboardDocumentListIcon className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
                   Chi tiết thẻ dị ứng
@@ -239,30 +238,75 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* QR Code Section */}
+          {/* QR Code Section - ALWAYS SHOW */}
           <div className="lg:col-span-1">
             <Card className="p-6 text-center">
-              <h2 className="text-xl font-semibold mb-4">Mã QR thẻ dị ứng</h2>
+              <h2 className="text-xl font-semibold mb-4 text-blue-900">Mã QR thẻ dị ứng</h2>
               
-              {card.qr_code_url && (
+              {/* QR Code Display */}
+              {card.qr_code_url ? (
                 <div className="mb-4">
                   <img 
                     src={card.qr_code_url} 
-                    alt="QR Code" 
-                    className="mx-auto w-48 h-48 border border-gray-200 rounded-lg"
+                    alt={`QR Code - ${card.card_code}`}
+                    className="mx-auto w-48 h-48 border-2 border-blue-200 rounded-lg shadow-sm"
                   />
+                </div>
+              ) : (
+                <div className="mb-4 w-48 h-48 mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-400 text-sm px-4 text-center">
+                    QR code đang được tạo...
+                  </p>
                 </div>
               )}
               
-              <p className="text-sm text-gray-600 mb-4">
-                Quét mã QR này để xem thông tin dị ứng khẩn cấp
-              </p>
+              {/* Card Code */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Mã thẻ:</p>
+                <p className="text-xl font-mono font-bold text-blue-900">{card.card_code}</p>
+              </div>
               
-              <Link href="/allergy-cards/scan">
-                <Button variant="outline" className="w-full">
-                  Mở máy quét QR
-                </Button>
-              </Link>
+              <div className="text-sm text-gray-600 mb-4 text-left bg-gray-50 p-3 rounded-lg">
+                <p className="font-medium mb-2">📱 Cách sử dụng QR:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Quét QR bằng camera điện thoại</li>
+                  <li>• Hoặc nhập mã thẻ để tra cứu</li>
+                  <li>• QR chứa mã thẻ: <span className="font-mono font-semibold">{card.card_code}</span></li>
+                </ul>
+              </div>
+              
+              <div className="space-y-2">
+                <Link href="/allergy-cards/scan" className="block">
+                  <Button variant="outline" className="w-full">
+                    🔍 Quét QR tra cứu
+                  </Button>
+                </Link>
+                
+                {(card as any).google_drive_url && (
+                  <a 
+                    href={(card as any).google_drive_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full"
+                  >
+                    <Button variant="outline" className="w-full">
+                      📁 Mở file Drive
+                    </Button>
+                  </a>
+                )}
+                
+                {card.qr_code_url && (
+                  <a 
+                    href={card.qr_code_url}
+                    download={`QR-${card.card_code}.png`}
+                    className="block w-full"
+                  >
+                    <Button variant="outline" className="w-full">
+                      💾 Tải QR Code
+                    </Button>
+                  </a>
+                )}
+              </div>
             </Card>
           </div>
 

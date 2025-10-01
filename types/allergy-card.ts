@@ -149,6 +149,9 @@ export interface AllergyCardFormData {
   expiry_date?: string;
   notes?: string;
   
+  // Google Drive URL for QR code
+  google_drive_url?: string;
+  
   // Allergies array
   allergies: {
     allergen_name: string;

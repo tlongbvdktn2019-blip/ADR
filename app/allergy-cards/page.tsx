@@ -11,7 +11,6 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
-  QrCodeIcon,
   PlusIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -20,7 +19,8 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  QrCodeIcon as QrScanIcon
+  ClipboardDocumentListIcon,
+  QrCodeIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -269,13 +269,13 @@ export default function AllergyCardsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <QrCodeIcon className="w-8 h-8 text-blue-600" />
+              <ClipboardDocumentListIcon className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
                   Quản lý thẻ dị ứng
                 </h1>
                 <p className="text-gray-600">
-                  Danh sách và quản lý thẻ dị ứng với mã QR
+                  Danh sách và quản lý thẻ dị ứng của bệnh nhân
                 </p>
               </div>
             </div>
@@ -283,8 +283,8 @@ export default function AllergyCardsPage() {
             <div className="flex gap-3">
               <Link href="/allergy-cards/scan">
                 <Button variant="outline" className="flex items-center gap-2">
-                  <QrScanIcon className="w-5 h-5" />
-                  Quét mã QR
+                  <QrCodeIcon className="w-5 h-5" />
+                  Quét QR
                 </Button>
               </Link>
               
@@ -378,7 +378,7 @@ export default function AllergyCardsPage() {
             </div>
           ) : cards.length === 0 ? (
             <div className="text-center py-12">
-              <QrCodeIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <ClipboardDocumentListIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Chưa có thẻ dị ứng
               </h3>

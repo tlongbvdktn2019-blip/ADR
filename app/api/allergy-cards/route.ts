@@ -7,13 +7,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { createServerClient, createAdminClient } from '@/lib/supabase';
-import { QRCodeService } from '@/lib/qr-service';
+import { QRDriveService } from '@/lib/qr-drive-service';
+import { QRCardService } from '@/lib/qr-card-service';
 import { 
   AllergyCard, 
   AllergyCardFormData, 
   AllergyCardListResponse, 
-  AllergyCardFilters,
-  QRCodeData 
+  AllergyCardFilters
 } from '@/types/allergy-card';
 
 // Helper function to safely get user role
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       organization: userData?.organization || formData.hospital_name,
       notes: formData.notes,
       report_id: formData.report_id,
-      qr_code_data: '{}', // Temporary empty JSON, will be updated after QR generation
+      google_drive_url: formData.google_drive_url,
       status: 'active' as const
     };
 
@@ -274,33 +274,61 @@ export async function POST(request: NextRequest) {
     // Add suspected drugs to card data
     completeCard.suspected_drugs = suspectedDrugs;
 
-    // Generate QR code
-    const baseUrl = request.nextUrl.origin;
-    const qrData: QRCodeData = QRCodeService.createQRData(completeCard, baseUrl);
-    const qrCodeDataURL = await QRCodeService.generateQRCodeDataURL(qrData);
+    // Generate QR code for the card (always generate for every card)
+    // QR chứa MÃ THẺ để dễ dàng tra cứu khi quét
+    let qrCodeUrl = null;
+    let qrCodeData = null;
+    
+    try {
+      // Generate QR code containing CARD CODE (not ID)
+      // Ví dụ QR sẽ chứa: "AC-2024-000001"
+      qrCodeUrl = await QRCardService.generateCardQR(cardResult.card_code);
+      
+      // Store card code as QR data
+      qrCodeData = cardResult.card_code;
+      
+      // Update card with QR code
+      await adminSupabase
+        .from('allergy_cards')
+        .update({ 
+          qr_code_url: qrCodeUrl,
+          qr_code_data: qrCodeData
+        })
+        .eq('id', cardResult.id);
+        
+      completeCard.qr_code_url = qrCodeUrl;
+      completeCard.qr_code_data = qrCodeData;
+    } catch (error) {
+      console.error('QR generation error:', error);
+      // Continue without QR if generation fails
+    }
 
-    // Update card with QR code data
-    const { error: updateError } = await adminSupabase
-      .from('allergy_cards')
-      .update({
-        qr_code_data: JSON.stringify(qrData),
-        qr_code_url: qrCodeDataURL
-      })
-      .eq('id', cardResult.id);
-
-    if (updateError) {
-      console.error('QR code update error:', updateError);
+    // Additionally: Generate Google Drive QR if URL is provided
+    if (formData.google_drive_url && formData.google_drive_url.trim() !== '') {
+      try {
+        const driveQR = await QRDriveService.generateQRFromDriveUrl(formData.google_drive_url);
+        
+        // Store as separate field or in notes
+        await adminSupabase
+          .from('allergy_cards')
+          .update({ 
+            google_drive_url: formData.google_drive_url,
+            notes: (formData.notes || '') + `\n[QR Google Drive đã tạo]`
+          })
+          .eq('id', cardResult.id);
+          
+        completeCard.google_drive_url = formData.google_drive_url;
+      } catch (error) {
+        console.error('Drive QR generation error:', error);
+        // Continue without Drive QR if generation fails
+      }
     }
 
     // Return success response
     return NextResponse.json({
       success: true,
-      card: {
-        ...completeCard,
-        qr_code_data: JSON.stringify(qrData),
-        qr_code_url: qrCodeDataURL
-      },
-      qr_code_url: qrCodeDataURL
+      card: completeCard,
+      qr_code_url: qrCodeUrl
     }, { status: 201 });
 
   } catch (error) {

@@ -19,7 +19,7 @@ import {
   BuildingOfficeIcon,
   PhoneIcon,
   DocumentTextIcon,
-  QrCodeIcon,
+  HeartIcon,
   KeyIcon
 } from '@heroicons/react/24/outline'
 
@@ -351,7 +351,7 @@ export default function UserList({
                             {user.statistics.totalReports} báo cáo
                           </div>
                           <div className="flex items-center">
-                            <QrCodeIcon className="w-3 h-3 mr-1" />
+                            <HeartIcon className="w-3 h-3 mr-1" />
                             {user.statistics.totalCards} thẻ
                           </div>
                         </div>
