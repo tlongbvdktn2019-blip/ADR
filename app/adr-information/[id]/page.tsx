@@ -27,6 +27,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
 import { toast } from 'react-hot-toast'
+import RichTextDisplay from '../../../components/ui/RichTextDisplay'
 
 export default function ADRInformationDetail() {
   const { data: session } = useSession()
@@ -290,9 +291,9 @@ export default function ADRInformationDetail() {
             </div>
 
             {/* Content */}
-            <div 
+            <RichTextDisplay 
+              content={information.content}
               className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: information.content }}
             />
 
             {/* Tags */}

@@ -77,6 +77,12 @@ export interface Database {
           report_type: 'initial' | 'follow_up'
           report_date: string
           
+          // Thông tin duyệt báo cáo
+          approval_status: 'pending' | 'approved' | 'rejected'
+          approved_by: string | null
+          approved_at: string | null
+          approval_note: string | null
+          
           created_at: string
           updated_at: string
         }
@@ -111,6 +117,11 @@ export interface Database {
           report_type: 'initial' | 'follow_up'
           report_date: string
           
+          approval_status?: 'pending' | 'approved' | 'rejected'
+          approved_by?: string | null
+          approved_at?: string | null
+          approval_note?: string | null
+          
           created_at?: string
           updated_at?: string
         }
@@ -144,6 +155,11 @@ export interface Database {
           reporter_email?: string | null
           report_type?: 'initial' | 'follow_up'
           report_date?: string
+          
+          approval_status?: 'pending' | 'approved' | 'rejected'
+          approved_by?: string | null
+          approved_at?: string | null
+          approval_note?: string | null
           
           created_at?: string
           updated_at?: string

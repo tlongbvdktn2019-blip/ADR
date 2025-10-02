@@ -16,6 +16,7 @@ import {
 } from '../../../../../types/adr-information'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
+import RichTextEditor from '../../../../../components/ui/RichTextEditor'
 
 type FormState = {
   title: string
@@ -309,17 +310,15 @@ export default function EditADRInformation() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">N???i dung *</label>
-              <textarea
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nội dung *</label>
+              <RichTextEditor
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                rows={12}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nh???p n???i dung chi ti???t (c?? th??? s??? d???ng HTML)"
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                placeholder="Nhập nội dung chi tiết... Sử dụng thanh công cụ để định dạng văn bản"
+                height="450px"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                C?? th??? s??? d???ng c??c th??? HTML c?? b???n: &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;
+              <p className="text-sm text-gray-500 mt-2">
+                Sử dụng thanh công cụ phía trên để định dạng văn bản: in đậm, in nghiêng, màu chữ, canh lề, danh sách, v.v.
               </p>
             </div>
           </div>

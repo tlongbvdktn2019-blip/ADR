@@ -16,8 +16,10 @@ import {
   UserGroupIcon, 
   ExclamationTriangleIcon,
   ArrowUpIcon,
-  ArrowDownIcon
+  ArrowDownIcon,
+  TrophyIcon
 } from '@heroicons/react/24/outline';
+import Link from 'next/link';
 
 interface DashboardStats {
   totalReports: number;
@@ -113,6 +115,49 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
         </div>
       </div>
 
+      {/* Contest Banner */}
+      <Link 
+        href="/contest"
+        className="block group"
+      >
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 p-1">
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 transition-transform group-hover:scale-[0.99]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform">
+                    <TrophyIcon className="w-10 h-10 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+                    🎯 Cuộc thi Kiến thức ADR
+                  </h3>
+                  <p className="text-gray-700 mt-1 text-sm sm:text-base">
+                    Tham gia ngay! Không cần đăng nhập - Kiểm tra kiến thức và nhận giải thưởng hấp dẫn
+                  </p>
+                  <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600">
+                    <span className="flex items-center">
+                      ⚡ 10 câu hỏi
+                    </span>
+                    <span className="flex items-center">
+                      ⏱️ 20 giây/câu
+                    </span>
+                    <span className="flex items-center">
+                      🏆 Xếp hạng ngay
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden lg:flex items-center">
+                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg group-hover:shadow-xl transition-shadow">
+                  Tham gia ngay →
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Link>
 
       {/* Stats Grid */}
       <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>

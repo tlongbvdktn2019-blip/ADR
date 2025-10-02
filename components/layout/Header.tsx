@@ -16,7 +16,8 @@ import {
   UsersIcon,
   AcademicCapIcon,
   LockClosedIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  TrophyIcon
 } from '@heroicons/react/24/outline'
 import NotificationBell from './NotificationBell'
 
@@ -64,23 +65,6 @@ export default function Header() {
     <header className="bg-blue-800 shadow-sm border-b border-blue-700">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6" onClick={handleClickOutside}>
         <div className="flex justify-between items-center h-14">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Hệ thống ADR"
-                width={32}
-                height={32}
-                className="rounded"
-                priority
-              />
-              <span className="ml-2 text-lg font-bold text-white">
-                Hệ thống ADR
-              </span>
-            </Link>
-          </div>
-
           {/* Navigation */}
           <nav className="flex items-center space-x-3 sm:space-x-4">
             <Link 
@@ -145,6 +129,14 @@ export default function Header() {
               <AcademicCapIcon className="w-4 h-4 mr-1" />
               <span className="hidden md:inline">Tập huấn</span>
             </Link>
+            <Link 
+              href="/contest" 
+              className="flex items-center text-yellow-200 hover:text-yellow-100 transition-colors text-sm font-semibold"
+              title="Cuộc thi ADR"
+            >
+              <TrophyIcon className="w-4 h-4 mr-1" />
+              <span className="hidden md:inline">Cuộc thi</span>
+            </Link>
             {/* Admin-only Navigation */}
             {session?.user.role === 'admin' && (
               <>
@@ -171,6 +163,14 @@ export default function Header() {
                 >
                   <InformationCircleIcon className="w-4 h-4 mr-1" />
                   <span className="hidden lg:inline">ADR Info</span>
+                </Link>
+                <Link 
+                  href="/admin/contest-management" 
+                  className="flex items-center text-yellow-200 hover:text-yellow-100 transition-colors text-sm"
+                  title="Quản lý Cuộc thi"
+                >
+                  <TrophyIcon className="w-4 h-4 mr-1" />
+                  <span className="hidden lg:inline">Cuộc thi</span>
                 </Link>
               </>
             )}

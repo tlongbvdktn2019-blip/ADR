@@ -194,7 +194,7 @@ export default function ReportList({ initialData }: ReportListProps) {
 
       {/* Reports Content */}
       {viewMode === 'table' ? (
-        <ReportTable reports={reports} loading={loading && reports.length === 0} />
+        <ReportTable reports={reports} loading={loading && reports.length === 0} onReportsUpdate={() => fetchReports(pagination.page)} />
       ) : (
         <>
           {reports.length === 0 ? (

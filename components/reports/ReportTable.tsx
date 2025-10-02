@@ -7,7 +7,8 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
-import { ADRReport, SEVERITY_LABELS } from '@/types/report'
+import { ADRReport, SEVERITY_LABELS, APPROVAL_STATUS_LABELS } from '@/types/report'
+import { toast } from 'react-hot-toast'
 import {
   EyeIcon,
   PencilIcon,
@@ -18,21 +19,26 @@ import {
   BuildingOfficeIcon,
   CalendarDaysIcon,
   UserIcon,
-  ShieldExclamationIcon
+  ShieldExclamationIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 
 interface ReportTableProps {
   reports: ADRReport[]
   loading?: boolean
+  onReportsUpdate?: () => void
 }
 
 interface GroupedReports {
   [organization: string]: ADRReport[]
 }
 
-export default function ReportTable({ reports, loading = false }: ReportTableProps) {
+export default function ReportTable({ reports, loading = false, onReportsUpdate }: ReportTableProps) {
   const { data: session } = useSession()
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [approvingReportId, setApprovingReportId] = useState<string | null>(null)
 
   // Group reports by organization
   const groupedReports: GroupedReports = reports.reduce((groups, report) => {
@@ -106,6 +112,80 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
     window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
   }
 
+  const handleApproveReport = async (reportId: string, status: 'approved' | 'rejected' | 'pending', reportCode: string) => {
+    if (!session?.user || session.user.role !== 'admin') {
+      toast.error('Chỉ admin mới có quyền duyệt báo cáo')
+      return
+    }
+
+    const confirmMessage = status === 'approved' 
+      ? `Bạn có chắc chắn muốn DUYỆT báo cáo ${reportCode}?`
+      : status === 'rejected'
+      ? `Bạn có chắc chắn muốn TỪ CHỐI báo cáo ${reportCode}?`
+      : `Bạn có chắc chắn muốn chuyển báo cáo ${reportCode} về trạng thái CHƯA DUYỆT?`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    setApprovingReportId(reportId)
+
+    try {
+      const response = await fetch(`/api/reports/${reportId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approval_status: status,
+          approval_note: null,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể cập nhật trạng thái duyệt')
+      }
+
+      toast.success(data.message)
+      
+      // Refresh reports list
+      if (onReportsUpdate) {
+        onReportsUpdate()
+      }
+    } catch (error) {
+      console.error('Approve error:', error)
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra')
+    } finally {
+      setApprovingReportId(null)
+    }
+  }
+
+  const getApprovalStatusColor = (status: 'pending' | 'approved' | 'rejected') => {
+    switch (status) {
+      case 'approved':
+        return 'text-green-700 bg-green-100 border-green-200'
+      case 'rejected':
+        return 'text-red-700 bg-red-100 border-red-200'
+      case 'pending':
+      default:
+        return 'text-yellow-700 bg-yellow-100 border-yellow-200'
+    }
+  }
+
+  const getApprovalStatusIcon = (status: 'pending' | 'approved' | 'rejected') => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircleIcon className="w-4 h-4 mr-1" />
+      case 'rejected':
+        return <XCircleIcon className="w-4 h-4 mr-1" />
+      case 'pending':
+      default:
+        return <ClockIcon className="w-4 h-4 mr-1" />
+    }
+  }
+
   if (loading) {
     return (
       <Card>
@@ -175,6 +255,9 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mức độ
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Trạng thái
+                  </th>
                   <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Người báo cáo
                   </th>
@@ -194,7 +277,7 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
                       className="bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors"
                       onClick={() => toggleGroup(organization)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap" colSpan={6}>
+                      <td className="px-6 py-4 whitespace-nowrap" colSpan={7}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
@@ -277,6 +360,14 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
                             </span>
                           </td>
 
+                          {/* Approval Status */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getApprovalStatusColor(report.approval_status)}`}>
+                              {getApprovalStatusIcon(report.approval_status)}
+                              {APPROVAL_STATUS_LABELS[report.approval_status]}
+                            </span>
+                          </td>
+
                           {/* Reporter - Hidden on small screens */}
                           <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center text-sm text-gray-600">
@@ -311,6 +402,36 @@ export default function ReportTable({ reports, loading = false }: ReportTablePro
                                   <span className="hidden sm:inline">Xem</span>
                                 </Button>
                               </Link>
+
+                              {/* Approval Buttons - Admin Only */}
+                              {session?.user?.role === 'admin' && (
+                                <>
+                                  {report.approval_status !== 'approved' && (
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleApproveReport(report.id, 'approved', report.report_code)}
+                                      disabled={approvingReportId === report.id}
+                                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    >
+                                      <CheckCircleIcon className="w-4 h-4 mr-1" />
+                                      <span className="hidden xl:inline">Duyệt</span>
+                                    </Button>
+                                  )}
+                                  {report.approval_status !== 'rejected' && (
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleApproveReport(report.id, 'rejected', report.report_code)}
+                                      disabled={approvingReportId === report.id}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <XCircleIcon className="w-4 h-4 mr-1" />
+                                      <span className="hidden xl:inline">Từ chối</span>
+                                    </Button>
+                                  )}
+                                </>
+                              )}
 
                               {/* Print */}
                               <Button 

@@ -17,9 +17,11 @@ import {
   XCircleIcon,
   AcademicCapIcon,
   EyeIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowUpTrayIcon
 } from '@heroicons/react/24/outline'
 import { QuizCategory, QuizQuestion, QuizOption, QuizUtils } from '@/types/quiz'
+import QuizImportExcel from './QuizImportExcel'
 
 interface QuizManagementProps {
   onClose: () => void
@@ -36,6 +38,7 @@ export default function QuizManagement({ onClose }: QuizManagementProps) {
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
+  const [showImportExcel, setShowImportExcel] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -207,6 +210,7 @@ export default function QuizManagement({ onClose }: QuizManagementProps) {
             }}
             onDeleteQuestion={(questionId) => setDeleteConfirm(questionId)}
             onReloadQuestions={() => loadQuestions(selectedCategory, selectedDifficulty)}
+            onImportExcel={() => setShowImportExcel(true)}
           />
         )}
         
@@ -238,6 +242,17 @@ export default function QuizManagement({ onClose }: QuizManagementProps) {
         />
       )}
 
+      {/* Import Excel Modal */}
+      {showImportExcel && (
+        <QuizImportExcel
+          onSuccess={() => {
+            loadData()
+            loadQuestions(selectedCategory, selectedDifficulty)
+          }}
+          onClose={() => setShowImportExcel(false)}
+        />
+      )}
+
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <ConfirmDialog
@@ -264,7 +279,8 @@ function QuestionsTab({
   onAddQuestion,
   onEditQuestion,
   onDeleteQuestion,
-  onReloadQuestions
+  onReloadQuestions,
+  onImportExcel
 }: {
   categories: QuizCategory[]
   questions: QuizQuestion[]
@@ -276,6 +292,7 @@ function QuestionsTab({
   onEditQuestion: (question: QuizQuestion) => void
   onDeleteQuestion: (questionId: string) => void
   onReloadQuestions: () => void
+  onImportExcel: () => void
 }) {
   const difficulties = ['', 'beginner', 'intermediate', 'advanced', 'expert']
 
@@ -315,6 +332,10 @@ function QuestionsTab({
           <div className="flex items-center gap-2">
             <Button onClick={onReloadQuestions} variant="outline">
               Refresh
+            </Button>
+            <Button onClick={onImportExcel} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+              <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
+              Import Excel
             </Button>
             <Button onClick={onAddQuestion} className="bg-blue-600">
               <PlusIcon className="w-4 h-4 mr-2" />

@@ -59,8 +59,13 @@ CREATE TABLE public.adr_reports (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   reaction_onset_time text,
+  approval_status USER-DEFINED NOT NULL DEFAULT 'pending'::approval_status,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  approval_note text,
   CONSTRAINT adr_reports_pkey PRIMARY KEY (id),
-  CONSTRAINT adr_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(id)
+  CONSTRAINT adr_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(id),
+  CONSTRAINT adr_reports_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.allergy_cards (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -77,13 +82,14 @@ CREATE TABLE public.allergy_cards (
   issued_date date NOT NULL DEFAULT CURRENT_DATE,
   issued_by_user_id uuid NOT NULL,
   organization character varying NOT NULL,
-  qr_code_data text NOT NULL,
+  qr_code_data text,
   qr_code_url text,
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying, 'expired'::character varying]::text[])),
   expiry_date date,
   notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  google_drive_url text,
   CONSTRAINT allergy_cards_pkey PRIMARY KEY (id),
   CONSTRAINT allergy_cards_report_id_fkey FOREIGN KEY (report_id) REFERENCES public.adr_reports(id),
   CONSTRAINT allergy_cards_issued_by_user_id_fkey FOREIGN KEY (issued_by_user_id) REFERENCES public.users(id)

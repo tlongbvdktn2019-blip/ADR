@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ComponentType, SVGProps } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import {
@@ -14,7 +15,9 @@ import {
   ClipboardDocumentListIcon,
   PlusCircleIcon,
   WrenchScrewdriverIcon,
-  HeartIcon
+  HeartIcon,
+  TrophyIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
 
 type UserRole = 'admin' | 'user'
@@ -27,17 +30,20 @@ interface NavItem {
 }
 
 const baseNavItems: NavItem[] = [
+  { label: 'Thông tin ADR', href: '/adr-information', icon: InformationCircleIcon },
   { label: 'Bảng điều khiển', href: '/dashboard', icon: ChartBarIcon },
   { label: 'Báo cáo ADR', href: '/reports', icon: DocumentTextIcon },
   { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: HeartIcon },
-  { label: 'Thông tin ADR', href: '/adr-information', icon: InformationCircleIcon },
-  { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon }
+  { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon },
+  { label: 'Cuộc thi Kiến thức ADR', href: '/contest', icon: TrophyIcon }
 ]
 
 const adminNavItems: NavItem[] = [
   { label: 'Quản lý người dùng', href: '/admin/users', icon: UsersIcon, roles: ['admin'] },
   { label: 'Quản lý bài kiểm tra', href: '/admin/quiz', icon: ClipboardDocumentListIcon, roles: ['admin'] },
-  { label: 'Quản lý tin ADR', href: '/admin/adr-information', icon: InformationCircleIcon, roles: ['admin'] }
+  { label: 'Quản lý tin ADR', href: '/admin/adr-information', icon: InformationCircleIcon, roles: ['admin'] },
+  { label: 'Quản lý Cuộc thi', href: '/admin/contest-management', icon: TrophyIcon, roles: ['admin'] },
+  { label: 'Quản lý Đơn vị/Khoa', href: '/admin/departments', icon: BuildingOfficeIcon, roles: ['admin'] }
 ]
 
 function isActive(pathname: string, href: string) {
@@ -60,7 +66,27 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-72 xl:w-80 bg-white border-r border-gray-200">
       <div className="flex flex-col w-full h-full">
-        <div className="px-6 py-6 border-b border-gray-200">
+        {/* Hệ thống ADR - Top Section */}
+        <div className="px-6 py-6 border-b border-gray-200 bg-blue-50">
+          <Link href="/" className="flex items-center justify-center">
+            <div className="flex items-center space-x-3">
+              {/* Logo Hệ thống ADR */}
+              <img
+                src="/Logo.jpg"
+                alt="Logo Hệ thống ADR"
+                width={40}
+                height={40}
+                className="rounded-lg"
+              />
+              <div className="text-left">
+                <div className="text-lg font-bold text-blue-900">Hệ thống ADR</div>
+                <div className="text-xs text-blue-600">Quản lý báo cáo phản ứng có hại</div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        <div className="px-6 py-4 border-b border-gray-200">
           <div className="text-sm text-gray-500">Xin chào</div>
           <div className="mt-1 text-lg font-semibold text-gray-900">
             {session?.user?.name || 'Người dùng'}
