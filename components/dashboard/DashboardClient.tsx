@@ -89,19 +89,19 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             {isAdmin ? 'Tổng quan hệ thống quản lý ADR' : 'Thống kê báo cáo ADR của bạn'}
           </p>
         </div>
         
-        <div className="mt-4 sm:mt-0">
+        <div className="flex sm:block">
           <button
             onClick={refreshStats}
             disabled={isLoading}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 touch-target"
           >
             {isLoading ? (
               <LoadingSpinner size="sm" className="mr-2" />
@@ -120,37 +120,42 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
         href="/contest"
         className="block group"
       >
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 p-1">
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 transition-transform group-hover:scale-[0.99]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 p-1">
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl p-4 sm:p-6 transition-transform group-hover:scale-[0.99]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 flex-1">
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform">
-                    <TrophyIcon className="w-10 h-10 text-white" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg transform group-hover:rotate-12 transition-transform">
+                    <TrophyIcon className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
                     🎯 Cuộc thi Kiến thức ADR
                   </h3>
-                  <p className="text-gray-700 mt-1 text-sm sm:text-base">
+                  <p className="text-gray-700 mt-1 text-xs sm:text-sm lg:text-base">
                     Tham gia ngay! Không cần đăng nhập - Kiểm tra kiến thức và nhận giải thưởng hấp dẫn
                   </p>
-                  <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600">
-                    <span className="flex items-center">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-gray-600">
+                    <span className="flex items-center whitespace-nowrap">
                       ⚡ 10 câu hỏi
                     </span>
-                    <span className="flex items-center">
+                    <span className="flex items-center whitespace-nowrap">
                       ⏱️ 20 giây/câu
                     </span>
-                    <span className="flex items-center">
+                    <span className="hidden sm:flex items-center whitespace-nowrap">
                       🏆 Xếp hạng ngay
                     </span>
                   </div>
                 </div>
               </div>
+              <div className="w-full sm:w-auto sm:hidden">
+                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2.5 rounded-lg text-center font-bold text-sm shadow-lg touch-target">
+                  Tham gia ngay →
+                </div>
+              </div>
               <div className="hidden lg:flex items-center">
-                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg group-hover:shadow-xl transition-shadow">
+                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-6 py-3 rounded-xl font-bold text-lg shadow-lg group-hover:shadow-xl transition-shadow whitespace-nowrap">
                   Tham gia ngay →
                 </div>
               </div>
@@ -160,18 +165,18 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       </Link>
 
       {/* Stats Grid */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
-        <Card className="p-6">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 sm:gap-6`}>
+        <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center min-w-0 flex-1">
               <div className="flex-shrink-0">
-                <DocumentTextIcon className="w-8 h-8 text-blue-600" />
+                <DocumentTextIcon className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">
                   {isAdmin ? 'Tổng báo cáo' : 'Báo cáo của bạn'}
                 </p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {formatNumber(stats.totalReports)}
                 </p>
               </div>
@@ -187,14 +192,14 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center min-w-0">
             <div className="flex-shrink-0">
-              <ChartBarIcon className="w-8 h-8 text-green-600" />
+              <ChartBarIcon className="w-7 h-7 sm:w-8 sm:h-8 text-green-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Báo cáo tháng này</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3 sm:ml-4 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">Báo cáo tháng này</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                 {formatNumber(stats.newReportsThisMonth)}
               </p>
               {stats.previousMonthReports !== undefined && (
@@ -207,14 +212,14 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
         </Card>
 
         {isAdmin && (
-          <Card className="p-6">
-            <div className="flex items-center">
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center min-w-0">
               <div className="flex-shrink-0">
-                <UserGroupIcon className="w-8 h-8 text-purple-600" />
+                <UserGroupIcon className="w-7 h-7 sm:w-8 sm:h-8 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Tổng người dùng</p>
-                <p className="text-2xl font-semibold text-gray-900">
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">Tổng người dùng</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {formatNumber(stats.totalUsers)}
                 </p>
               </div>
@@ -222,14 +227,14 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
           </Card>
         )}
 
-        <Card className="p-6">
-          <div className="flex items-center">
+        <Card className="p-4 sm:p-6">
+          <div className="flex items-center min-w-0">
             <div className="flex-shrink-0">
-              <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+              <ExclamationTriangleIcon className="w-7 h-7 sm:w-8 sm:h-8 text-red-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Báo cáo nghiêm trọng</p>
-              <p className="text-2xl font-semibold text-gray-900">
+            <div className="ml-3 sm:ml-4 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">Báo cáo nghiêm trọng</p>
+              <p className="text-xl sm:text-2xl font-semibold text-gray-900">
                 {formatNumber(stats.criticalReports)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
@@ -272,7 +277,7 @@ export default function DashboardClient({ initialStats }: DashboardClientProps) 
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Truy cập nhanh</h3>
           <div className="space-y-3">

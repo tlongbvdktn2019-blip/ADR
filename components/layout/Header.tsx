@@ -17,15 +17,18 @@ import {
   AcademicCapIcon,
   LockClosedIcon,
   InformationCircleIcon,
-  TrophyIcon
+  TrophyIcon,
+  Bars3Icon
 } from '@heroicons/react/24/outline'
 import NotificationBell from './NotificationBell'
+import MobileMenu from './MobileMenu'
 
 export default function Header() {
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [adrDropdownOpen, setAdrDropdownOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSignOut = async () => {
     // Confirm logout
@@ -62,11 +65,27 @@ export default function Header() {
   if (!session) return null
 
   return (
-    <header className="bg-blue-800 shadow-sm border-b border-blue-700">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6" onClick={handleClickOutside}>
-        <div className="flex justify-between items-center h-14">
-          {/* Navigation */}
-          <nav className="flex items-center space-x-3 sm:space-x-4">
+    <>
+      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      
+      <header className="bg-blue-800 shadow-sm border-b border-blue-700">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6" onClick={handleClickOutside}>
+          <div className="flex justify-between items-center h-14">
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              className="lg:hidden -m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-white hover:bg-blue-700"
+              onClick={(e) => {
+                e.stopPropagation()
+                setMobileMenuOpen(true)
+              }}
+            >
+              <span className="sr-only">Mở menu</span>
+              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+            </button>
+
+            {/* Navigation - Hidden on mobile */}
+            <nav className="hidden lg:flex items-center space-x-3 sm:space-x-4">
             <Link 
               href="/dashboard" 
               className="flex items-center text-blue-200 hover:text-white transition-colors text-sm"
@@ -176,7 +195,7 @@ export default function Header() {
             )}
           </nav>
 
-          {/* User and Notifications Section */}
+          {/* User and Notifications Section - Always visible */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             {/* User dropdown */}
             <div className="relative">
@@ -243,6 +262,7 @@ export default function Header() {
         </div>
       </div>
     </header>
+    </>
   )
 }
 

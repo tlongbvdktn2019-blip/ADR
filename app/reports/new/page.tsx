@@ -212,24 +212,22 @@ export default function NewReportPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link href="/reports">
-              <Button variant="outline" size="sm">
-                <ArrowLeftIcon className="w-4 h-4 mr-2" />
-                Quay lại
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tạo báo cáo ADR mới</h1>
-              <p className="text-gray-600 mt-1">Điền thông tin chi tiết về phản ứng có hại của thuốc</p>
-            </div>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <Link href="/reports">
+            <Button variant="outline" size="sm" className="touch-target">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Quay lại
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tạo báo cáo ADR mới</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Điền thông tin chi tiết về phản ứng có hại của thuốc</p>
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <Card>
+        {/* Progress Steps - Desktop */}
+        <Card className="hidden md:block">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div 
@@ -265,27 +263,55 @@ export default function NewReportPage() {
           </div>
         </Card>
 
+        {/* Progress Steps - Mobile */}
+        <Card className="md:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold">
+                {currentStep + 1}
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {steps[currentStep].title}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {steps[currentStep].subtitle} • Bước {currentStep + 1}/{steps.length}
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              {Math.round(((currentStep + 1) / steps.length) * 100)}%
+            </div>
+          </div>
+          <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+        </Card>
+
         {/* Form Content */}
         <Card>
           {renderCurrentStep()}
           
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-6 sm:mt-8 pt-6 border-t border-gray-200">
+            <div className="order-2 sm:order-1">
               {currentStep > 0 && (
-                <Button variant="outline" onClick={handlePrevious}>
+                <Button variant="outline" onClick={handlePrevious} className="w-full sm:w-auto touch-target">
                   Trước đó
                 </Button>
               )}
             </div>
             
-            <div className="space-x-3">
+            <div className="order-1 sm:order-2">
               {currentStep < steps.length - 1 ? (
-                <Button onClick={handleNext}>
+                <Button onClick={handleNext} className="w-full sm:w-auto touch-target">
                   Tiếp theo
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} loading={loading}>
+                <Button onClick={handleSubmit} loading={loading} className="w-full sm:w-auto touch-target">
                   Tạo báo cáo
                 </Button>
               )}
