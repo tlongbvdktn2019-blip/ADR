@@ -20,3 +20,4 @@ ORDER BY created_at;
 SELECT 'Category names updated successfully!' as status;
 
 
+

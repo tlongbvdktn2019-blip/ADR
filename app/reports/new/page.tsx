@@ -33,6 +33,10 @@ export interface SuspectedDrug {
 }
 
 export interface ADRFormData {
+  // Thông tin báo cáo
+  organization: string // Nơi báo cáo (từ departments)
+  report_code: string // Mã số báo cáo (tự động)
+  
   // Phần A: Thông tin bệnh nhân
   patient_name: string
   patient_birth_date: string
@@ -75,6 +79,10 @@ export default function NewReportPage() {
   const [currentStep, setCurrentStep] = useState(0)
 
   const [formData, setFormData] = useState<ADRFormData>({
+    // Thông tin báo cáo
+    organization: '',
+    report_code: '',
+    
     // Phần A
     patient_name: '',
     patient_birth_date: '',

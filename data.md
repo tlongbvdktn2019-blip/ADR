@@ -119,6 +119,122 @@ CREATE TABLE public.concurrent_drugs (
   CONSTRAINT concurrent_drugs_pkey PRIMARY KEY (id),
   CONSTRAINT concurrent_drugs_report_id_fkey FOREIGN KEY (report_id) REFERENCES public.adr_reports(id)
 );
+CREATE TABLE public.contest_answers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  submission_id uuid,
+  question_id uuid,
+  selected_answer character varying,
+  correct_answer character varying,
+  is_correct boolean,
+  time_spent integer,
+  answered_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contest_answers_pkey PRIMARY KEY (id),
+  CONSTRAINT contest_answers_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES public.contest_submissions(id),
+  CONSTRAINT contest_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.quiz_questions(id)
+);
+CREATE TABLE public.contest_categories (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL UNIQUE,
+  category_key character varying NOT NULL UNIQUE,
+  description text,
+  icon_name character varying,
+  color_scheme character varying DEFAULT '#3B82F6'::character varying,
+  total_questions integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contest_categories_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.contest_participants (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  contest_id uuid,
+  full_name character varying NOT NULL,
+  email character varying,
+  phone character varying,
+  department_id uuid,
+  unit_id uuid,
+  ip_address character varying,
+  user_agent text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contest_participants_pkey PRIMARY KEY (id),
+  CONSTRAINT contest_participants_contest_id_fkey FOREIGN KEY (contest_id) REFERENCES public.contests(id),
+  CONSTRAINT contest_participants_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id),
+  CONSTRAINT contest_participants_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.units(id)
+);
+CREATE TABLE public.contest_questions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  category_id uuid,
+  question_text text NOT NULL,
+  question_type character varying DEFAULT 'multiple_choice'::character varying,
+  difficulty character varying DEFAULT 'beginner'::character varying,
+  options jsonb NOT NULL,
+  correct_answer character varying NOT NULL,
+  explanation text,
+  reference_source text,
+  estimated_time_seconds integer DEFAULT 60,
+  points_value integer DEFAULT 10,
+  times_used integer DEFAULT 0,
+  times_answered integer DEFAULT 0,
+  times_correct integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  review_status character varying DEFAULT 'approved'::character varying,
+  created_by uuid,
+  reviewed_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contest_questions_pkey PRIMARY KEY (id),
+  CONSTRAINT contest_questions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.contest_categories(id)
+);
+CREATE TABLE public.contest_submissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  contest_id uuid,
+  participant_id uuid,
+  score integer NOT NULL DEFAULT 0,
+  total_questions integer NOT NULL,
+  correct_answers integer NOT NULL DEFAULT 0,
+  started_at timestamp with time zone NOT NULL,
+  submitted_at timestamp with time zone NOT NULL,
+  time_taken integer,
+  questions jsonb NOT NULL,
+  answers jsonb NOT NULL,
+  status character varying DEFAULT 'completed'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contest_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT contest_submissions_contest_id_fkey FOREIGN KEY (contest_id) REFERENCES public.contests(id),
+  CONSTRAINT contest_submissions_participant_id_fkey FOREIGN KEY (participant_id) REFERENCES public.contest_participants(id)
+);
+CREATE TABLE public.contests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title character varying NOT NULL,
+  description text,
+  rules text,
+  prizes text,
+  logo_url text,
+  number_of_questions integer DEFAULT 10,
+  time_per_question integer DEFAULT 20,
+  passing_score integer DEFAULT 5,
+  start_date timestamp with time zone,
+  end_date timestamp with time zone,
+  status character varying DEFAULT 'draft'::character varying,
+  is_public boolean DEFAULT true,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contests_pkey PRIMARY KEY (id),
+  CONSTRAINT contests_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.departments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL UNIQUE,
+  code character varying,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT departments_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.information_likes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   information_id uuid NOT NULL,
@@ -301,6 +417,18 @@ CREATE TABLE public.suspected_drugs (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   CONSTRAINT suspected_drugs_pkey PRIMARY KEY (id),
   CONSTRAINT suspected_drugs_report_id_fkey FOREIGN KEY (report_id) REFERENCES public.adr_reports(id)
+);
+CREATE TABLE public.units (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  department_id uuid,
+  name character varying NOT NULL,
+  code character varying,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT units_pkey PRIMARY KEY (id),
+  CONSTRAINT units_department_id_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id)
 );
 CREATE TABLE public.user_achievements (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -22,6 +22,7 @@ export default function ContestQuizPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [expiredQuestions, setExpiredQuestions] = useState<Set<string>>(new Set()); // Câu đã hết giờ
   const [timePerQuestion, setTimePerQuestion] = useState(20);
   const [totalTime, setTotalTime] = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(20);
@@ -43,8 +44,8 @@ export default function ContestQuizPage() {
     const timer = setInterval(() => {
       setQuestionTimeLeft(prev => {
         if (prev <= 1) {
-          // Hết giờ, tự động next câu
-          handleNextQuestion();
+          // Hết giờ, tự động đánh dấu câu này là SAI và chuyển sang câu tiếp
+          handleTimeExpired();
           return timePerQuestion;
         }
         return prev - 1;
@@ -138,6 +139,35 @@ export default function ContestQuizPage() {
   const handleAnswerSelect = (answer: string) => {
     setSelectedAnswer(answer);
   };
+
+  // Xử lý khi hết giờ cho câu hỏi hiện tại
+  const handleTimeExpired = useCallback(() => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return;
+
+    // Đánh dấu câu này đã hết giờ (không được quay lại)
+    setExpiredQuestions(prev => new Set(Array.from(prev).concat(currentQuestion.id)));
+
+    // Lưu đáp án rỗng (tức là câu này SAI)
+    setAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: '' // Đáp án rỗng = SAI
+    }));
+
+    // Tự động chuyển sang câu tiếp theo
+    if (currentQuestionIndex >= questions.length - 1) {
+      // Nếu là câu cuối cùng, tự động nộp bài
+      handleSubmit();
+    } else {
+      // Next câu
+      setCurrentQuestionIndex(prev => prev + 1);
+      setQuestionTimeLeft(timePerQuestion);
+      
+      // Load answer đã lưu nếu có
+      const nextQuestion = questions[currentQuestionIndex + 1];
+      setSelectedAnswer(answers[nextQuestion.id] || '');
+    }
+  }, [currentQuestionIndex, questions, timePerQuestion, answers]);
 
   const handleNextQuestion = useCallback(() => {
     // Lưu câu trả lời
@@ -336,13 +366,21 @@ export default function ContestQuizPage() {
           <button
             onClick={() => {
               if (currentQuestionIndex > 0) {
-                setCurrentQuestionIndex(prev => prev - 1);
-                setQuestionTimeLeft(timePerQuestion);
-                const prevQuestion = questions[currentQuestionIndex - 1];
-                setSelectedAnswer(answers[prevQuestion.id] || '');
+                // Tìm câu trước đó chưa hết giờ
+                let prevIndex = currentQuestionIndex - 1;
+                while (prevIndex >= 0 && expiredQuestions.has(questions[prevIndex].id)) {
+                  prevIndex--;
+                }
+                
+                if (prevIndex >= 0) {
+                  setCurrentQuestionIndex(prevIndex);
+                  setQuestionTimeLeft(timePerQuestion);
+                  const prevQuestion = questions[prevIndex];
+                  setSelectedAnswer(answers[prevQuestion.id] || '');
+                }
               }
             }}
-            disabled={currentQuestionIndex === 0}
+            disabled={currentQuestionIndex === 0 || questions.slice(0, currentQuestionIndex).every(q => expiredQuestions.has(q.id))}
             className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             ← Câu trước
@@ -371,25 +409,38 @@ export default function ContestQuizPage() {
         <div className="mt-8 bg-white rounded-2xl shadow-xl p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Tổng quan bài thi</h3>
           <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-            {questions.map((q, idx) => (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setCurrentQuestionIndex(idx);
-                  setQuestionTimeLeft(timePerQuestion);
-                  setSelectedAnswer(answers[q.id] || '');
-                }}
-                className={`aspect-square rounded-lg font-semibold text-sm transition ${
-                  idx === currentQuestionIndex
-                    ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                    : answers[q.id]
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {idx + 1}
-              </button>
-            ))}
+            {questions.map((q, idx) => {
+              const isExpired = expiredQuestions.has(q.id);
+              const isAnswered = answers[q.id] && !isExpired;
+              const isCurrent = idx === currentQuestionIndex;
+              
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => {
+                    // Không cho click vào câu đã hết giờ
+                    if (isExpired) return;
+                    
+                    setCurrentQuestionIndex(idx);
+                    setQuestionTimeLeft(timePerQuestion);
+                    setSelectedAnswer(answers[q.id] || '');
+                  }}
+                  disabled={isExpired}
+                  className={`aspect-square rounded-lg font-semibold text-sm transition ${
+                    isCurrent
+                      ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                      : isExpired
+                      ? 'bg-red-500 text-white cursor-not-allowed opacity-75'
+                      : isAnswered
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                  title={isExpired ? 'Câu này đã hết giờ' : ''}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
           <div className="mt-4 flex items-center justify-center space-x-6 text-sm">
             <div className="flex items-center space-x-2">
@@ -401,6 +452,10 @@ export default function ContestQuizPage() {
               <span>Đã trả lời</span>
             </div>
             <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <span>Hết giờ (SAI)</span>
+            </div>
+            <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-gray-200 rounded"></div>
               <span>Chưa trả lời</span>
             </div>
@@ -410,6 +465,8 @@ export default function ContestQuizPage() {
     </div>
   );
 }
+
+
 
 
 

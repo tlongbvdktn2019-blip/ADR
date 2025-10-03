@@ -52,13 +52,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check permissions
-    if (session.user.role !== 'admin' && (report as any)?.reporter_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Không có quyền gửi email báo cáo này' },
-        { status: 403 }
-      )
-    }
+    // All authenticated users can send email for all reports
 
     // Get custom email from request body (optional)
     const body = await request.json()

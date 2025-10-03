@@ -295,3 +295,9 @@ SELECT 'Contest tables created successfully with FIXED RLS policies!' as status;
 
 
 
+
+
+
+
+
+

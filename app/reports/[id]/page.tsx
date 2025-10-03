@@ -37,11 +37,7 @@ async function getReport(id: string, userId?: string, userRole?: string): Promis
       return null
     }
 
-    // Check permissions
-    if (userRole !== 'admin' && (report as any)?.reporter_id !== userId) {
-      return null
-    }
-
+    // All authenticated users can view all reports
     return report as ADRReport
   } catch (error) {
     console.error('Error fetching report:', error)

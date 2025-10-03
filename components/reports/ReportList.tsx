@@ -187,7 +187,6 @@ export default function ReportList({ initialData }: ReportListProps) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-gray-600">
         <span>
           Hiển thị {reports.length} trong tổng số {pagination.total} báo cáo
-          {session?.user?.role !== 'admin' && ' của bạn'}
         </span>
         <span className="text-xs">
           Trang {pagination.page} / {pagination.totalPages}
@@ -223,7 +222,11 @@ export default function ReportList({ initialData }: ReportListProps) {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {reports.map((report) => (
-                  <ReportCard key={report.id} report={report} />
+                  <ReportCard 
+                    key={report.id} 
+                    report={report} 
+                    onReportDeleted={() => fetchReports(pagination.page)}
+                  />
                 ))}
               </div>
             )}
@@ -253,7 +256,11 @@ export default function ReportList({ initialData }: ReportListProps) {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {reports.map((report) => (
-              <ReportCard key={report.id} report={report} />
+              <ReportCard 
+                key={report.id} 
+                report={report} 
+                onReportDeleted={() => fetchReports(pagination.page)}
+              />
             ))}
           </div>
         )}

@@ -42,3 +42,4 @@ WHERE conrelid = 'contests'::regclass
 SELECT 'Foreign key constraint fixed! You can now create contests.' as status;
 
 
+

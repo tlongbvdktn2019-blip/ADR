@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -10,18 +11,23 @@ import {
   BuildingOfficeIcon, 
   ExclamationTriangleIcon,
   EyeIcon,
-  PencilIcon
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import { ADRReport, SEVERITY_LABELS, GENDER_LABELS } from '@/types/report'
 import { useSession } from 'next-auth/react'
+import { toast } from 'react-hot-toast'
 
 interface ReportCardProps {
   report: ADRReport
+  onReportDeleted?: () => void
 }
 
-export default function ReportCard({ report }: ReportCardProps) {
+export default function ReportCard({ report, onReportDeleted }: ReportCardProps) {
   const { data: session } = useSession()
-  const canEdit = session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
+  const [deleting, setDeleting] = useState(false)
+  // All authenticated users can edit all reports
+  const canEdit = true
 
   const getSeverityColor = (severity: typeof report.severity_level) => {
     switch (severity) {
@@ -46,6 +52,48 @@ export default function ReportCard({ report }: ReportCardProps) {
       })
     } catch {
       return dateString
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!session?.user || session.user.role !== 'admin') {
+      toast.error('Chỉ admin mới có quyền xóa báo cáo')
+      return
+    }
+
+    const confirmMessage = `⚠️ BẠN CÓ CHẮC CHẮN MUỐN XÓA báo cáo ${report.report_code}?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    const doubleConfirm = confirm(`Xác nhận lần cuối: Xóa báo cáo ${report.report_code}?`)
+    if (!doubleConfirm) {
+      return
+    }
+
+    setDeleting(true)
+
+    try {
+      const response = await fetch(`/api/reports/${report.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể xóa báo cáo')
+      }
+
+      toast.success(data.message)
+      
+      if (onReportDeleted) {
+        onReportDeleted()
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa báo cáo')
+      setDeleting(false)
     }
   }
 
@@ -80,6 +128,15 @@ export default function ReportCard({ report }: ReportCardProps) {
                   <PencilIcon className="w-4 h-4" />
                 </button>
               </Link>
+            )}
+            {session?.user?.role === 'admin' && (
+              <button 
+                onClick={handleDelete}
+                disabled={deleting}
+                className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
             )}
           </div>
         </div>

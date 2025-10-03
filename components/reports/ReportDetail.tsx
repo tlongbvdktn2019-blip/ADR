@@ -47,8 +47,9 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
   const [openingPrintView, setOpeningPrintView] = useState(false)
   const [approvingReport, setApprovingReport] = useState(false)
   
-  const canEdit = session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
-  const canSendEmail = session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
+  // All authenticated users can edit and send email
+  const canEdit = true
+  const canSendEmail = true
   const canApprove = session?.user?.role === 'admin'
 
   const formatDate = (dateString: string) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { ADRFormData } from '@/app/reports/new/page'
@@ -10,7 +10,79 @@ interface PatientInfoSectionProps {
   updateData: (updates: Partial<ADRFormData>) => void
 }
 
+interface Department {
+  id: string
+  name: string
+  code: string
+}
+
 export default function PatientInfoSection({ data, updateData }: PatientInfoSectionProps) {
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [loadingDepartments, setLoadingDepartments] = useState(true)
+  const [generatingCode, setGeneratingCode] = useState(false)
+
+  // Load danh sách departments
+  useEffect(() => {
+    loadDepartments()
+  }, [])
+
+  // Auto-generate report code khi chọn department
+  useEffect(() => {
+    if (data.organization && !data.report_code) {
+      generateReportCode()
+    }
+  }, [data.organization])
+
+  const loadDepartments = async () => {
+    try {
+      setLoadingDepartments(true)
+      // Dùng API public để không cần authentication
+      const response = await fetch('/api/public/departments')
+      const result = await response.json()
+      
+      if (result.success) {
+        setDepartments(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error)
+    } finally {
+      setLoadingDepartments(false)
+    }
+  }
+
+  const generateReportCode = async () => {
+    try {
+      setGeneratingCode(true)
+      
+      // Tìm department_id từ organization name
+      const department = departments.find(d => d.name === data.organization)
+      if (!department) return
+
+      // Dùng API public để không cần authentication
+      const response = await fetch('/api/public/generate-report-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ department_id: department.id })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        updateData({ report_code: result.data.report_code })
+      }
+    } catch (error) {
+      console.error('Error generating report code:', error)
+    } finally {
+      setGeneratingCode(false)
+    }
+  }
+
+  const handleOrganizationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    updateData({ 
+      organization: e.target.value,
+      report_code: '' // Reset code để trigger auto-generate
+    })
+  }
   // Auto-calculate age from birth date
   useEffect(() => {
     if (data.patient_birth_date) {
@@ -35,6 +107,11 @@ export default function PatientInfoSection({ data, updateData }: PatientInfoSect
     { value: 'female', label: 'Nữ' },
   ]
 
+  const departmentOptions = departments.map(dept => ({
+    value: dept.name,
+    label: dept.name
+  }))
+
   return (
     <div className="space-y-6">
       <div>
@@ -44,6 +121,40 @@ export default function PatientInfoSection({ data, updateData }: PatientInfoSect
         <p className="text-sm text-gray-600">
           Vui lòng điền đầy đủ thông tin về bệnh nhân gặp phản ứng có hại
         </p>
+      </div>
+
+      {/* Thông tin báo cáo */}
+      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nơi báo cáo <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={data.organization}
+              onChange={handleOrganizationChange}
+              required
+              disabled={loadingDepartments}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            >
+              <option value="">-- Chọn nơi báo cáo --</option>
+              {departmentOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="Mã số báo cáo của đơn vị"
+            value={data.report_code}
+            readOnly
+            placeholder={generatingCode ? "Đang tạo mã..." : "Tự động tạo"}
+            helperText="Mã sẽ được tự động tạo khi chọn nơi báo cáo"
+            className="bg-gray-50"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

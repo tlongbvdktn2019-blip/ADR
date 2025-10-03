@@ -56,3 +56,6 @@ ORDER BY tablename, policyname;
 SELECT 'All Contest RLS Policies Fixed - Anonymous users can now participate!' as status;
 
 
+
+
+

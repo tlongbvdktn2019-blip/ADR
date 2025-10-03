@@ -17,6 +17,7 @@ import Top10FacilitiesChart from './Top10FacilitiesChart';
 import TopDrugsChart from './TopDrugsChart';
 import OccupationAnalysisChart from './OccupationAnalysisChart';
 import ReportsByDateChart from './ReportsByDateChart';
+import GenderDistributionChart from './GenderDistributionChart';
 
 interface ChartData {
   ageDistribution?: any[];
@@ -28,6 +29,7 @@ interface ChartData {
   topDrugs?: any[];
   occupationAnalysis?: any[];
   reportsByDate?: any[];
+  genderDistribution?: any[];
 }
 
 interface DashboardChartsProps {
@@ -112,13 +114,13 @@ export default function DashboardCharts({
       <div className="space-y-6">
         {showAll && (
           <>
-            {/* Reports by Date - Full width at top */}
+            {/* Xu hướng báo cáo theo tháng - Full width at top */}
             <ReportsByDateChart 
               data={chartData.reportsByDate || []} 
               isLoading={isLoading} 
             />
             
-            {/* Top 10 Charts */}
+            {/* Top 5 Charts */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <Top10FacilitiesChart 
                 data={chartData.topFacilities || []} 
@@ -130,20 +132,22 @@ export default function DashboardCharts({
               />
             </div>
 
-            {/* Occupation Analysis - Full width */}
-            <OccupationAnalysisChart 
-              data={chartData.occupationAnalysis || []} 
-              isLoading={isLoading} 
-            />
-
-            {/* Original Charts */}
-            <MonthlyTrendsChart 
-              data={chartData.monthlyTrends || []} 
-              isLoading={isLoading} 
-            />
+            {/* Severity and Gender */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SeverityLevelChart 
                 data={chartData.severityDistribution || []} 
+                isLoading={isLoading} 
+              />
+              <GenderDistributionChart 
+                data={chartData.genderDistribution || []} 
+                isLoading={isLoading} 
+              />
+            </div>
+
+            {/* Age and Outcome */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AgeDistributionChart 
+                data={chartData.ageDistribution || []} 
                 isLoading={isLoading} 
               />
               <OutcomeDistributionChart 
@@ -151,16 +155,24 @@ export default function DashboardCharts({
                 isLoading={isLoading} 
               />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AgeDistributionChart 
-                data={chartData.ageDistribution || []} 
-                isLoading={isLoading} 
-              />
-              <DrugDistributionChart 
-                data={chartData.drugDistribution || []} 
-                isLoading={isLoading} 
-              />
-            </div>
+
+            {/* Occupation Analysis - Full width */}
+            <OccupationAnalysisChart 
+              data={chartData.occupationAnalysis || []} 
+              isLoading={isLoading} 
+            />
+
+            {/* Monthly Trends */}
+            <MonthlyTrendsChart 
+              data={chartData.monthlyTrends || []} 
+              isLoading={isLoading} 
+            />
+            
+            {/* Drug Distribution */}
+            <DrugDistributionChart 
+              data={chartData.drugDistribution || []} 
+              isLoading={isLoading} 
+            />
           </>
         )}
       </div>
@@ -171,7 +183,7 @@ export default function DashboardCharts({
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {showAll && (
         <>
-          {/* Reports by Date - Full Width */}
+          {/* Xu hướng báo cáo theo tháng - Full Width */}
           <div className="xl:col-span-2">
             <ReportsByDateChart 
               data={chartData.reportsByDate || []} 
@@ -179,19 +191,43 @@ export default function DashboardCharts({
             />
           </div>
 
-          {/* Top 10 Facilities Chart */}
+          {/* Top 5 cơ sở có nhiều báo cáo nhất */}
           <Top10FacilitiesChart 
             data={chartData.topFacilities || []} 
             isLoading={isLoading} 
           />
 
-          {/* Top Drugs Chart */}
+          {/* Top 5 thuốc nghi ngờ */}
           <TopDrugsChart 
             data={chartData.topDrugs || []} 
             isLoading={isLoading} 
           />
 
-          {/* Occupation Analysis - Full Width */}
+          {/* Số lượng và tỷ lệ báo cáo mức độ nghiêm trọng */}
+          <SeverityLevelChart 
+            data={chartData.severityDistribution || []} 
+            isLoading={isLoading} 
+          />
+
+          {/* Số lượng và tỷ lệ theo Giới tính */}
+          <GenderDistributionChart 
+            data={chartData.genderDistribution || []} 
+            isLoading={isLoading} 
+          />
+
+          {/* Độ tuổi được báo cáo */}
+          <AgeDistributionChart 
+            data={chartData.ageDistribution || []} 
+            isLoading={isLoading} 
+          />
+
+          {/* Outcome Distribution Chart */}
+          <OutcomeDistributionChart 
+            data={chartData.outcomeDistribution || []} 
+            isLoading={isLoading} 
+          />
+
+          {/* Tỷ lệ theo Nghề nghiệp của người báo cáo - Full Width */}
           <div className="xl:col-span-2">
             <OccupationAnalysisChart 
               data={chartData.occupationAnalysis || []} 
@@ -206,24 +242,6 @@ export default function DashboardCharts({
               isLoading={isLoading} 
             />
           </div>
-
-          {/* Severity Level Chart */}
-          <SeverityLevelChart 
-            data={chartData.severityDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Outcome Distribution Chart */}
-          <OutcomeDistributionChart 
-            data={chartData.outcomeDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Age Distribution Chart */}
-          <AgeDistributionChart 
-            data={chartData.ageDistribution || []} 
-            isLoading={isLoading} 
-          />
 
           {/* Drug Distribution Chart */}
           <DrugDistributionChart 
@@ -246,6 +264,7 @@ export {
   Top10FacilitiesChart,
   TopDrugsChart,
   OccupationAnalysisChart,
-  ReportsByDateChart
+  ReportsByDateChart,
+  GenderDistributionChart
 };
 

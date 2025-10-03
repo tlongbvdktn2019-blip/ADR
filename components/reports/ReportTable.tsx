@@ -22,7 +22,8 @@ import {
   ShieldExclamationIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 
 interface ReportTableProps {
@@ -39,6 +40,7 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
   const { data: session } = useSession()
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [approvingReportId, setApprovingReportId] = useState<string | null>(null)
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null)
 
   // Group reports by organization
   const groupedReports: GroupedReports = reports.reduce((groups, report) => {
@@ -104,8 +106,8 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
     }
   }
 
-  const canEdit = (report: ADRReport) => 
-    session?.user?.role === 'admin' || report.reporter_id === session?.user?.id
+  // All authenticated users can edit all reports
+  const canEdit = (report: ADRReport) => true
 
   const handlePrintReport = (reportId: string) => {
     const printUrl = `/api/reports/${reportId}/print-view`
@@ -183,6 +185,51 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
       case 'pending':
       default:
         return <ClockIcon className="w-4 h-4 mr-1" />
+    }
+  }
+
+  const handleDeleteReport = async (reportId: string, reportCode: string) => {
+    if (!session?.user || session.user.role !== 'admin') {
+      toast.error('Chỉ admin mới có quyền xóa báo cáo')
+      return
+    }
+
+    const confirmMessage = `⚠️ BẠN CÓ CHẮC CHẮN MUỐN XÓA báo cáo ${reportCode}?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`
+
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    // Double confirmation for safety
+    const doubleConfirm = confirm(`Xác nhận lần cuối: Xóa báo cáo ${reportCode}?`)
+    if (!doubleConfirm) {
+      return
+    }
+
+    setDeletingReportId(reportId)
+
+    try {
+      const response = await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể xóa báo cáo')
+      }
+
+      toast.success(data.message)
+      
+      // Refresh reports list
+      if (onReportsUpdate) {
+        onReportsUpdate()
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa báo cáo')
+    } finally {
+      setDeletingReportId(null)
     }
   }
 
@@ -460,6 +507,20 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
                                   <span className="hidden lg:inline">PDF</span>
                                 </Button>
                               </Link>
+
+                              {/* Delete - Admin Only */}
+                              {session?.user?.role === 'admin' && (
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteReport(report.id, report.report_code)}
+                                  disabled={deletingReportId === report.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                                >
+                                  <TrashIcon className="w-4 h-4 mr-1" />
+                                  <span className="hidden xl:inline">Xóa</span>
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>

@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
-// Force dynamic rendering for this route
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-// GET: Lấy danh sách khoa/phòng (có thể lọc theo department)
+// GET: Lấy danh sách khoa/phòng (có thể lọc theo department) (Public API for contest)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const departmentId = searchParams.get('department_id');
     
-    let query = supabase
-      .from('units')
+    // Sử dụng supabaseAdmin để đảm bảo lấy dữ liệu chính xác
+    // @ts-ignore - units table not in Database types yet
+    let query = (supabaseAdmin
+      .from('units') as any)
       .select('*, department:departments(*)')
       .eq('is_active', true);
     
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
 
 

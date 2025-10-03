@@ -12,6 +12,21 @@ export default withAuth(
           return true
         }
 
+        // Allow access to homepage (public report form)
+        if (req.nextUrl.pathname === '/') {
+          return true
+        }
+
+        // Allow public access to report page
+        if (req.nextUrl.pathname.startsWith('/public-report')) {
+          return true
+        }
+
+        // Allow public API access
+        if (req.nextUrl.pathname.startsWith('/api/public/')) {
+          return true
+        }
+
         // Allow public access to allergy card view (via QR code)
         if (req.nextUrl.pathname.startsWith('/allergy-cards/view/')) {
           return true

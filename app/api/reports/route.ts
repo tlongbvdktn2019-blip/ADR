@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     const requiredFields = [
+      'organization',
+      'report_code',
       'patient_name',
       'patient_birth_date',
       'patient_age',
@@ -63,7 +65,8 @@ export async function POST(request: NextRequest) {
       .from('adr_reports')
       .insert({
         reporter_id: session.user.id,
-        organization: body.organization || session.user.organization || '',
+        organization: body.organization,
+        report_code: body.report_code,
         
         // Patient info
         patient_name: body.patient_name,
@@ -222,12 +225,8 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
 
-    // Apply role-based filtering using application logic
-    if (!isAdmin) {
-      // Regular users only see their own reports
-      query = query.eq('reporter_id', session.user.id)
-    }
-    // Admins see all reports (no additional filter)
+    // Both admin and user can see all reports
+    // No role-based filtering needed
 
     // Apply search filter
     if (search && search.trim()) {

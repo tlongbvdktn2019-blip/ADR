@@ -46,3 +46,6 @@ WHERE tablename = 'contest_submissions';
 SELECT 'Contest Submissions RLS Policies Fixed!' as status;
 
 
+
+
+

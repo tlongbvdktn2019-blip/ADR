@@ -23,6 +23,7 @@ type ReportsByDateRow = {
   id: string;
 };
 type OccupationRow = { reporter_profession: string | null };
+type GenderRow = { patient_gender: string | null };
 
 type ChartData = {
   ageDistribution?: Array<{ ageRange: string; count: number; percentage: number }>;
@@ -34,6 +35,7 @@ type ChartData = {
   topDrugs?: Array<{ drugName: string; count: number; commercialNames: string; percentage: number }>;
   occupationAnalysis?: Array<{ profession: string; count: number; percentage: number }>;
   reportsByDate?: Array<{ date: string; dateKey: string; total: number; serious: number; nonSerious: number }>;
+  genderDistribution?: Array<{ gender: string; genderKey: string; count: number; percentage: number }>;
 };
 
 export async function GET(request: NextRequest) {
@@ -367,6 +369,40 @@ export async function GET(request: NextRequest) {
             };
           });
         }
+      }
+    }
+
+    // Gender distribution
+    if (!chartType || chartType === 'gender') {
+      const { data, error } = await supabase
+        .from('adr_reports')
+        .select('patient_gender');
+
+      if (!error && data) {
+        const rows = data as GenderRow[];
+        const counts: Record<string, number> = {};
+
+        rows.forEach(({ patient_gender }) => {
+          const gender = patient_gender || 'unknown';
+          counts[gender] = (counts[gender] || 0) + 1;
+        });
+
+        const labels: Record<string, string> = {
+          male: 'Nam',
+          female: 'Nữ',
+          other: 'Khác',
+          unknown: 'Chưa xác định',
+        };
+
+        const total = rows.length || 1;
+        chartData.genderDistribution = Object.entries(counts)
+          .map(([key, value]) => ({
+            gender: labels[key] || key,
+            genderKey: key,
+            count: value,
+            percentage: Math.round((value / total) * 100),
+          }))
+          .sort((a, b) => b.count - a.count);
       }
     }
 

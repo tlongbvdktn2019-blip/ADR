@@ -24,8 +24,8 @@ export default function LoginPage() {
       return
     }
 
-    const destination = session.user.role === 'admin' ? '/dashboard' : '/reports'
-    router.replace(destination)
+    // Sau đăng nhập thành công → chuyển đến /dashboard
+    router.replace('/dashboard')
   }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,13 +41,17 @@ export default function LoginPage() {
 
       if (result?.error) {
         toast.error(result.error)
+        setLoading(false)
       } else if (result?.ok) {
         toast.success('Đăng nhập thành công!')
+        // Chờ một chút để session được cập nhật, sau đó redirect
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 500)
       }
     } catch (error) {
       toast.error('Có lỗi xảy ra khi đăng nhập')
       console.error('Login error:', error)
-    } finally {
       setLoading(false)
     }
   }

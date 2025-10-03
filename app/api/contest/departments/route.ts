@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
-// GET: Lấy danh sách đơn vị
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// GET: Lấy danh sách đơn vị (Public API for contest)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
-    const { data: departments, error } = await supabase
-      .from('departments')
+    // Sử dụng supabaseAdmin để đảm bảo lấy dữ liệu chính xác
+    // @ts-ignore - departments table not in Database types yet
+    const { data: departments, error } = await (supabaseAdmin
+      .from('departments') as any)
       .select('*')
       .eq('is_active', true)
       .order('name');
@@ -26,6 +30,8 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
 
 
 

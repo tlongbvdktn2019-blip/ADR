@@ -50,14 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check permissions
-    if (session.user.role !== 'admin' && (report as any)?.reporter_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Không có quyền xem báo cáo này' },
-        { status: 403 }
-      )
-    }
-
+    // All authenticated users can view all reports
     return NextResponse.json({ report })
 
   } catch (error) {
@@ -97,14 +90,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check permissions
-    if (session.user.role !== 'admin' && (existingReport as any)?.reporter_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Không có quyền chỉnh sửa báo cáo này' },
-        { status: 403 }
-      )
-    }
-
+    // All authenticated users can edit all reports
+    
     // Validate required fields
     const requiredFields = [
       'patient_name',
@@ -277,6 +264,90 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error('API error:', error)
     return NextResponse.json(
       { error: 'Có lỗi xảy ra khi cập nhật báo cáo' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Only admin can delete reports
+    if (session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Chỉ admin mới có quyền xóa báo cáo' },
+        { status: 403 }
+      )
+    }
+
+    const reportId = params.id
+
+    // Check if report exists
+    const { data: existingReport, error: fetchError } = await supabaseAdmin
+      .from('adr_reports')
+      .select('id, report_code')
+      .eq('id', reportId)
+      .single() as { data: { id: string; report_code: string } | null; error: any }
+
+    if (fetchError || !existingReport) {
+      return NextResponse.json(
+        { error: 'Không tìm thấy báo cáo' },
+        { status: 404 }
+      )
+    }
+
+    // Delete related suspected drugs first (cascade delete)
+    const { error: deleteDrugsError } = await supabaseAdmin
+      .from('suspected_drugs')
+      .delete()
+      .eq('report_id', reportId)
+
+    if (deleteDrugsError) {
+      console.error('Delete suspected drugs error:', deleteDrugsError)
+      // Continue even if this fails - foreign key constraints should handle it
+    }
+
+    // Delete related concurrent drugs
+    const { error: deleteConcurrentError } = await supabaseAdmin
+      .from('concurrent_drugs')
+      .delete()
+      .eq('report_id', reportId)
+
+    if (deleteConcurrentError) {
+      console.error('Delete concurrent drugs error:', deleteConcurrentError)
+      // Continue even if this fails
+    }
+
+    // Delete the report
+    const { error: deleteReportError } = await supabaseAdmin
+      .from('adr_reports')
+      .delete()
+      .eq('id', reportId)
+
+    if (deleteReportError) {
+      console.error('Delete report error:', deleteReportError)
+      return NextResponse.json(
+        { error: 'Không thể xóa báo cáo: ' + deleteReportError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      message: `Báo cáo ${existingReport.report_code} đã được xóa thành công`
+    })
+
+  } catch (error) {
+    console.error('API error:', error)
+    return NextResponse.json(
+      { error: 'Có lỗi xảy ra khi xóa báo cáo' },
       { status: 500 }
     )
   }
