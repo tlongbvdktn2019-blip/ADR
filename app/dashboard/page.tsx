@@ -18,6 +18,8 @@ import {
   UserGroupIcon,
   TrophyIcon,
   AcademicCapIcon,
+  SparklesIcon,
+  ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -89,6 +91,71 @@ export default function DashboardPage() {
             {isAdmin && <span className="ml-2 text-blue-600 font-semibold">(Quản trị viên)</span>}
           </p>
         </div>
+
+        {/* Contest Banner */}
+        <Link href="/contest">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 p-1 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.01] cursor-pointer group">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 md:p-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                {/* Left side - Content */}
+                <div className="flex items-start gap-4 flex-1">
+                  {/* Trophy Icon with Animation */}
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                    <div className="relative w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center transform rotate-3 group-hover:rotate-6 transition-transform shadow-lg">
+                      <TrophyIcon className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <SparklesIcon className="w-5 h-5 text-purple-600 animate-pulse" />
+                      <span className="text-xs md:text-sm font-semibold text-purple-600 uppercase tracking-wider">
+                        Sự kiện đặc biệt
+                      </span>
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text text-transparent mb-2">
+                      Cuộc thi Kiến thức ADR
+                    </h2>
+                    <p className="text-gray-700 text-sm md:text-base leading-relaxed">
+                      Thử thách bản thân với các câu hỏi hấp dẫn về phản ứng có hại của thuốc. 
+                      <span className="hidden md:inline"> Tham gia ngay để kiểm tra kiến thức và cạnh tranh trên bảng xếp hạng!</span>
+                    </p>
+                    
+                    {/* Features */}
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-medium text-gray-700">Đang diễn ra</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                        <AcademicCapIcon className="w-4 h-4 text-purple-600" />
+                        <span className="text-xs font-medium text-gray-700">Nhiều câu hỏi thú vị</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                        <TrophyIcon className="w-4 h-4 text-yellow-600" />
+                        <span className="text-xs font-medium text-gray-700">Bảng xếp hạng</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side - CTA Button */}
+                <div className="flex-shrink-0">
+                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-sm md:text-base shadow-lg group-hover:shadow-xl transition-all flex items-center gap-2 group-hover:gap-3">
+                    Tham gia ngay
+                    <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl -z-10"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-yellow-400/20 to-orange-400/20 rounded-full blur-3xl -z-10"></div>
+            </div>
+          </div>
+        </Link>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
