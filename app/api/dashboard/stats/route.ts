@@ -11,6 +11,15 @@ import { createAdminClient } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 
+interface ReportTimeline {
+  id: string;
+  report_code: string;
+  organization: string;
+  severity_level: string;
+  approval_status: string;
+  created_at: string;
+}
+
 interface DashboardStats {
   totalReports: number;
   newReportsThisMonth: number;
@@ -18,6 +27,10 @@ interface DashboardStats {
   criticalReports: number;
   previousMonthReports: number;
   growthRate: number;
+  newReportsToday: number;
+  pendingReports: number;
+  unapprovedReports: number;
+  recentReportsTimeline: ReportTimeline[];
 }
 
 /**
@@ -34,10 +47,33 @@ export async function GET(request: NextRequest) {
 
     const isAdmin = (session.user as any).role === 'admin';
     const supabase = createAdminClient();
+    
+    // Get filters from query params
+    const { searchParams } = new URL(request.url);
+    const organization = searchParams.get('organization');
+    const year = searchParams.get('year');
+    
     // Base query for reports
     let reportsQuery = supabase
       .from('adr_reports')
       .select('*');
+
+    // Apply organization filter if provided
+    if (organization && organization !== 'all') {
+      reportsQuery = reportsQuery.eq('organization', organization);
+    }
+
+    // Apply year filter if provided (filter by report_date year)
+    if (year && year !== 'all') {
+      const yearNum = parseInt(year);
+      if (!isNaN(yearNum)) {
+        const startDate = `${yearNum}-01-01`;
+        const endDate = `${yearNum}-12-31`;
+        reportsQuery = reportsQuery
+          .gte('report_date', startDate)
+          .lte('report_date', endDate);
+      }
+    }
 
     // No filtering by user - both admin and user can view stats for all reports
     // This allows users to see system-wide statistics while maintaining edit restrictions
@@ -78,6 +114,36 @@ export async function GET(request: NextRequest) {
       ['death', 'life_threatening', 'hospitalization'].includes(report.severity_level)
     ).length || 0;
 
+    // New reports today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const newReportsToday = allReports?.filter(report => 
+      new Date(report.created_at) >= startOfToday
+    ).length || 0;
+
+    // Pending reports (chưa duyệt - status pending)
+    const pendingReports = allReports?.filter(report =>
+      report.approval_status === 'pending'
+    ).length || 0;
+
+    // Unapproved reports (same as pending for this context)
+    const unapprovedReports = pendingReports;
+
+    // Recent reports timeline (last 10 reports)
+    const recentReportsTimeline: ReportTimeline[] = allReports
+      ? allReports
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10)
+          .map(report => ({
+            id: report.id,
+            report_code: report.report_code,
+            organization: report.organization,
+            severity_level: report.severity_level,
+            approval_status: report.approval_status,
+            created_at: report.created_at
+          }))
+      : [];
+
     // Total users (only for admin)
     let totalUsers = 0;
     if (isAdmin) {
@@ -94,7 +160,11 @@ export async function GET(request: NextRequest) {
       totalUsers,
       criticalReports,
       previousMonthReports,
-      growthRate
+      growthRate,
+      newReportsToday,
+      pendingReports,
+      unapprovedReports,
+      recentReportsTimeline
     };
 
     return NextResponse.json(stats);

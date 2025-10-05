@@ -97,7 +97,7 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
         body: JSON.stringify({
           message: messageText,
           context,
-          provider: selectedProvider,
+          provider: selectedProvider === 'chatgpt' ? 'openai' : 'gemini',
           chatHistory: messages
         }),
       })
@@ -105,10 +105,29 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
       const result = await response.json()
 
       if (!response.ok) {
+        // Check if error is due to missing API key
+        if (result.needsAPIKey) {
+          const errorMessage: ChatMessage = {
+            id: `error_${Date.now()}`,
+            role: 'assistant',
+            content: `❌ ${result.error}\n\n🔑 **Cách khắc phục:**\n1. Nhấn vào "Settings" ở menu\n2. Thêm API key cho ${result.provider.toUpperCase()}\n3. Quay lại đây để chat\n\n💡 **Lưu ý:** API key của bạn sẽ được mã hóa và bảo mật tuyệt đối.`,
+            timestamp: new Date(),
+            metadata: { model: selectedProvider, confidence: 0, needsSetup: true }
+          }
+          setMessages(prev => [...prev, errorMessage])
+          return
+        }
+        
         throw new Error(result.error || 'Có lỗi xảy ra')
       }
 
-      setMessages(prev => [...prev, result.data.aiResponse])
+      // Add successful response with API key info
+      const responseWithInfo: ChatMessage = {
+        ...result.data.aiResponse,
+        content: result.data.aiResponse.content + `\n\n*🔑 Sử dụng: ${result.data.apiKeyUsed}*`
+      }
+
+      setMessages(prev => [...prev, responseWithInfo])
       
     } catch (error) {
       console.error('Chat Error:', error)
@@ -161,68 +180,82 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
         
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <ChatBubbleLeftRightIcon className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <ChatBubbleLeftRightIcon className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">AI Medical Consultant</h3>
-              <p className="text-sm text-gray-600">
-                Powered by {selectedProvider === 'chatgpt' ? 'ChatGPT' : 'Gemini'}
-                {isTyping && <span className="ml-2 text-blue-600">🤖 đang gõ...</span>}
+              <h3 className="text-lg font-bold text-gray-900">AI Medical Consultant</h3>
+              <p className="text-sm text-gray-600 flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-white rounded-full text-xs font-medium">
+                  {selectedProvider === 'chatgpt' ? '🤖 ChatGPT' : '✨ Gemini'}
+                </span>
+                {isTyping && (
+                  <span className="text-blue-600 animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                    <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="ml-1">đang gõ</span>
+                  </span>
+                )}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-3">
             {/* Provider Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex bg-white rounded-xl p-1 shadow-sm border">
               <button
                 onClick={() => setSelectedProvider('chatgpt')}
-                className={`px-3 py-1 text-sm rounded font-medium transition-colors ${
+                className={`px-4 py-2 text-sm rounded-lg font-semibold transition-all duration-200 ${
                   selectedProvider === 'chatgpt' 
-                    ? 'bg-green-600 text-white' 
-                    : 'text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md' 
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 ChatGPT
               </button>
               <button
                 onClick={() => setSelectedProvider('gemini')}
-                className={`px-3 py-1 text-sm rounded font-medium transition-colors ${
+                className={`px-4 py-2 text-sm rounded-lg font-semibold transition-all duration-200 ${
                   selectedProvider === 'gemini' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
+                    : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 Gemini
               </button>
             </div>
 
-            <Button variant="outline" onClick={clearChat} className="text-xs">
+            <button
+              onClick={clearChat}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               Xóa chat
-            </Button>
+            </button>
             
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+              title="Đóng"
             >
-              <XMarkIcon className="w-5 h-5" />
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex">
+        {/* Chat Area - Scrollable */}
+        <div className="flex-1 flex min-h-0 overflow-hidden">
           
-          {/* Messages */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Messages Column */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Messages - Scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
               {messages.map((message) => (
                 <MessageBubble 
                   key={message.id} 
@@ -232,70 +265,82 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
                 />
               ))}
               {isTyping && (
-                <div className="flex items-center space-x-2 text-gray-500">
-                  <LoadingSpinner size="sm" />
-                  <span className="text-sm">AI đang suy nghĩ...</span>
+                <div className="flex items-center space-x-3 text-gray-500 pl-4">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                  <span className="text-sm font-medium">AI đang suy nghĩ...</span>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="border-t p-4">
-              <div className="flex space-x-3">
+            {/* Input Area - Fixed */}
+            <div className="flex-shrink-0 border-t bg-white px-6 py-4">
+              <div className="flex gap-3">
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Hỏi AI về case ADR này..."
-                  rows={2}
-                  className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Đặt câu hỏi về case ADR này... (Enter để gửi, Shift+Enter để xuống dòng)"
+                  rows={3}
+                  className="flex-1 resize-none border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   disabled={isLoading}
                 />
-                <Button
+                <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || isLoading}
-                  className="self-end bg-blue-600 hover:bg-blue-700"
+                  className="self-end px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
                 >
                   {isLoading ? (
-                    <LoadingSpinner size="sm" />
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span>Đang gửi</span>
+                    </>
                   ) : (
-                    <PaperAirplaneIcon className="w-5 h-5" />
+                    <>
+                      <PaperAirplaneIcon className="w-5 h-5" />
+                      <span>Gửi</span>
+                    </>
                   )}
-                </Button>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Sidebar - Quick Suggestions */}
-          <div className="w-80 border-l bg-gray-50 p-4 overflow-y-auto">
-            <div className="space-y-4">
+          {/* Sidebar - Scrollable */}
+          <div className="w-80 border-l bg-gradient-to-b from-gray-50 to-white flex-shrink-0 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               
               {/* Quick Suggestions */}
-              <div>
-                <div className="flex items-center space-x-2 mb-3">
-                  <LightBulbIcon className="w-4 h-4 text-yellow-600" />
-                  <h4 className="font-medium text-gray-900">Gợi ý câu hỏi</h4>
+              {suggestions.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <LightBulbIcon className="w-5 h-5 text-yellow-600" />
+                    <h4 className="font-semibold text-gray-900">Gợi ý câu hỏi</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => useSuggestion(suggestion)}
+                        className="w-full text-left p-3 text-sm bg-white border-2 border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm hover:shadow"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => useSuggestion(suggestion)}
-                      className="w-full text-left p-2 text-sm bg-white border border-gray-200 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
 
               {/* Common Questions */}
               <div>
-                <div className="flex items-center space-x-2 mb-3">
-                  <SparklesIcon className="w-4 h-4 text-purple-600" />
-                  <h4 className="font-medium text-gray-900">Câu hỏi phổ biến</h4>
+                <div className="flex items-center gap-2 mb-3">
+                  <SparklesIcon className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-semibold text-gray-900">Câu hỏi phổ biến</h4>
                 </div>
                 <div className="space-y-2">
                   {[
@@ -309,7 +354,7 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
                     <button
                       key={index}
                       onClick={() => useSuggestion(question)}
-                      className="w-full text-left p-2 text-sm text-gray-700 hover:bg-white hover:shadow-sm rounded transition-colors"
+                      className="w-full text-left p-3 text-sm text-gray-700 bg-white hover:bg-purple-50 hover:text-purple-900 rounded-lg transition-all border border-transparent hover:border-purple-200"
                     >
                       • {question}
                     </button>
@@ -318,13 +363,28 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
               </div>
 
               {/* AI Info */}
-              <div className="bg-white p-3 rounded-lg border">
-                <h4 className="font-medium text-gray-900 mb-2">Về AI Consultant</h4>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <p>• Dựa trên WHO-UMC & Naranjo</p>
-                  <p>• Trained on medical literature</p>
-                  <p>• Chỉ mang tính tham khảo</p>
-                  <p>• Cần expert review cuối cùng</p>
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-100">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4 text-purple-600" />
+                  Về AI Consultant
+                </h4>
+                <div className="text-xs text-gray-700 space-y-2">
+                  <p className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Dựa trên WHO-UMC & Naranjo</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Trained on medical literature</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-yellow-600">⚠</span>
+                    <span>Chỉ mang tính tham khảo</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-yellow-600">⚠</span>
+                    <span>Cần expert review cuối cùng</span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -349,62 +409,75 @@ function MessageBubble({
   const isSystem = message.role === 'system'
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[70%] ${isUser ? 'order-2' : 'order-1'}`}>
-        
-        {/* Message Content */}
-        <div className={`p-3 rounded-2xl ${
+    <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+      
+      {/* Avatar */}
+      {!isUser && (
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-lg">
+          <SparklesIcon className="w-5 h-5" />
+        </div>
+      )}
+
+      {/* Message Content */}
+      <div className={`max-w-[75%] ${isUser ? 'order-2' : 'order-1'}`}>
+        <div className={`rounded-2xl shadow-md ${
           isUser 
-            ? 'bg-blue-600 text-white rounded-br-sm' 
+            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-md' 
             : isSystem 
-            ? 'bg-gray-100 text-gray-800 rounded-bl-sm'
-            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
+            ? 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-md'
+            : 'bg-white text-gray-800 border-2 border-gray-100 rounded-bl-md'
         }`}>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-            {message.content}
+          <div className="p-4">
+            <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
+              {message.content}
+            </div>
           </div>
           
           {/* AI Metadata */}
           {!isUser && message.metadata && (
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <ComputerDesktopIcon className="w-3 h-3" />
-                <span>{message.metadata.model?.toUpperCase()}</span>
+            <div className="flex items-center justify-between px-4 pb-3 pt-2 border-t border-gray-100">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                <ComputerDesktopIcon className="w-4 h-4" />
+                <span className="px-2 py-0.5 bg-gray-100 rounded-full">
+                  {message.metadata.model?.toUpperCase()}
+                </span>
                 {message.metadata.confidence && (
-                  <span>• {Math.round(message.metadata.confidence * 100)}% confidence</span>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                    {Math.round(message.metadata.confidence * 100)}% tin cậy
+                  </span>
                 )}
               </div>
               
               {showApply && (
-                <Button
+                <button
                   onClick={onApplyInsight}
-                  variant="outline"
-                  className="text-xs px-2 py-1 h-auto"
+                  className="px-3 py-1.5 text-xs font-semibold bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all shadow-sm hover:shadow"
                 >
-                  Áp dụng
-                </Button>
+                  ✨ Áp dụng
+                </button>
               )}
             </div>
           )}
         </div>
 
         {/* Timestamp */}
-        <div className={`flex items-center space-x-1 mt-1 text-xs text-gray-400 ${
+        <div className={`flex items-center gap-1.5 mt-1.5 text-xs text-gray-400 ${
           isUser ? 'justify-end' : 'justify-start'
         }`}>
-          <ClockIcon className="w-3 h-3" />
-          <span>{new Date(message.timestamp).toLocaleTimeString('vi-VN')}</span>
+          <ClockIcon className="w-3.5 h-3.5" />
+          <span className="font-medium">{new Date(message.timestamp).toLocaleTimeString('vi-VN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}</span>
         </div>
       </div>
 
-      {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-        isUser 
-          ? 'bg-blue-600 text-white ml-2 order-3' 
-          : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white mr-2'
-      }`}>
-        {isUser ? <UserIcon className="w-4 h-4" /> : <SparklesIcon className="w-4 h-4" />}
-      </div>
+      {/* User Avatar */}
+      {isUser && (
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg">
+          <UserIcon className="w-5 h-5" />
+        </div>
+      )}
     </div>
   )
 }

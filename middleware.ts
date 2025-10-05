@@ -22,8 +22,18 @@ export default withAuth(
           return true
         }
 
+        // Allow public access to contest pages
+        if (req.nextUrl.pathname.startsWith('/contest')) {
+          return true
+        }
+
         // Allow public API access
         if (req.nextUrl.pathname.startsWith('/api/public/')) {
+          return true
+        }
+        
+        // Allow public access to contest APIs
+        if (req.nextUrl.pathname.startsWith('/api/contest/')) {
           return true
         }
 
@@ -67,14 +77,14 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (authentication endpoints)
+     * - api/* (ALL API routes - they handle their own auth)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - Logo.jpg (logo file)
      * - Static files (images, fonts, etc.)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|Logo.jpg|.*\\.(?:jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|eot)).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|Logo.jpg|.*\\.(?:jpg|jpeg|png|gif|svg|webp|ico|woff|woff2|ttf|eot)).*)',
   ],
 }
 

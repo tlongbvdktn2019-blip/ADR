@@ -15,6 +15,7 @@ import DrugDistributionChart from './DrugDistributionChart';
 import OutcomeDistributionChart from './OutcomeDistributionChart';
 import Top10FacilitiesChart from './Top10FacilitiesChart';
 import TopDrugsChart from './TopDrugsChart';
+import TreatmentDrugGroupChart from './TreatmentDrugGroupChart';
 import OccupationAnalysisChart from './OccupationAnalysisChart';
 import ReportsByDateChart from './ReportsByDateChart';
 import GenderDistributionChart from './GenderDistributionChart';
@@ -27,6 +28,7 @@ interface ChartData {
   outcomeDistribution?: any[];
   topFacilities?: any[];
   topDrugs?: any[];
+  treatmentDrugGroups?: any[];
   occupationAnalysis?: any[];
   reportsByDate?: any[];
   genderDistribution?: any[];
@@ -35,11 +37,15 @@ interface ChartData {
 interface DashboardChartsProps {
   layout?: 'grid' | 'stacked';
   showAll?: boolean;
+  organization?: string;
+  year?: string;
 }
 
 export default function DashboardCharts({ 
   layout = 'grid', 
-  showAll = true 
+  showAll = true,
+  organization = 'all',
+  year = 'all'
 }: DashboardChartsProps) {
   const { data: session } = useSession();
   const [chartData, setChartData] = useState<ChartData>({});
@@ -50,14 +56,25 @@ export default function DashboardCharts({
     if (session?.user?.id) {
       loadChartData();
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, organization, year]);
 
   const loadChartData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/dashboard/charts');
+      const params = new URLSearchParams();
+      if (organization && organization !== 'all') {
+        params.append('organization', organization);
+      }
+      if (year && year !== 'all') {
+        params.append('year', year);
+      }
+      
+      const url = params.toString()
+        ? `/api/dashboard/charts?${params.toString()}`
+        : '/api/dashboard/charts';
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Không thể tải dữ liệu biểu đồ');
@@ -132,6 +149,12 @@ export default function DashboardCharts({
               />
             </div>
 
+            {/* Treatment Drug Groups */}
+            <TreatmentDrugGroupChart 
+              data={chartData.treatmentDrugGroups || []} 
+              isLoading={isLoading} 
+            />
+
             {/* Severity and Gender */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <SeverityLevelChart 
@@ -203,6 +226,14 @@ export default function DashboardCharts({
             isLoading={isLoading} 
           />
 
+          {/* Top 5 Nhóm thuốc điều trị - Full Width */}
+          <div className="xl:col-span-2">
+            <TreatmentDrugGroupChart 
+              data={chartData.treatmentDrugGroups || []} 
+              isLoading={isLoading} 
+            />
+          </div>
+
           {/* Số lượng và tỷ lệ báo cáo mức độ nghiêm trọng */}
           <SeverityLevelChart 
             data={chartData.severityDistribution || []} 
@@ -263,6 +294,7 @@ export {
   OutcomeDistributionChart,
   Top10FacilitiesChart,
   TopDrugsChart,
+  TreatmentDrugGroupChart,
   OccupationAnalysisChart,
   ReportsByDateChart,
   GenderDistributionChart

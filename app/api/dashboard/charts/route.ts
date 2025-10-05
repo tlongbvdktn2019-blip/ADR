@@ -16,6 +16,7 @@ type TrendRow = { created_at: string; severity_level: string | null };
 type OutcomeRow = { outcome_after_treatment: string | null };
 type FacilityRow = { organization: string | null };
 type DrugRow = { drug_name: string; commercial_name: string | null };
+type DrugWithReportRow = { drug_name: string; report_id: string; adr_reports: { organization: string }[] };
 type ReportsByDateRow = {
   report_date: string | null;
   created_at: string;
@@ -33,6 +34,7 @@ type ChartData = {
   outcomeDistribution?: Array<{ outcome: string; outcomeKey: string; count: number; percentage: number }>;
   topFacilities?: Array<{ facilityName: string; count: number; percentage: number }>;
   topDrugs?: Array<{ drugName: string; count: number; commercialNames: string; percentage: number }>;
+  treatmentDrugGroups?: Array<{ groupName: string; count: number; percentage: number }>;
   occupationAnalysis?: Array<{ profession: string; count: number; percentage: number }>;
   reportsByDate?: Array<{ date: string; dateKey: string; total: number; serious: number; nonSerious: number }>;
   genderDistribution?: Array<{ gender: string; genderKey: string; count: number; percentage: number }>;
@@ -49,14 +51,43 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const chartType = searchParams.get('type');
+    const organization = searchParams.get('organization');
+    const year = searchParams.get('year');
 
     const chartData: ChartData = {};
+    
+    // Helper function to add organization and year filters to query
+    const addFilters = (query: any) => {
+      // Add organization filter
+      if (organization && organization !== 'all') {
+        query = query.eq('organization', organization);
+      }
+      
+      // Add year filter (based on report_date)
+      if (year && year !== 'all') {
+        const yearNum = parseInt(year);
+        if (!isNaN(yearNum)) {
+          const startDate = `${yearNum}-01-01`;
+          const endDate = `${yearNum}-12-31`;
+          query = query
+            .gte('report_date', startDate)
+            .lte('report_date', endDate);
+        }
+      }
+      
+      return query;
+    };
+    
+    // Keep old addOrgFilter for backward compatibility
+    const addOrgFilter = addFilters;
 
     // Age distribution
     if (!chartType || chartType === 'age') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('patient_age');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as AgeRow[];
@@ -88,9 +119,11 @@ export async function GET(request: NextRequest) {
 
     // Severity distribution
     if (!chartType || chartType === 'severity') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('severity_level');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as SeverityRow[];
@@ -130,11 +163,13 @@ export async function GET(request: NextRequest) {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('created_at, severity_level')
         .gte('created_at', twelveMonthsAgo.toISOString())
         .order('created_at', { ascending: true });
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as TrendRow[];
@@ -174,12 +209,20 @@ export async function GET(request: NextRequest) {
 
     // Drug distribution
     if (!chartType || chartType === 'drugs') {
-      const { data, error } = await supabase
+      // Need to filter by organization - join with adr_reports
+      let query = supabase
         .from('suspected_drugs')
-        .select('drug_name');
+        .select('drug_name, report_id, adr_reports!inner(organization)');
+      
+      // Apply organization filter
+      if (organization && organization !== 'all') {
+        query = query.eq('adr_reports.organization', organization);
+      }
+      
+      const { data, error } = await query;
 
       if (!error && data) {
-        const rows = data as DrugRow[];
+        const rows = data as DrugWithReportRow[];
         const count: Record<string, number> = {};
 
         rows.forEach(({ drug_name }) => {
@@ -201,9 +244,11 @@ export async function GET(request: NextRequest) {
 
     // Outcome distribution
     if (!chartType || chartType === 'outcomes') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('outcome_after_treatment');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as OutcomeRow[];
@@ -235,9 +280,11 @@ export async function GET(request: NextRequest) {
 
     // Top 10 facilities
     if (!chartType || chartType === 'facilities') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('organization');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as FacilityRow[];
@@ -262,9 +309,29 @@ export async function GET(request: NextRequest) {
 
     // Top 10 suspected drugs (detailed)
     if (!chartType || chartType === 'topDrugs') {
-      const { data, error } = await supabase
+      // Need to filter by organization - join with adr_reports
+      let query = supabase
         .from('suspected_drugs')
-        .select('drug_name, commercial_name');
+        .select('drug_name, commercial_name, report_id, adr_reports!inner(organization, report_date)');
+      
+      // Apply organization filter
+      if (organization && organization !== 'all') {
+        query = query.eq('adr_reports.organization', organization);
+      }
+      
+      // Apply year filter
+      if (year && year !== 'all') {
+        const yearNum = parseInt(year);
+        if (!isNaN(yearNum)) {
+          const startDate = `${yearNum}-01-01`;
+          const endDate = `${yearNum}-12-31`;
+          query = query
+            .gte('adr_reports.report_date', startDate)
+            .lte('adr_reports.report_date', endDate);
+        }
+      }
+      
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as DrugRow[];
@@ -294,11 +361,61 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Treatment drug groups
+    if (!chartType || chartType === 'treatmentDrugGroups') {
+      // Need to filter by organization - join with adr_reports
+      let query = supabase
+        .from('suspected_drugs')
+        .select('treatment_drug_group, report_id, adr_reports!inner(organization, report_date)');
+      
+      // Apply organization filter
+      if (organization && organization !== 'all') {
+        query = query.eq('adr_reports.organization', organization);
+      }
+      
+      // Apply year filter
+      if (year && year !== 'all') {
+        const yearNum = parseInt(year);
+        if (!isNaN(yearNum)) {
+          const startDate = `${yearNum}-01-01`;
+          const endDate = `${yearNum}-12-31`;
+          query = query
+            .gte('adr_reports.report_date', startDate)
+            .lte('adr_reports.report_date', endDate);
+        }
+      }
+      
+      const { data, error } = await query;
+
+      if (!error && data) {
+        const rows = data as { treatment_drug_group: string | null; report_id: string; adr_reports: { organization: string }[] }[];
+        const counts: Record<string, number> = {};
+
+        rows.forEach(({ treatment_drug_group }) => {
+          const key = treatment_drug_group?.trim() || 'Chưa xác định';
+          counts[key] = (counts[key] || 0) + 1;
+        });
+
+        const total = rows.length || 1;
+        chartData.treatmentDrugGroups = Object.entries(counts)
+          .map(([group, count]) => ({
+            groupName: group,
+            count: count,
+            percentage: Math.round((count / total) * 100),
+          }))
+          .sort((a, b) => b.count - a.count)
+          .filter(item => item.groupName !== 'Chưa xác định') // Exclude unspecified
+          .slice(0, 5); // Top 5 only
+      }
+    }
+
     // Occupation analysis
     if (!chartType || chartType === 'occupation') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('reporter_profession');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as OccupationRow[];
@@ -322,10 +439,12 @@ export async function GET(request: NextRequest) {
 
     // Reports by date
     if (!chartType || chartType === 'reportsByDate') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('report_date, created_at, severity_level, id')
         .order('created_at', { ascending: true });
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as ReportsByDateRow[];
@@ -374,9 +493,11 @@ export async function GET(request: NextRequest) {
 
     // Gender distribution
     if (!chartType || chartType === 'gender') {
-      const { data, error } = await supabase
+      let query = supabase
         .from('adr_reports')
         .select('patient_gender');
+      query = addOrgFilter(query);
+      const { data, error } = await query;
 
       if (!error && data) {
         const rows = data as GenderRow[];

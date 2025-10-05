@@ -59,3 +59,4 @@ SELECT 'All Contest RLS Policies Fixed - Anonymous users can now participate!' a
 
 
 
+

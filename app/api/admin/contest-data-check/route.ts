@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic'
+
 // GET: Kiểm tra dữ liệu departments và units (Admin only)
 export async function GET(request: NextRequest) {
   try {
@@ -62,4 +65,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
 

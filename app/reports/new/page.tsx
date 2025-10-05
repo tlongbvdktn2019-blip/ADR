@@ -23,8 +23,11 @@ export interface SuspectedDrug {
   dosage_form: string
   manufacturer: string
   batch_number: string
-  dosage_and_frequency: string
+  dosage_and_frequency: string  // Kept for backward compatibility
+  dosage: string  // Liều dùng
+  frequency: string  // Số lần dùng
   route_of_administration: string
+  treatment_drug_group?: string
   start_date: string
   end_date: string
   indication: string
@@ -110,6 +113,8 @@ export default function NewReportPage() {
         manufacturer: '',
         batch_number: '',
         dosage_and_frequency: '',
+        dosage: '',
+        frequency: '',
         route_of_administration: '',
         start_date: '',
         end_date: '',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/Textarea'
 import Select from '@/components/ui/Select'
@@ -23,6 +23,77 @@ export default function SuspectedDrugsSection({
   concurrentDrugs = [], 
   updateConcurrentDrugs = () => {} 
 }: SuspectedDrugsSectionProps) {
+  const [treatmentDrugs, setTreatmentDrugs] = useState<{ id: string; name: string }[]>([])
+  const [loadingTreatmentDrugs, setLoadingTreatmentDrugs] = useState(true)
+  const [treatmentDrugsError, setTreatmentDrugsError] = useState<string | null>(null)
+
+  // Fetch treatment drugs on component mount
+  useEffect(() => {
+    const fetchTreatmentDrugs = async () => {
+      try {
+        console.log('🔄 Fetching treatment drugs...')
+        console.log('Current URL:', window.location.href)
+        
+        // Try authenticated API first
+        let response = await fetch('/api/treatment-drugs', {
+          cache: 'no-store',
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
+        
+        console.log('Auth API response status:', response.status)
+        
+        // If unauthorized (public report), try public API
+        if (response.status === 401) {
+          console.log('ℹ️ Auth required, using public API for treatment drugs')
+          response = await fetch('/api/public/treatment-drugs', {
+            cache: 'no-store',
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          console.log('Public API response status:', response.status)
+        }
+        
+        // Check content type before parsing
+        const contentType = response.headers.get('content-type')
+        console.log('Response content-type:', contentType)
+        
+        if (response.ok) {
+          // Make sure it's JSON
+          if (!contentType || !contentType.includes('application/json')) {
+            console.error('❌ Response is not JSON, content-type:', contentType)
+            const textResponse = await response.text()
+            console.error('Response preview:', textResponse.substring(0, 200))
+            throw new Error('Server returned non-JSON response. Please refresh the page.')
+          }
+          
+          const data = await response.json()
+          console.log('✅ Successfully fetched treatment drugs:', data.count || data.treatmentDrugs?.length || 0)
+          
+          if (!data.treatmentDrugs || data.treatmentDrugs.length === 0) {
+            console.warn('⚠️ No treatment drugs found in database')
+            setTreatmentDrugsError('Chưa có dữ liệu nhóm thuốc điều trị. Vui lòng liên hệ quản trị viên.')
+          }
+          
+          setTreatmentDrugs(data.treatmentDrugs || [])
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('❌ Failed to fetch treatment drugs:', response.status, errorData)
+          setTreatmentDrugsError(`Không thể tải danh sách nhóm thuốc (Lỗi ${response.status})`)
+        }
+      } catch (error) {
+        console.error('❌ Error fetching treatment drugs:', error)
+        setTreatmentDrugsError('Có lỗi khi tải danh sách nhóm thuốc điều trị')
+      } finally {
+        setLoadingTreatmentDrugs(false)
+      }
+    }
+
+    fetchTreatmentDrugs()
+  }, [])
+
   const reactionOptions = [
     { value: 'yes', label: 'Có' },
     { value: 'no', label: 'Không' },
@@ -37,6 +108,12 @@ export default function SuspectedDrugsSection({
     { value: 'no_information', label: 'Không có thông tin' },
   ]
 
+  // Convert treatment drugs to select options
+  const treatmentDrugOptions = treatmentDrugs.map(drug => ({
+    value: drug.name,
+    label: drug.name
+  }))
+
   const addDrug = () => {
     const newDrug: SuspectedDrug = {
       id: Date.now().toString(),
@@ -46,7 +123,10 @@ export default function SuspectedDrugsSection({
       manufacturer: '',
       batch_number: '',
       dosage_and_frequency: '',
+      dosage: '',
+      frequency: '',
       route_of_administration: '',
+      treatment_drug_group: '',
       start_date: '',
       end_date: '',
       indication: '',
@@ -141,17 +221,31 @@ export default function SuspectedDrugsSection({
               />
 
               <Input
-                label="Nhà sản xuất, Số lô"
+                label="Nhà sản xuất"
                 value={drug.manufacturer}
                 onChange={(e) => updateDrug(drug.id, { manufacturer: e.target.value })}
-                placeholder="VD: Công ty ABC, Lô: L123456"
+                placeholder="VD: Công ty ABC, Công ty XYZ..."
               />
 
               <Input
-                label="Liều dùng, Số lần dùng, Đường dùng"
-                value={drug.dosage_and_frequency}
-                onChange={(e) => updateDrug(drug.id, { dosage_and_frequency: e.target.value })}
-                placeholder="VD: 500mg x 3 lần/ngày, uống"
+                label="Số lô"
+                value={drug.batch_number}
+                onChange={(e) => updateDrug(drug.id, { batch_number: e.target.value })}
+                placeholder="VD: L123456, LOT2024001..."
+              />
+
+              <Input
+                label="Liều dùng"
+                value={drug.dosage}
+                onChange={(e) => updateDrug(drug.id, { dosage: e.target.value })}
+                placeholder="VD: 500mg, 1 viên, 2 viên..."
+              />
+
+              <Input
+                label="Số lần dùng"
+                value={drug.frequency}
+                onChange={(e) => updateDrug(drug.id, { frequency: e.target.value })}
+                placeholder="VD: 3 lần/ngày, 2 lần/ngày, mỗi 8 giờ..."
               />
 
               <Input
@@ -160,6 +254,29 @@ export default function SuspectedDrugsSection({
                 onChange={(e) => updateDrug(drug.id, { route_of_administration: e.target.value })}
                 placeholder="VD: Uống, tiêm tĩnh mạch"
               />
+
+              <div>
+                <Select
+                  label="Nhóm thuốc điều trị"
+                  value={drug.treatment_drug_group || ''}
+                  onChange={(e) => updateDrug(drug.id, { treatment_drug_group: e.target.value })}
+                  options={[
+                    { value: '', label: loadingTreatmentDrugs ? 'Đang tải...' : (treatmentDrugsError ? treatmentDrugsError : 'Chọn nhóm thuốc điều trị') },
+                    ...treatmentDrugOptions
+                  ]}
+                  disabled={loadingTreatmentDrugs || !!treatmentDrugsError}
+                />
+                {treatmentDrugsError && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {treatmentDrugsError}
+                  </p>
+                )}
+                {!loadingTreatmentDrugs && !treatmentDrugsError && treatmentDrugs.length === 0 && (
+                  <p className="mt-1 text-sm text-yellow-600">
+                    Chưa có dữ liệu nhóm thuốc. Vui lòng chạy migration trong thư mục supabase/migrations
+                  </p>
+                )}
+              </div>
 
               <Input
                 label="Ngày bắt đầu sử dụng"

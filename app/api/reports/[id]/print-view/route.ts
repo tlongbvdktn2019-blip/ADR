@@ -67,10 +67,24 @@ function generatePrintHTML(report: ADRReport): string {
   const suspectedDrugsRows = ['i', 'ii', 'iii', 'iv'].map((roman, index) => {
     const drug = report.suspected_drugs?.[index]
     if (drug) {
-      // Split dosage and frequency 
-      const dosageParts = (drug.dosage_and_frequency || '').split(/[\/,;]/)
-      const singleDose = dosageParts[0]?.trim() || ''
-      const frequency = dosageParts.length > 1 ? dosageParts.slice(1).join('/').trim() : ''
+      // Use new dosage and frequency fields, fallback to split old field if needed
+      let singleDose = drug.dosage || ''
+      let frequency = drug.frequency || ''
+      
+      // Debug log
+      console.log(`Drug ${index}:`, {
+        dosage: drug.dosage,
+        frequency: drug.frequency,
+        dosage_and_frequency: drug.dosage_and_frequency
+      })
+      
+      // Fallback: if new fields are empty but old field exists, split it
+      if ((!singleDose || singleDose === 'null') && (!frequency || frequency === 'null') && drug.dosage_and_frequency) {
+        console.log('Using fallback split for drug', index)
+        const dosageParts = drug.dosage_and_frequency.split(/[xX×\s]+/)
+        singleDose = dosageParts[0]?.trim() || ''
+        frequency = dosageParts.length > 1 ? dosageParts.slice(1).join(' ').trim() : ''
+      }
       
       return `
         <tr>
@@ -573,6 +587,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const report = reportData as ADRReport
     console.log('Report found:', report.report_code)
+    console.log('Suspected drugs count:', report.suspected_drugs?.length)
+    if (report.suspected_drugs?.[0]) {
+      console.log('First drug data:', {
+        drug_name: report.suspected_drugs[0].drug_name,
+        dosage: report.suspected_drugs[0].dosage,
+        frequency: report.suspected_drugs[0].frequency,
+        dosage_and_frequency: report.suspected_drugs[0].dosage_and_frequency
+      })
+    }
 
     // Generate form-style HTML exactly like template.html
     const html = generatePrintHTML(report)

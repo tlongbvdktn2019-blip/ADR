@@ -641,6 +641,45 @@ function DrugsTab({ report, formatDate }: { report: ADRReport, formatDate: (date
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {drug.batch_number && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Số lô</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{drug.batch_number}</dd>
+                </div>
+              )}
+              {drug.dosage && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Liều dùng</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{drug.dosage}</dd>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {drug.frequency && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Số lần dùng</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{drug.frequency}</dd>
+                </div>
+              )}
+              {drug.route_of_administration && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Đường dùng</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{drug.route_of_administration}</dd>
+                </div>
+              )}
+            </div>
+
+            {drug.treatment_drug_group && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Nhóm thuốc điều trị</dt>
+                  <dd className="mt-1 text-sm text-gray-900">{drug.treatment_drug_group}</dd>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {drug.start_date && (
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Ngày bắt đầu</dt>

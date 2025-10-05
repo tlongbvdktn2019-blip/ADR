@@ -231,8 +231,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 <span class="value">${drug.commercial_name || 'N/A'}</span>
               </div>
               <div class="field">
-                <span class="label">Liều dùng:</span>
-                <span class="value">${drug.dosage_and_frequency || 'N/A'}</span>
+                <span class="label">Liều dùng một lần:</span>
+                <span class="value">${drug.dosage || drug.dosage_and_frequency || 'N/A'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Số lần dùng:</span>
+                <span class="value">${drug.frequency || 'N/A'}</span>
               </div>
               <div class="field">
                 <span class="label">Đường dùng:</span>

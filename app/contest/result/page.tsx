@@ -65,6 +65,38 @@ export default function ContestResultPage() {
     }
   };
 
+  const handleDownloadCertificate = async () => {
+    if (!resultData) return;
+
+    try {
+      const response = await fetch('/api/contest/certificate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submission_id: resultData.submission.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Không thể tạo chứng nhận');
+        return;
+      }
+
+      const html = await response.text();
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(html);
+        newWindow.document.close();
+      }
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      alert('Có lỗi xảy ra khi tạo chứng nhận');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -188,6 +220,23 @@ export default function ContestResultPage() {
                 🏆 Xem bảng xếp hạng
               </button>
             </div>
+
+            {/* Nút tải chứng nhận (chỉ hiện nếu đạt >= 60%) */}
+            {percentage >= 60 && (
+              <div className="mb-8">
+                <button
+                  onClick={handleDownloadCertificate}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2"
+                >
+                  <span>🎓</span>
+                  <span>Tải chứng nhận</span>
+                  {percentage >= 80 && <span className="ml-2">✨</span>}
+                </button>
+                <p className="text-center text-sm text-gray-600 mt-2">
+                  {percentage >= 80 ? '🌟 Xuất sắc! Bạn đạt thành tích cao' : '✅ Bạn đã đạt yêu cầu để nhận chứng nhận'}
+                </p>
+              </div>
+            )}
 
             {/* Chia sẻ */}
             <div className="bg-white rounded-2xl shadow-xl p-6">
@@ -322,6 +371,10 @@ export default function ContestResultPage() {
     </div>
   );
 }
+
+
+
+
 
 
 

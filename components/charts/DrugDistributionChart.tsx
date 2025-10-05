@@ -105,7 +105,7 @@ export default function DrugDistributionChart({ data, isLoading = false }: DrugD
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={sortedData}
-            layout="horizontal"
+            layout="vertical"
             margin={{
               top: 20,
               right: 30,

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { sendAutoReportEmail } from '@/lib/auto-email-service';
+import { ADRReport } from '@/types/report';
 
 /**
  * POST /api/public/reports
@@ -101,6 +103,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create suspected drugs entries
+    console.log('=== DEBUG PUBLIC REPORT: Suspected drugs from request ===')
+    console.log('First drug:', JSON.stringify(body.suspected_drugs[0], null, 2))
+    
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
       drug_name: drug.drug_name,
@@ -109,13 +114,19 @@ export async function POST(request: NextRequest) {
       manufacturer: drug.manufacturer || null,
       batch_number: drug.batch_number || null,
       dosage_and_frequency: drug.dosage_and_frequency || null,
+      dosage: drug.dosage || null,
+      frequency: drug.frequency || null,
       route_of_administration: drug.route_of_administration || null,
+      treatment_drug_group: drug.treatment_drug_group || null,
       start_date: drug.start_date || null,
       end_date: drug.end_date || null,
       indication: drug.indication || null,
       reaction_improved_after_stopping: drug.reaction_improved_after_stopping,
       reaction_reoccurred_after_rechallenge: drug.reaction_reoccurred_after_rechallenge,
     }));
+    
+    console.log('=== DEBUG PUBLIC REPORT: Data to insert ===')
+    console.log('First drug to insert:', JSON.stringify(drugsToInsert[0], null, 2))
 
     // @ts-ignore
     const { error: drugsError } = await (supabaseAdmin
@@ -151,6 +162,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // =====================================================
+    // AUTO-SEND EMAIL NOTIFICATION - DISABLED
+    // =====================================================
+    // Tính năng tự động gửi email đã được TẮT
+    // Để BẬT LẠI: Bỏ comment (/* */) ở đoạn code bên dưới
+    
+    /* DISABLED - Remove this comment block to enable auto-email
+    try {
+      // Fetch complete report with suspected drugs for email
+      const { data: completeReport } = await (supabaseAdmin
+        .from('adr_reports') as any)
+        .select(`
+          *,
+          suspected_drugs(*)
+        `)
+        .eq('id', reportData.id)
+        .single();
+
+      if (completeReport) {
+        // Send auto email asynchronously
+        sendAutoReportEmail(completeReport as ADRReport, {
+          includeReporter: true, // Gửi cho người báo cáo
+          includeOrganization: true // Gửi cho tổ chức
+        }).then(result => {
+          if (result.success) {
+            console.log(`📧 Auto email sent for public report ${reportData.report_code}:`, {
+              sentTo: result.sentTo
+            });
+          } else {
+            console.warn(`⚠️ Auto email failed for public report ${reportData.report_code}:`, {
+              failures: result.failures
+            });
+          }
+        }).catch(err => {
+          console.error(`❌ Auto email error for public report ${reportData.report_code}:`, err);
+        });
+      }
+    } catch (emailError) {
+      // Log error but don't fail the request
+      console.error('Auto email sending error (public report):', emailError);
+    }
+    */
+    
+    console.log(`✅ Public report created: ${reportData.report_code} (Auto-email: DISABLED)`)
+
     return NextResponse.json({
       success: true,
       message: 'Báo cáo ADR đã được gửi thành công',
@@ -168,4 +224,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
 

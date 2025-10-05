@@ -20,7 +20,20 @@ import {
   AcademicCapIcon,
   SparklesIcon,
   ArrowRightIcon,
+  FunnelIcon,
+  ClockIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
+import ReportTimeline from '@/components/dashboard/ReportTimeline';
+
+interface ReportTimeline {
+  id: string;
+  report_code: string;
+  organization: string;
+  severity_level: string;
+  approval_status: string;
+  created_at: string;
+}
 
 interface DashboardStats {
   totalReports: number;
@@ -28,6 +41,16 @@ interface DashboardStats {
   criticalReports: number;
   previousMonthReports: number;
   growthRate: number;
+  newReportsToday: number;
+  pendingReports: number;
+  unapprovedReports: number;
+  recentReportsTimeline: ReportTimeline[];
+}
+
+interface Department {
+  id: string;
+  name: string;
+  code: string | null;
 }
 
 export default function DashboardPage() {
@@ -35,6 +58,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -44,12 +71,62 @@ export default function DashboardPage() {
       return;
     }
 
+    loadDepartments();
     loadStats();
   }, [status, session, router]);
 
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadStats();
+    }
+  }, [selectedOrganization, selectedYear]);
+
+  // Load available years on mount
+  useEffect(() => {
+    const loadAvailableYears = async () => {
+      try {
+        const response = await fetch('/api/dashboard/available-years');
+        const result = await response.json();
+        if (result.success && result.years) {
+          setAvailableYears(result.years);
+        }
+      } catch (error) {
+        console.error('Error loading years:', error);
+      }
+    };
+    
+    if (session?.user?.id) {
+      loadAvailableYears();
+    }
+  }, [session?.user?.id]);
+
+  const loadDepartments = async () => {
+    try {
+      const response = await fetch('/api/public/departments');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setDepartments(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error);
+    }
+  };
+
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/dashboard/stats');
+      const params = new URLSearchParams();
+      if (selectedOrganization && selectedOrganization !== 'all') {
+        params.append('organization', selectedOrganization);
+      }
+      if (selectedYear && selectedYear !== 'all') {
+        params.append('year', selectedYear);
+      }
+      
+      const url = params.toString() 
+        ? `/api/dashboard/stats?${params.toString()}`
+        : '/api/dashboard/stats';
+      const response = await fetch(url);
       const data = await response.json();
       
       if (data.error) {
@@ -84,12 +161,50 @@ export default function DashboardPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Chào mừng {session.user.name}
-            {isAdmin && <span className="ml-2 text-blue-600 font-semibold">(Quản trị viên)</span>}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">
+              Chào mừng {session.user.name}
+              {isAdmin && <span className="ml-2 text-blue-600 font-semibold">(Quản trị viên)</span>}
+            </p>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <FunnelIcon className="w-5 h-5 text-gray-500" />
+              <span className="text-sm text-gray-600 font-medium">Lọc:</span>
+            </div>
+            
+            {/* Year Filter */}
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 min-w-[150px]"
+            >
+              <option value="all">Tất cả năm</option>
+              {availableYears.map((year) => (
+                <option key={year} value={year.toString()}>
+                  Năm {year}
+                </option>
+              ))}
+            </select>
+            
+            {/* Organization Filter */}
+            <select
+              value={selectedOrganization}
+              onChange={(e) => setSelectedOrganization(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 min-w-[200px]"
+            >
+              <option value="all">Tất cả nơi báo cáo</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.name}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Contest Banner */}
@@ -157,8 +272,8 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Stats Grid - Row 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Reports */}
           <Card>
             <div className="flex items-center justify-between">
@@ -189,6 +304,21 @@ export default function DashboardPage() {
             </div>
           </Card>
 
+          {/* New Reports Today */}
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Báo cáo mới hôm nay</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats?.newReportsToday || 0}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                <ClockIcon className="w-6 h-6 text-indigo-600" />
+              </div>
+            </div>
+          </Card>
+
           {/* Critical Reports */}
           <Card>
             <div className="flex items-center justify-between">
@@ -205,26 +335,57 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Growth Rate */}
-        {stats && stats.previousMonthReports > 0 && (
+        {/* Stats Grid - Row 2 (Pending Reports) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pending/Unapproved Reports */}
           <Card>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Tăng trưởng so với tháng trước</p>
-                <div className="flex items-center mt-2">
-                  <p className={`text-2xl font-bold ${stats.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stats.growthRate >= 0 ? '+' : ''}{stats.growthRate.toFixed(1)}%
-                  </p>
-                  <span className="text-sm text-gray-600 ml-2">
-                    ({stats.previousMonthReports} báo cáo tháng trước)
-                  </span>
-                </div>
+                <p className="text-sm font-medium text-gray-600">Báo cáo chưa duyệt</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats?.pendingReports || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Tổng số báo cáo đang chờ phê duyệt
+                </p>
               </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <ChartBarIcon className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <CheckCircleIcon className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </Card>
+
+          {/* Growth Rate */}
+          {stats && stats.previousMonthReports > 0 && (
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Tăng trưởng so với tháng trước</p>
+                  <div className="flex items-center mt-2">
+                    <p className={`text-2xl font-bold ${stats.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {stats.growthRate >= 0 ? '+' : ''}{stats.growthRate.toFixed(1)}%
+                    </p>
+                    <span className="text-sm text-gray-600 ml-2">
+                      ({stats.previousMonthReports} báo cáo tháng trước)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <ChartBarIcon className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Timeline Section */}
+        {stats && stats.recentReportsTimeline && stats.recentReportsTimeline.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Timeline Báo cáo mới</h2>
+            <Card className="max-h-[600px] overflow-y-auto">
+              <ReportTimeline reports={stats.recentReportsTimeline} />
+            </Card>
+          </div>
         )}
 
         {/* Quick Actions */}
@@ -355,8 +516,13 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Thống kê và phân tích</h2>
+            {selectedOrganization !== 'all' && (
+              <span className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full">
+                Lọc theo: <span className="font-semibold text-blue-700">{selectedOrganization}</span>
+              </span>
+            )}
           </div>
-          <DashboardCharts layout="grid" showAll={true} />
+          <DashboardCharts layout="grid" showAll={true} organization={selectedOrganization} year={selectedYear} />
         </div>
       </div>
     </MainLayout>

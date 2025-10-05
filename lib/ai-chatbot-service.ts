@@ -7,9 +7,11 @@ export interface ChatMessage {
   content: string
   timestamp: Date
   metadata?: {
-    model?: 'chatgpt' | 'gemini'
+    model?: 'chatgpt' | 'gemini' | 'openai'
     confidence?: number
     sources?: string[]
+    tokens_used?: number
+    needsSetup?: boolean
   }
 }
 
@@ -94,7 +96,48 @@ LƯU Ý QUAN TRỌNG:
   `
 
   /**
-   * Send message to AI chatbot and get response
+   * Send message to AI chatbot using user's API key
+   */
+  static async sendMessageWithUserKey(
+    message: string,
+    context: ADRChatContext,
+    provider: 'openai' | 'gemini' = 'gemini',
+    userAPIKey: string,
+    chatHistory: ChatMessage[] = []
+  ): Promise<ChatMessage> {
+    try {
+      const contextPrompt = this.buildContextPrompt(context)
+      const conversationHistory = this.formatChatHistory(chatHistory)
+      
+      const response = await this.callAIProviderWithUserKey(
+        provider,
+        message,
+        contextPrompt,
+        conversationHistory,
+        userAPIKey
+      )
+
+      return {
+        id: this.generateMessageId(),
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+        metadata: {
+          model: provider,
+          confidence: response.confidence || 0.8,
+          sources: response.sources || [],
+          tokens_used: response.tokens_used || 0
+        }
+      }
+
+    } catch (error) {
+      console.error(`AI Chatbot Error (${provider}):`, error)
+      throw new Error(`Lỗi khi tư vấn với ${provider.toUpperCase()}. Vui lòng thử lại.`)
+    }
+  }
+
+  /**
+   * Send message to AI chatbot and get response (original method for backward compatibility)
    */
   static async sendMessage(
     message: string,
@@ -243,7 +286,27 @@ LƯU Ý QUAN TRỌNG:
   }
 
   /**
-   * Call AI provider (ChatGPT or Gemini)
+   * Call AI provider (ChatGPT or Gemini) with user's API key
+   */
+  private static async callAIProviderWithUserKey(
+    provider: 'openai' | 'gemini',
+    message: string,
+    contextPrompt: string,
+    conversationHistory: string,
+    userAPIKey: string
+  ): Promise<{ content: string; confidence?: number; sources?: string[]; tokens_used?: number }> {
+    
+    const fullPrompt = `${this.SYSTEM_PROMPT}\n\n${contextPrompt}\n\n${conversationHistory}\n\nCÂU HỎI: ${message}\n\nTRẢ LỜI:`
+
+    if (provider === 'openai') {
+      return await this.callOpenAIWithUserKey(fullPrompt, userAPIKey)
+    } else {
+      return await this.callGeminiWithUserKey(fullPrompt, userAPIKey)
+    }
+  }
+
+  /**
+   * Call AI provider (ChatGPT or Gemini) - original method
    */
   private static async callAIProvider(
     provider: 'chatgpt' | 'gemini',
@@ -262,7 +325,154 @@ LƯU Ý QUAN TRỌNG:
   }
 
   /**
-   * OpenAI ChatGPT Integration
+   * OpenAI ChatGPT Integration with user's API key
+   */
+  private static async callOpenAIWithUserKey(prompt: string, userAPIKey: string): Promise<{ content: string; confidence?: number; tokens_used?: number }> {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userAPIKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: prompt
+          }
+        ],
+        temperature: 0.3, // Lower temperature for medical advice
+        max_tokens: 800,
+        top_p: 0.9
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API Error: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    return {
+      content: data.choices[0]?.message?.content || 'Không thể tạo phản hồi',
+      confidence: 0.85, // ChatGPT generally high confidence
+      tokens_used: data.usage?.total_tokens || 0
+    }
+  }
+
+  /**
+   * List available Gemini models
+   */
+  private static async listAvailableGeminiModels(apiKey: string): Promise<string[]> {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+      if (!response.ok) return []
+      
+      const data = await response.json()
+      return data.models
+        ?.filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+        ?.map((m: any) => m.name.replace('models/', '')) || []
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Google Gemini Integration with user's API key
+   */
+  private static async callGeminiWithUserKey(prompt: string, userAPIKey: string): Promise<{ content: string; confidence?: number; tokens_used?: number }> {
+    // Get available models first
+    const availableModels = await this.listAvailableGeminiModels(userAPIKey)
+    
+    // Fallback to common models if can't list
+    const modelsToTry = availableModels.length > 0
+      ? availableModels
+      : ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    
+    let lastError = ''
+    let lastResponse: any = null
+
+    for (const modelName of modelsToTry) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${userAPIKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 800,
+            }
+          })
+        })
+
+        lastResponse = response
+
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Check if response has valid content
+          const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+          if (content) {
+            return {
+              content,
+              confidence: 0.8,
+              tokens_used: 0
+            }
+          }
+        }
+
+        // Try to get error message
+        try {
+          const error = await response.json()
+          lastError = error.error?.message || response.statusText
+          
+          // Check for rate limit errors
+          if (response.status === 429 || lastError.includes('quota') || lastError.includes('exhausted') || lastError.includes('rate limit')) {
+            throw new Error('⚠️ BẠN ĐÃ ĐẠT GIỚI HẠN GEMINI API!\n\n' +
+              '📊 Giới hạn Free Tier:\n' +
+              '• 60 requests/phút\n' +
+              '• 1,500 requests/ngày\n\n' +
+              '⏰ Vui lòng chờ vài phút rồi thử lại.\n\n' +
+              '💡 Mẹo: Sử dụng ChatGPT hoặc chờ giới hạn reset.')
+          }
+        } catch (parseError) {
+          // If it's our custom rate limit error, rethrow it
+          if (parseError instanceof Error && parseError.message.includes('GIỚI HẠN')) {
+            throw parseError
+          }
+          lastError = response.statusText || 'Unknown error'
+        }
+        
+        console.log(`Gemini model ${modelName} failed: ${lastError}`)
+        continue
+
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Unknown error'
+        console.log(`Gemini model ${modelName} error: ${lastError}`)
+        continue
+      }
+    }
+
+    // Provide helpful error message
+    const errorMsg = availableModels.length > 0
+      ? `Không thể sử dụng các models: ${availableModels.slice(0, 3).join(', ')}. Lỗi: ${lastError}`
+      : `Không tìm thấy model Gemini khả dụng. Vui lòng kiểm tra API key hoặc enable Generative Language API. Lỗi: ${lastError}`
+    
+    throw new Error(errorMsg)
+  }
+
+  /**
+   * OpenAI ChatGPT Integration (original method)
    */
   private static async callOpenAI(prompt: string): Promise<{ content: string; confidence?: number }> {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -301,36 +511,68 @@ LƯU Ý QUAN TRỌNG:
    * Google Gemini Integration  
    */
   private static async callGemini(prompt: string): Promise<{ content: string; confidence?: number }> {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.9,
-          maxOutputTokens: 800,
-        }
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`Gemini API Error: ${response.statusText}`)
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY not configured')
     }
 
-    const data = await response.json()
+    // Get available models first
+    const availableModels = await this.listAvailableGeminiModels(apiKey)
     
-    return {
-      content: data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không thể tạo phản hồi',
-      confidence: 0.8 // Gemini confidence
+    const modelsToTry = availableModels.length > 0
+      ? availableModels
+      : ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    
+    let lastError = ''
+
+    for (const modelName of modelsToTry) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              topK: 40,
+              topP: 0.9,
+              maxOutputTokens: 800,
+            }
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+          if (content) {
+            return {
+              content,
+              confidence: 0.8
+            }
+          }
+        }
+
+        try {
+          const error = await response.json()
+          lastError = error.error?.message || response.statusText
+        } catch {
+          lastError = response.statusText || 'Unknown error'
+        }
+        continue
+
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Unknown error'
+        continue
+      }
     }
+
+    throw new Error(`Gemini API Error: ${lastError}`)
   }
 
   /**

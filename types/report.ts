@@ -57,8 +57,11 @@ export interface SuspectedDrug {
   dosage_form: string | null
   manufacturer: string | null
   batch_number: string | null
-  dosage_and_frequency: string | null
+  dosage_and_frequency: string | null  // Kept for backward compatibility
+  dosage: string | null  // Liều dùng
+  frequency: string | null  // Số lần dùng
   route_of_administration: string | null
+  treatment_drug_group: string | null  // Nhóm thuốc điều trị
   start_date: string | null
   end_date: string | null
   indication: string | null

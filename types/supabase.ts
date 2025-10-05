@@ -228,6 +228,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      organization_settings: {
+        Row: {
+          id: string
+          organization_name: string
+          notification_email: string
+          contact_person: string | null
+          contact_phone: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_name: string
+          notification_email: string
+          contact_person?: string | null
+          contact_phone?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_name?: string
+          notification_email?: string
+          contact_person?: string | null
+          contact_phone?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

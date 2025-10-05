@@ -270,6 +270,17 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id),
   CONSTRAINT notifications_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.organization_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  organization_name character varying NOT NULL UNIQUE,
+  notification_email character varying NOT NULL,
+  contact_person character varying,
+  contact_phone character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organization_settings_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.quiz_achievements (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   achievement_key character varying NOT NULL UNIQUE,
@@ -415,8 +426,17 @@ CREATE TABLE public.suspected_drugs (
   reaction_reoccurred_after_rechallenge USER-DEFINED NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  treatment_drug_group character varying,
+  dosage text,
+  frequency text,
   CONSTRAINT suspected_drugs_pkey PRIMARY KEY (id),
   CONSTRAINT suspected_drugs_report_id_fkey FOREIGN KEY (report_id) REFERENCES public.adr_reports(id)
+);
+CREATE TABLE public.treatment_drugs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  name character varying,
+  CONSTRAINT treatment_drugs_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.units (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -443,6 +463,35 @@ CREATE TABLE public.user_achievements (
   CONSTRAINT user_achievements_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_achievements_achievement_id_fkey FOREIGN KEY (achievement_id) REFERENCES public.quiz_achievements(id),
   CONSTRAINT user_achievements_earned_from_session_fkey FOREIGN KEY (earned_from_session) REFERENCES public.quiz_sessions(id)
+);
+CREATE TABLE public.user_ai_keys (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  provider character varying NOT NULL CHECK (provider::text = ANY (ARRAY['openai'::character varying, 'gemini'::character varying]::text[])),
+  api_key_encrypted text NOT NULL,
+  api_key_name character varying,
+  is_active boolean DEFAULT true,
+  is_valid boolean,
+  last_tested_at timestamp with time zone,
+  test_result jsonb,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT user_ai_keys_pkey PRIMARY KEY (id),
+  CONSTRAINT user_ai_keys_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_ai_usage (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  api_key_id uuid NOT NULL,
+  provider character varying NOT NULL,
+  tokens_used integer DEFAULT 0,
+  request_count integer DEFAULT 1,
+  cost_estimate numeric DEFAULT 0,
+  usage_date date DEFAULT CURRENT_DATE,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT user_ai_usage_pkey PRIMARY KEY (id),
+  CONSTRAINT user_ai_usage_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT user_ai_usage_api_key_id_fkey FOREIGN KEY (api_key_id) REFERENCES public.user_ai_keys(id)
 );
 CREATE TABLE public.user_challenge_participation (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

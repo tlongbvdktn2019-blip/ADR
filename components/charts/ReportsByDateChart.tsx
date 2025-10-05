@@ -56,6 +56,7 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
   const totalSeriousReports = data.reduce((sum, item) => sum + item.serious, 0);
   const averageMonthly = totalReports / data.length;
   const maxMonthly = Math.max(...data.map(item => item.total));
+  const hasData = totalReports > 0;
 
   const dailyStats = data.reduce(
     (acc, item) => {
@@ -170,6 +171,19 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
         </div>
       </div>
       
+      {!hasData && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-yellow-800">
+              Chưa có báo cáo nào trong khoảng thời gian này. Biểu đồ sẽ hiển thị khi có dữ liệu.
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className="h-80">
         {viewMode === 'area' ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -194,6 +208,8 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
               <YAxis 
                 stroke="#6b7280"
                 fontSize={12}
+                domain={[0, 'auto']}
+                allowDataOverflow={false}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
@@ -203,6 +219,7 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
                 stackId="1"
                 stroke="#10b981"
                 fill="#10b981"
+                fillOpacity={0.6}
                 name="Không nghiêm trọng"
               />
               <Area
@@ -211,6 +228,7 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
                 stackId="1"
                 stroke="#ef4444"
                 fill="#ef4444"
+                fillOpacity={0.6}
                 name="Nghiêm trọng"
               />
             </AreaChart>
@@ -238,6 +256,8 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
               <YAxis 
                 stroke="#6b7280"
                 fontSize={12}
+                domain={[0, 'auto']}
+                allowDataOverflow={false}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
@@ -245,7 +265,7 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
                 type="monotone"
                 dataKey="total"
                 stroke="#3b82f6"
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                 activeDot={{ r: 6 }}
                 name="Tổng báo cáo"
@@ -254,7 +274,7 @@ export default function ReportsByDateChart({ data, isLoading = false }: ReportsB
                 type="monotone"
                 dataKey="serious"
                 stroke="#ef4444"
-                strokeWidth={2}
+                strokeWidth={3}
                 strokeDasharray="5 5"
                 dot={{ fill: '#ef4444', strokeWidth: 2, r: 3 }}
                 name="Nghiêm trọng"

@@ -49,3 +49,4 @@ SELECT 'Contest Submissions RLS Policies Fixed!' as status;
 
 
 
+

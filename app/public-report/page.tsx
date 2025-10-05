@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ConcurrentDrugFormData, createEmptyConcurrentDrug } from '@/types/concurrent-drug'
 import { toast } from 'react-hot-toast'
 import Card from '@/components/ui/Card'
@@ -11,7 +12,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, XMarkIcon, TrophyIcon } from '@heroicons/react/24/outline'
 
 export interface SuspectedDrug {
   id: string
@@ -20,8 +21,11 @@ export interface SuspectedDrug {
   dosage_form: string
   manufacturer: string
   batch_number: string
-  dosage_and_frequency: string
+  dosage_and_frequency: string  // Kept for backward compatibility
+  dosage: string  // Liều dùng
+  frequency: string  // Số lần dùng
   route_of_administration: string
+  treatment_drug_group?: string
   start_date: string
   end_date: string
   indication: string
@@ -73,6 +77,7 @@ export default function PublicReportPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [showBanner, setShowBanner] = useState(true)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Thông tin báo cáo
@@ -106,6 +111,8 @@ export default function PublicReportPage() {
         manufacturer: '',
         batch_number: '',
         dosage_and_frequency: '',
+        dosage: '',
+        frequency: '',
         route_of_administration: '',
         start_date: '',
         end_date: '',
@@ -219,10 +226,48 @@ export default function PublicReportPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Báo cáo ADR</h1>
-            <p className="text-gray-600 mt-2">Báo cáo phản ứng có hại của thuốc (Không cần đăng nhập)</p>
+          {/* Contest Banner - Responsive for Mobile */}
+          {showBanner && (
+            <div className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 p-1 shadow-xl animate-fade-in">
+              <div className="relative bg-white rounded-md sm:rounded-lg p-4 sm:p-6">
+                <button
+                  onClick={() => setShowBanner(false)}
+                  className="absolute top-2 right-2 sm:top-3 sm:right-3 text-gray-400 hover:text-gray-600 transition-colors z-10"
+                  aria-label="Đóng banner"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 pr-8 sm:pr-0">
+                  {/* Icon - Hidden on very small screens, visible on sm+ */}
+                  <div className="hidden xs:flex flex-shrink-0">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
+                      <TrophyIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 w-full">
+                    <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2 leading-tight">
+                      🎉 Cuộc thi Kiến thức về ADR đang diễn ra!
+                    </h3>
+                    <p className="text-sm sm:text-base text-gray-600 mb-3 leading-snug">
+                      Tham gia trả lời câu hỏi, cạnh tranh trên bảng xếp hạng và nhận giấy chứng nhận
+                    </p>
+                    <Link href="/contest" className="block sm:inline-block">
+                      <Button className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-sm sm:text-base">
+                        Tham gia ngay →
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header - Responsive */}
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">Báo cáo ADR</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-2 px-2">Báo cáo phản ứng có hại của thuốc (Không cần đăng nhập)</p>
           </div>
 
           {/* Progress Steps */}
@@ -297,4 +342,6 @@ export default function PublicReportPage() {
     </div>
   )
 }
+
+
 

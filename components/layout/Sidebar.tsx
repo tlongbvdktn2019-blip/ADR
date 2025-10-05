@@ -17,6 +17,7 @@ import {
   WrenchScrewdriverIcon,
   HeartIcon,
   TrophyIcon,
+  Cog6ToothIcon,
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
 
@@ -35,7 +36,8 @@ const baseNavItems: NavItem[] = [
   { label: 'Báo cáo ADR', href: '/reports', icon: DocumentTextIcon },
   { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: HeartIcon },
   { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon },
-  { label: 'Cuộc thi Kiến thức ADR', href: '/contest', icon: TrophyIcon }
+  { label: 'Cuộc thi Kiến thức ADR', href: '/contest', icon: TrophyIcon },
+  { label: 'Cài đặt', href: '/settings', icon: Cog6ToothIcon }
 ]
 
 const adminNavItems: NavItem[] = [

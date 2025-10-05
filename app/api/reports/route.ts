@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
+import { sendAutoReportEmail } from '@/lib/auto-email-service'
+import { ADRReport } from '@/types/report'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -110,6 +112,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create suspected drugs entries
+    console.log('=== DEBUG: Suspected drugs from request body ===')
+    console.log('First drug:', JSON.stringify(body.suspected_drugs[0], null, 2))
+    
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
       drug_name: drug.drug_name,
@@ -118,13 +123,19 @@ export async function POST(request: NextRequest) {
       manufacturer: drug.manufacturer || null,
       batch_number: drug.batch_number || null,
       dosage_and_frequency: drug.dosage_and_frequency || null,
+      dosage: drug.dosage || null,
+      frequency: drug.frequency || null,
       route_of_administration: drug.route_of_administration || null,
+      treatment_drug_group: drug.treatment_drug_group || null,
       start_date: drug.start_date || null,
       end_date: drug.end_date || null,
       indication: drug.indication || null,
       reaction_improved_after_stopping: drug.reaction_improved_after_stopping,
       reaction_reoccurred_after_rechallenge: drug.reaction_reoccurred_after_rechallenge,
     }))
+    
+    console.log('=== DEBUG: Data to insert ===')
+    console.log('First drug to insert:', JSON.stringify(drugsToInsert[0], null, 2))
 
     const { error: drugsError } = await supabaseAdmin
       .from('suspected_drugs')
@@ -165,8 +176,53 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // =====================================================
+    // AUTO-SEND EMAIL NOTIFICATION - DISABLED
+    // =====================================================
+    // Tính năng tự động gửi email đã được TẮT
+    // Để BẬT LẠI: Bỏ comment (/* */) ở đoạn code bên dưới
+    
+    /* DISABLED - Remove this comment block to enable auto-email
+    try {
+      // Fetch complete report with suspected drugs for email
+      const { data: completeReport } = await supabaseAdmin
+        .from('adr_reports')
+        .select(`
+          *,
+          suspected_drugs(*)
+        `)
+        .eq('id', reportData.id)
+        .single()
+
+      if (completeReport) {
+        // Send auto email asynchronously (không chờ kết quả)
+        sendAutoReportEmail(completeReport as ADRReport, {
+          includeReporter: true, // Gửi cho người báo cáo
+          includeOrganization: true // Gửi cho tổ chức
+        }).then(result => {
+          if (result.success) {
+            console.log(`📧 Auto email sent successfully for report ${reportData.report_code}:`, {
+              sentTo: result.sentTo
+            })
+          } else {
+            console.warn(`⚠️ Auto email failed for report ${reportData.report_code}:`, {
+              failures: result.failures
+            })
+          }
+        }).catch(err => {
+          console.error(`❌ Auto email error for report ${reportData.report_code}:`, err)
+        })
+      }
+    } catch (emailError) {
+      // Log error but don't fail the request
+      console.error('Auto email sending error:', emailError)
+    }
+    */
+    
+    console.log(`✅ Report created: ${reportData.report_code} (Auto-email: DISABLED)`)
+
     return NextResponse.json({
-      message: 'B??o c??o ADR ???? ???????c t???o th??nh c??ng',
+      message: 'Báo cáo ADR đã được tạo thành công',
       report: {
         id: reportData.id,
         report_code: reportData.report_code,

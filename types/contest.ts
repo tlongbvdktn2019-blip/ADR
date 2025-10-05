@@ -175,6 +175,19 @@ export interface ContestStatistics {
   }[];
 }
 
+// Certificate types
+export interface CertificateData {
+  fullName: string;
+  department: string;
+  unit: string;
+  contestTitle: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  completionTime: string;
+  completionDate: string;
+}
+
 // API Response types
 export interface ContestApiResponse<T> {
   success: boolean;
@@ -182,6 +195,8 @@ export interface ContestApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+
 
 
 
