@@ -74,3 +74,5 @@ SELECT
     END as status
 FROM public.treatment_drugs;
 
+
+

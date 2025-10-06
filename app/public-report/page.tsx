@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ConcurrentDrugFormData, createEmptyConcurrentDrug } from '@/types/concurrent-drug'
@@ -12,7 +12,8 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
-import { ArrowLeftIcon, XMarkIcon, TrophyIcon } from '@heroicons/react/24/outline'
+import ReportGuideModal from '@/components/forms/ReportGuideModal'
+import { ArrowLeftIcon, XMarkIcon, TrophyIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 
 export interface SuspectedDrug {
   id: string
@@ -78,6 +79,8 @@ export default function PublicReportPage() {
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [showBanner, setShowBanner] = useState(true)
+  const [showGuideModal, setShowGuideModal] = useState(false)
+  const [dontShowAgain, setDontShowAgain] = useState(false)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Thông tin báo cáo
@@ -155,6 +158,25 @@ export default function PublicReportPage() {
 
   const updateConcurrentDrugs = (drugs: ConcurrentDrugFormData[]) => {
     setFormData(prev => ({ ...prev, concurrent_drugs: drugs }))
+  }
+
+  // Auto show modal on first visit
+  useEffect(() => {
+    const hasSeenGuide = localStorage.getItem('hasSeenADRGuide')
+    if (!hasSeenGuide) {
+      // Delay để animation mượt hơn
+      const timer = setTimeout(() => {
+        setShowGuideModal(true)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
+  const handleCloseGuideModal = () => {
+    setShowGuideModal(false)
+    if (dontShowAgain) {
+      localStorage.setItem('hasSeenADRGuide', 'true')
+    }
   }
 
   const handleNext = () => {
@@ -272,36 +294,47 @@ export default function PublicReportPage() {
 
           {/* Progress Steps */}
           <Card className="mb-6">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                {steps.map((step, index) => (
-                  <div key={index} className="flex items-center">
-                    <div className="flex flex-col items-center">
-                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                        index <= currentStep 
-                          ? 'bg-blue-600 border-blue-600 text-white' 
-                          : 'border-gray-300 text-gray-500'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div className="mt-2 text-center">
-                        <div className={`text-xs font-medium ${
-                          index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between flex-1">
+                  {steps.map((step, index) => (
+                    <div key={index} className="flex items-center">
+                      <div className="flex flex-col items-center">
+                        <div className={`flex items-center justify-center w-8 sm:w-10 h-8 sm:h-10 rounded-full border-2 ${
+                          index <= currentStep 
+                            ? 'bg-blue-600 border-blue-600 text-white' 
+                            : 'border-gray-300 text-gray-500'
                         }`}>
-                          {step.subtitle}
+                          <span className="text-xs sm:text-sm">{index + 1}</span>
                         </div>
-                        <div className="text-xs text-gray-500 hidden sm:block">
-                          {step.title}
+                        <div className="mt-2 text-center">
+                          <div className={`text-xs font-medium ${
+                            index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+                          }`}>
+                            {step.subtitle}
+                          </div>
+                          <div className="text-xs text-gray-500 hidden sm:block">
+                            {step.title}
+                          </div>
                         </div>
                       </div>
+                      {index < steps.length - 1 && (
+                        <div className={`w-8 sm:w-12 md:w-24 h-0.5 ${
+                          index < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+                        }`} />
+                      )}
                     </div>
-                    {index < steps.length - 1 && (
-                      <div className={`w-12 sm:w-24 h-0.5 ${
-                        index < currentStep ? 'bg-blue-600' : 'bg-gray-300'
-                      }`} />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={() => setShowGuideModal(true)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    aria-label="Hướng dẫn báo cáo"
+                  >
+                    <BookOpenIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
@@ -337,6 +370,14 @@ export default function PublicReportPage() {
               </Button>
             )}
           </div>
+
+          {/* Report Guide Modal */}
+          <ReportGuideModal 
+            isOpen={showGuideModal} 
+            onClose={handleCloseGuideModal}
+            dontShowAgain={dontShowAgain}
+            setDontShowAgain={setDontShowAgain}
+          />
         </div>
       </div>
     </div>

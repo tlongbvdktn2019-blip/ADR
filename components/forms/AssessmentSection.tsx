@@ -8,9 +8,10 @@ import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import AIAssessmentResults from './AIAssessmentResults'
 import AIChatbot from '@/components/ai/AIChatbot'
+import AssessmentGuideModal from './AssessmentGuideModal'
 import { ADRFormData } from '@/app/reports/new/page'
 import { AssessmentSuggestion } from '@/lib/ai-assessment-service'
-import { BeakerIcon, SparklesIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
+import { BeakerIcon, SparklesIcon, ChatBubbleLeftRightIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 
 interface AssessmentSectionProps {
   data: ADRFormData
@@ -22,6 +23,7 @@ export default function AssessmentSection({ data, updateData }: AssessmentSectio
   const [aiSuggestion, setAiSuggestion] = useState<AssessmentSuggestion | null>(null)
   const [showAiResults, setShowAiResults] = useState(false)
   const [showChatbot, setShowChatbot] = useState(false)
+  const [showGuideModal, setShowGuideModal] = useState(false)
 
   const causalityOptions = [
     { value: 'certain', label: 'Chắc chắn (Certain)' },
@@ -152,6 +154,17 @@ export default function AssessmentSection({ data, updateData }: AssessmentSectio
 
         {/* AI Features */}
         <div className="flex space-x-3">
+          {/* Assessment Guide Button */}
+          <Button
+            onClick={() => setShowGuideModal(true)}
+            variant="outline"
+            className="border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+            title="Hướng dẫn đánh giá Mối liên quan thuốc và ADR"
+          >
+            <BookOpenIcon className="w-4 h-4 mr-2" />
+            Hướng dẫn đánh giá
+          </Button>
+
           {/* AI Suggestion Button */}
           <Button
             onClick={handleAISuggestion}
@@ -230,55 +243,18 @@ export default function AssessmentSection({ data, updateData }: AssessmentSectio
         </div>
       </div>
 
-      {/* Assessment Guide */}
-      <div className="bg-blue-50 p-6 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-3">Hướng dẫn đánh giá mối liên quan:</h4>
-        <div className="space-y-3 text-sm text-blue-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p><strong>Chắc chắn (Certain):</strong></p>
-              <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-                <li>Có trình tự thời gian hợp lý</li>
-                <li>Cải thiện khi ngừng thuốc</li>
-                <li>Tái xuất hiện khi dùng lại</li>
-                <li>Không thể giải thích bằng bệnh lý khác</li>
-              </ul>
-            </div>
-            <div>
-              <p><strong>Có khả năng (Probable):</strong></p>
-              <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-                <li>Có trình tự thời gian hợp lý</li>
-                <li>Cải thiện khi ngừng thuốc</li>
-                <li>Không thể giải thích hoàn toàn bằng bệnh lý khác</li>
-              </ul>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p><strong>Có thể (Possible):</strong></p>
-              <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-                <li>Có trình tự thời gian hợp lý</li>
-                <li>Có thể giải thích bằng bệnh lý khác</li>
-                <li>Thông tin về việc ngừng thuốc không rõ ràng</li>
-              </ul>
-            </div>
-            <div>
-              <p><strong>Không chắc chắn (Unlikely):</strong></p>
-              <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-                <li>Trình tự thời gian không hợp lý</li>
-                <li>Có thể giải thích tốt hơn bằng bệnh lý khác</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* AI Chatbot Modal */}
       <AIChatbot
         isOpen={showChatbot}
         onClose={() => setShowChatbot(false)}
         formData={data}
         onApplyInsight={handleChatbotInsight}
+      />
+
+      {/* Assessment Guide Modal */}
+      <AssessmentGuideModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
       />
     </div>
   )

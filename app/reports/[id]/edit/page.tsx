@@ -14,7 +14,8 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import ReportGuideModal from '@/components/forms/ReportGuideModal'
+import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { ADRReport } from '@/types/report'
 
@@ -86,6 +87,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
   const [initialLoading, setInitialLoading] = useState(true)
   const [currentStep, setCurrentStep] = useState(0)
   const [report, setReport] = useState<ADRReport | null>(null)
+  const [showGuideModal, setShowGuideModal] = useState(false)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Default empty values
@@ -372,32 +374,45 @@ export default function EditReportPage({ params }: EditReportPageProps) {
         {/* Progress */}
         <Card>
           <div className="px-4 py-5">
-            <nav aria-label="Progress">
-              <ol className="space-y-4 md:flex md:space-y-0 md:space-x-8">
-                {steps.map((step, index) => (
-                  <li key={step.title} className="md:flex-1">
-                    <div
-                      className={`group pl-4 py-2 flex flex-col border-l-4 hover:border-gray-300 md:pl-0 md:pt-4 md:pb-0 md:border-l-0 md:border-t-4 ${
-                        index === currentStep
-                          ? 'border-primary-600'
-                          : index < currentStep
-                          ? 'border-primary-600'
-                          : 'border-gray-200'
-                      }`}
-                    >
-                      <span
-                        className={`text-xs font-semibold tracking-wide uppercase ${
-                          index <= currentStep ? 'text-primary-600' : 'text-gray-500'
+            <div className="flex items-start justify-between gap-4">
+              <nav aria-label="Progress" className="flex-1">
+                <ol className="space-y-4 md:flex md:space-y-0 md:space-x-8">
+                  {steps.map((step, index) => (
+                    <li key={step.title} className="md:flex-1">
+                      <div
+                        className={`group pl-4 py-2 flex flex-col border-l-4 hover:border-gray-300 md:pl-0 md:pt-4 md:pb-0 md:border-l-0 md:border-t-4 ${
+                          index === currentStep
+                            ? 'border-primary-600'
+                            : index < currentStep
+                            ? 'border-primary-600'
+                            : 'border-gray-200'
                         }`}
                       >
-                        {step.subtitle}
-                      </span>
-                      <span className="text-sm font-medium">{step.title}</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </nav>
+                        <span
+                          className={`text-xs font-semibold tracking-wide uppercase ${
+                            index <= currentStep ? 'text-primary-600' : 'text-gray-500'
+                          }`}
+                        >
+                          {step.subtitle}
+                        </span>
+                        <span className="text-sm font-medium">{step.title}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+              <div className="flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGuideModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <BookOpenIcon className="w-4 h-4" />
+                  <span className="hidden lg:inline">Hướng dẫn</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -454,6 +469,12 @@ export default function EditReportPage({ params }: EditReportPageProps) {
             </div>
           </div>
         </Card>
+
+        {/* Report Guide Modal */}
+        <ReportGuideModal 
+          isOpen={showGuideModal} 
+          onClose={() => setShowGuideModal(false)} 
+        />
       </div>
     </MainLayout>
   )

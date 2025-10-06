@@ -13,7 +13,8 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
+import ReportGuideModal from '@/components/forms/ReportGuideModal'
+import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 
 export interface SuspectedDrug {
@@ -80,6 +81,7 @@ export default function NewReportPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [showGuideModal, setShowGuideModal] = useState(false)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Thông tin báo cáo
@@ -242,48 +244,61 @@ export default function NewReportPage() {
         {/* Progress Steps - Desktop */}
         <Card className="hidden md:block">
           <div className="flex items-center justify-between">
-            {steps.map((step, index) => (
-              <div 
-                key={index}
-                className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}
-              >
-                <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    index === currentStep 
-                      ? 'bg-primary-600 text-white' 
-                      : index < currentStep 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div className="text-center mt-2">
-                    <div className={`text-sm font-medium ${
-                      index === currentStep ? 'text-primary-600' : 'text-gray-900'
+            <div className="flex items-center flex-1">
+              {steps.map((step, index) => (
+                <div 
+                  key={index}
+                  className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}
+                >
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      index === currentStep 
+                        ? 'bg-primary-600 text-white' 
+                        : index < currentStep 
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-gray-200 text-gray-600'
                     }`}>
-                      {step.title}
+                      {index + 1}
                     </div>
-                    <div className="text-xs text-gray-500">{step.subtitle}</div>
+                    <div className="text-center mt-2">
+                      <div className={`text-sm font-medium ${
+                        index === currentStep ? 'text-primary-600' : 'text-gray-900'
+                      }`}>
+                        {step.title}
+                      </div>
+                      <div className="text-xs text-gray-500">{step.subtitle}</div>
+                    </div>
                   </div>
+                  {index < steps.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-4 ${
+                      index < currentStep ? 'bg-green-600' : 'bg-gray-200'
+                    }`} />
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${
-                    index < currentStep ? 'bg-green-600' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
+            <div className="ml-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGuideModal(true)}
+                className="flex items-center gap-2 touch-target"
+              >
+                <BookOpenIcon className="w-4 h-4" />
+                <span className="hidden lg:inline">Hướng dẫn báo cáo</span>
+              </Button>
+            </div>
           </div>
         </Card>
 
         {/* Progress Steps - Mobile */}
         <Card className="md:hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-1">
               <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold">
                 {currentStep + 1}
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="text-sm font-semibold text-gray-900">
                   {steps[currentStep].title}
                 </div>
@@ -292,9 +307,13 @@ export default function NewReportPage() {
                 </div>
               </div>
             </div>
-            <div className="text-xs text-gray-500">
-              {Math.round(((currentStep + 1) / steps.length) * 100)}%
-            </div>
+            <button
+              onClick={() => setShowGuideModal(true)}
+              className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              aria-label="Hướng dẫn báo cáo"
+            >
+              <BookOpenIcon className="w-5 h-5" />
+            </button>
           </div>
           <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
             <div 
@@ -331,6 +350,12 @@ export default function NewReportPage() {
             </div>
           </div>
         </Card>
+
+        {/* Report Guide Modal */}
+        <ReportGuideModal 
+          isOpen={showGuideModal} 
+          onClose={() => setShowGuideModal(false)} 
+        />
       </div>
     </MainLayout>
   )

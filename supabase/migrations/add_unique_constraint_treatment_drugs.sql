@@ -20,3 +20,5 @@ FROM pg_constraint
 WHERE conrelid = 'public.treatment_drugs'::regclass
 AND conname = 'treatment_drugs_name_unique';
 
+
+

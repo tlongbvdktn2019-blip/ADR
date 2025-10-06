@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn chi tiết Báo cáo ADR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .section-title {
+            color: #1d4ed8; /* blue-700 */
+            border-bottom: 2px solid #bfdbfe; /* blue-200 */
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .content-card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        li strong, .sub-section-title {
+            color: #1e40af; /* blue-800 */
+        }
+        .note {
+            background-color: #eff6ff; /* blue-50 */
+            border-left: 4px solid #3b82f6; /* blue-500 */
+            padding: 1rem;
+            margin-top: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .warning {
+             background-color: #fff1f2; /* red-50 */
+             border-left: 4px solid #ef4444; /* red-500 */
+             padding: 1rem;
+             margin-top: 0.5rem;
+             border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-10 max-w-5xl">
+        <div class="bg-white rounded-xl content-card overflow-hidden">
+            <div class="p-6 sm:p-8 md:p-10">
+                <!-- Header -->
+                <header class="text-center mb-10">
+                    <h1 class="text-3xl md:text-4xl font-bold text-blue-800">Hướng dẫn điền mẫu báo cáo phản ứng có hại của thuốc (ADR)</h1>
+                    <p class="text-gray-500 mt-2">Thông tin chi tiết, nguyên tắc và quy trình báo cáo</p>
+                </header>
+
+                <!-- Section: Nguyên tắc chung -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-semibold section-title">Nguyên tắc chung</h2>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li>Hoàn thành mẫu báo cáo với đầy đủ thông tin nhất có được từ bệnh án.</li>
+                        <li>Sử dụng một bản báo cáo riêng cho mỗi người bệnh.</li>
+                        <li>Trường hợp dùng thuốc để điều trị ADR nhưng lại gây ra một ADR khác, nên tách thành một báo cáo riêng.</li>
+                        <li>Chữ viết rõ ràng, viết chính xác tên thuốc, hạn chế viết tắt.</li>
+                        <li>Điền thông tin chính xác, thống nhất, tránh mâu thuẫn.</li>
+                        <li>Khuyến khích áp dụng công nghệ thông tin trong báo cáo ADR.</li>
+                    </ul>
+                </section>
+
+                <!-- Section: Thông tin tối thiểu -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-semibold section-title">Các thông tin tối thiểu cần điền</h2>
+                     <ul class="list-disc list-inside space-y-3">
+                        <li><strong>Thông tin về người bệnh:</strong> họ và tên, tuổi hoặc ngày sinh, giới tính.</li>
+                        <li><strong>Thông tin về phản ứng có hại:</strong> mô tả chi tiết, ngày xuất hiện, diễn biến sau khi xử trí.</li>
+                        <li><strong>Thông tin về thuốc nghi ngờ:</strong> tên thuốc, liều dùng, đường dùng, lý do sử dụng, ngày bắt đầu.</li>
+                        <li><strong>Thông tin về người và đơn vị báo cáo:</strong> tên đơn vị, họ tên người báo cáo, chức vụ, thông tin liên lạc.</li>
+                    </ul>
+                </section>
+                
+                <!-- Section: Hướng dẫn chi tiết -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-semibold section-title">Hướng dẫn chi tiết các thông tin cần điền</h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">I. Thông tin hành chính</h3>
+                            <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Nơi báo cáo:</strong> Ghi tên khoa/phòng, tên cơ sở khám bệnh, chữa bệnh và tỉnh/thành phố.</li>
+                                <li><strong>Mã số báo cáo của đơn vị:</strong> Do cơ sở tự quy định (hoặc dùng mã số bệnh án) để tiện theo dõi.</li>
+                                <li><strong>Mã số báo cáo (do Trung tâm Quốc gia):</strong> Phần này do Trung tâm Quốc gia hoặc Trung tâm khu vực điền.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">II. Thông tin về người bệnh</h3>
+                            <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Mục 1 - Họ và tên:</strong> Điền đầy đủ họ và tên của người bệnh.</li>
+                                <li><strong>Mục 2 - Tuổi:</strong> Điền ngày/tháng/năm sinh hoặc tuổi tại thời điểm xảy ra ADR.
+                                    <p class="note text-sm"><em>Với bệnh nhi dưới 1 tuổi và sơ sinh, cần ghi rõ tháng tuổi hoặc ngày tuổi.</em></p>
+                                </li>
+                                <li><strong>Mục 3 - Giới tính:</strong> Đánh dấu (√) vào ô "Nam" hoặc "Nữ".</li>
+                                <li><strong>Mục 4 - Cân nặng:</strong> Điền cân nặng của người bệnh (nếu có).</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">III. Thông tin về phản ứng có hại (ADR)</h3>
+                             <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Mục 5 - Ngày xuất hiện phản ứng:</strong> Điền ngày/tháng/năm.</li>
+                                <li><strong>Mục 6 - Thời gian từ lần dùng cuối:</strong> Khoảng thời gian từ lần dùng thuốc cuối cùng đến khi xuất hiện ADR.</li>
+                                <li><strong>Mục 7 - Mô tả biểu hiện ADR:</strong> Mô tả rõ dấu hiệu, triệu chứng cụ thể, diễn biến lâm sàng. Không ghi chung chung (ví dụ: "dị ứng").</li>
+                                <li><strong>Mục 8 - Các xét nghiệm liên quan:</strong> Ghi kết quả cận lâm sàng bất thường liên quan đến phản ứng.</li>
+                                <div class="note text-sm"><strong>Ghi chú:</strong> Mục 7 và 8 nên do nhân viên y tế trực tiếp chăm sóc điền hoặc kiểm tra lại.</div>
+                                <li><strong>Mục 9 - Tiền sử:</strong> Ghi tiền sử ADR, dị ứng, thai nghén, nghiện thuốc lá/rượu, bệnh lý gan, thận.</li>
+                                <li><strong>Mục 10 - Cách xử trí phản ứng:</strong> Ghi các biện pháp xử trí, thuốc điều trị đã sử dụng.</li>
+                                <li><strong>Mục 11 - Mức độ nghiêm trọng:</strong> Đánh dấu (√) vào mức độ phù hợp (Tử vong, Đe dọa tính mạng, Nhập viện/kéo dài nằm viện, Tàn tật, Dị tật thai nhi, hoặc Không nghiêm trọng).</li>
+                                <li><strong>Mục 12 - Kết quả sau xử trí:</strong> Đánh dấu (√) vào kết quả (Tử vong, Chưa hồi phục, Đang hồi phục, Hồi phục có/không có di chứng).</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">IV. Thông tin về thuốc nghi ngờ gây ADR</h3>
+                            <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Mục 13 - Thông tin thuốc nghi ngờ:</strong> Ghi rõ tên thuốc (biệt dược và tên chung), liều, đường dùng, lý do dùng, ngày bắt đầu/kết thúc, nhà sản xuất, số lô.</li>
+                                <li><strong>Mục 14 - Diễn biến sau khi ngừng/giảm liều:</strong> ADR có cải thiện không?</li>
+                                <li><strong>Mục 15 - Diễn biến sau khi tái sử dụng:</strong> ADR có xuất hiện lại không?
+                                    <p class="warning text-sm"><em><strong>Chú ý:</strong> Cần thận trọng khi tái sử dụng thuốc nghi ngờ. Chỉ dùng lại khi lợi ích vượt trội nguy cơ.</em></p>
+                                </li>
+                                <li><strong>Mục 16 - Các thuốc dùng đồng thời:</strong> Liệt kê các thuốc khác dùng cùng lúc (trừ thuốc điều trị ADR).</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">V. Phần đánh giá ADR của đơn vị</h3>
+                            <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Mục 17, 18 - Thẩm định ADR:</strong> Việc đánh giá mối liên quan là không bắt buộc. Có thể dùng thang của WHO hoặc Naranjo.</li>
+                                <li><strong>Mục 19 - Bình luận của cán bộ y tế:</strong> Ghi ý kiến chuyên môn về ca bệnh.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl font-bold sub-section-title mb-3">VI. Thông tin về người báo cáo</h3>
+                            <ul class="list-none space-y-3 pl-4 border-l-2 border-blue-200">
+                                <li><strong>Mục 20 - Thông tin:</strong> Ghi đầy đủ họ tên, chức danh, điện thoại, email. Thông tin sẽ được bảo mật.</li>
+                                <li><strong>Mục 21 - Chữ ký:</strong> Người báo cáo ký xác nhận.</li>
+                                <li><strong>Mục 22 - Dạng báo cáo:</strong> Đánh dấu (√) là "Lần đầu" hay "Bổ sung".</li>
+                                <li><strong>Mục 23 - Ngày báo cáo:</strong> Điền ngày/tháng/năm.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Hình thức gửi -->
+                <section class="mb-8">
+                    <h2 class="text-2xl font-semibold section-title">Hình thức gửi báo cáo ADR</h2>
+                    <p class="mb-4">Báo cáo được điền vào mẫu và gửi về Trung tâm Quốc gia hoặc Trung tâm khu vực bằng một trong các hình thức sau:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="note"><strong>Cách 1:</strong> Gửi qua bưu điện</div>
+                        <div class="note"><strong>Cách 2:</strong> Gửi qua thư điện tử (email)</div>
+                        <div class="note"><strong>Cách 3:</strong> Báo cáo trực tuyến tại <a href="http://canhgiacduoc.org.vn" target="_blank" class="text-blue-600 hover:underline">canhgiacduoc.org.vn</a></div>
+                        <div class="note"><strong>Cách 4:</strong> Báo cáo qua điện thoại (trường hợp khẩn cấp) và gửi lại mẫu sau.</div>
+                    </div>
+                </section>
+
+                <!-- Section: Nơi nhận -->
+                <section>
+                     <h2 class="text-2xl font-semibold section-title">Nơi nhận báo cáo</h2>
+                     <div class="grid md:grid-cols-2 gap-6">
+                         <div class="border p-4 rounded-lg">
+                             <h3 class="font-bold sub-section-title">Trung tâm Quốc gia (Toàn quốc)</h3>
+                             <p><strong>Địa chỉ:</strong> Trường Đại học Dược Hà Nội, 13-15 Lê Thánh Tông, Hoàn Kiếm, Hà Nội</p>
+                             <p><strong>Điện thoại:</strong> (024) 3933 5618</p>
+                             <p><strong>Email:</strong> di.pvcenter@gmail.com</p>
+                         </div>
+                         <div class="border p-4 rounded-lg">
+                             <h3 class="font-bold sub-section-title">Trung tâm khu vực TP.HCM (Từ Đà Nẵng trở vào)</h3>
+                             <p><strong>Địa chỉ:</strong> Bệnh viện Chợ Rẫy, 201B Nguyễn Chí Thanh, P.12, Q.5, TP.HCM</p>
+                             <p><strong>Điện thoại:</strong> (028) 3855 4137 (Ext: 794)</p>
+                             <p><strong>Email:</strong> adrhcm@choray.vn</p>
+                         </div>
+                     </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+
