@@ -74,13 +74,15 @@ export default function LoginPage() {
 
             {/* Logo - Canh giữa */}
             <div className="flex justify-center mb-8">
-              <img
-                src="/Logo.jpg"
-                alt="Logo Hệ thống ADR"
-                width={100}
-                height={100}
-                className="rounded-xl"
-              />
+              <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+                <img
+                  src="/Logo.jpg"
+                  alt="Logo Hệ thống ADR"
+                  width={100}
+                  height={100}
+                  className="rounded-xl"
+                />
+              </Link>
             </div>
 
             {/* Tên hệ thống */}
@@ -145,13 +147,15 @@ export default function LoginPage() {
             <div className="text-center">
               {/* Logo mobile */}
               <div className="flex justify-center lg:hidden mb-6">
-                <img
-                  src="/Logo.jpg"
-                  alt="Logo Hệ thống ADR"
-                  width={60}
-                  height={60}
-                  className="rounded-xl"
-                />
+                <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+                  <img
+                    src="/Logo.jpg"
+                    alt="Logo Hệ thống ADR"
+                    width={60}
+                    height={60}
+                    className="rounded-xl"
+                  />
+                </Link>
               </div>
               <h2 className="text-3xl font-extrabold text-gray-900">
                 Đăng nhập

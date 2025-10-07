@@ -18,7 +18,8 @@ import {
   HeartIcon,
   TrophyIcon,
   Cog6ToothIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline'
 
 interface MobileMenuProps {
@@ -40,6 +41,7 @@ const baseNavItems: NavItem[] = [
   { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: HeartIcon },
   { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon },
   { label: 'Cuộc thi Kiến thức ADR', href: '/contest', icon: TrophyIcon },
+  { label: 'Đánh giá hoạt động ADR', href: '/adr-performance', icon: ClipboardDocumentCheckIcon },
   { label: 'Cài đặt', href: '/settings', icon: Cog6ToothIcon }
 ]
 

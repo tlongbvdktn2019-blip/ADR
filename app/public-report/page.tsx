@@ -12,6 +12,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
+import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, XMarkIcon, TrophyIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 
@@ -72,6 +73,10 @@ export interface ADRFormData {
   reporter_email: string
   report_type: 'initial' | 'follow_up'
   report_date: string
+  
+  // Phần F: Đánh giá
+  severity_assessment_result?: string
+  preventability_assessment_result?: string
 }
 
 export default function PublicReportPage() {
@@ -138,6 +143,10 @@ export default function PublicReportPage() {
     reporter_email: '',
     report_type: 'initial',
     report_date: new Date().toISOString().split('T')[0],
+    
+    // Phần F
+    severity_assessment_result: '',
+    preventability_assessment_result: '',
   })
 
   const steps = [
@@ -146,6 +155,7 @@ export default function PublicReportPage() {
     { title: 'Thuốc nghi ngờ', subtitle: 'Phần C' },
     { title: 'Thẩm định ADR', subtitle: 'Phần D' },
     { title: 'Người báo cáo', subtitle: 'Phần E' },
+    { title: 'Đánh giá', subtitle: 'Phần F' },
   ]
 
   const updateFormData = (updates: Partial<ADRFormData>) => {
@@ -239,6 +249,8 @@ export default function PublicReportPage() {
         return <AssessmentSection data={formData} updateData={updateFormData} />
       case 4:
         return <ReporterInfoSection data={formData} updateData={updateFormData} />
+      case 5:
+        return <AssessmentResultSection data={formData} updateData={updateFormData} />
       default:
         return null
     }
@@ -299,21 +311,25 @@ export default function PublicReportPage() {
                 <div className="flex items-center justify-between flex-1">
                   {steps.map((step, index) => (
                     <div key={index} className="flex items-center">
-                      <div className="flex flex-col items-center">
-                        <div className={`flex items-center justify-center w-8 sm:w-10 h-8 sm:h-10 rounded-full border-2 ${
+                      <div 
+                        className="flex flex-col items-center cursor-pointer group"
+                        onClick={() => setCurrentStep(index)}
+                        title={`Chuyển đến ${step.subtitle}: ${step.title}`}
+                      >
+                        <div className={`flex items-center justify-center w-8 sm:w-10 h-8 sm:h-10 rounded-full border-2 transition-all ${
                           index <= currentStep 
                             ? 'bg-blue-600 border-blue-600 text-white' 
-                            : 'border-gray-300 text-gray-500'
+                            : 'border-gray-300 text-gray-500 group-hover:border-blue-400 group-hover:text-blue-500'
                         }`}>
                           <span className="text-xs sm:text-sm">{index + 1}</span>
                         </div>
                         <div className="mt-2 text-center">
-                          <div className={`text-xs font-medium ${
-                            index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+                          <div className={`text-xs font-medium transition-colors ${
+                            index <= currentStep ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'
                           }`}>
                             {step.subtitle}
                           </div>
-                          <div className="text-xs text-gray-500 hidden sm:block">
+                          <div className="text-xs text-gray-500 hidden sm:block group-hover:text-gray-700">
                             {step.title}
                           </div>
                         </div>

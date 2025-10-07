@@ -34,6 +34,10 @@ export interface ADRReport {
   report_type: 'initial' | 'follow_up'
   report_date: string
   
+  // Assessment Results (Section F)
+  severity_assessment_result: string | null
+  preventability_assessment_result: string | null
+  
   // Approval info
   approval_status: 'pending' | 'approved' | 'rejected'
   approved_by: string | null

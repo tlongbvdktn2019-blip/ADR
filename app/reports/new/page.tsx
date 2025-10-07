@@ -13,6 +13,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
+import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
@@ -74,6 +75,10 @@ export interface ADRFormData {
   reporter_email: string
   report_type: 'initial' | 'follow_up'
   report_date: string
+  
+  // Phần F: Đánh giá
+  severity_assessment_result?: string
+  preventability_assessment_result?: string
 }
 
 export default function NewReportPage() {
@@ -139,6 +144,10 @@ export default function NewReportPage() {
     reporter_email: session?.user?.email || '',
     report_type: 'initial',
     report_date: new Date().toISOString().split('T')[0],
+    
+    // Phần F
+    severity_assessment_result: '',
+    preventability_assessment_result: '',
   })
 
   const steps = [
@@ -147,6 +156,7 @@ export default function NewReportPage() {
     { title: 'Thuốc nghi ngờ', subtitle: 'Phần C' },
     { title: 'Thẩm định ADR', subtitle: 'Phần D' },
     { title: 'Người báo cáo', subtitle: 'Phần E' },
+    { title: 'Đánh giá', subtitle: 'Phần F' },
   ]
 
   const updateFormData = (updates: Partial<ADRFormData>) => {
@@ -220,6 +230,8 @@ export default function NewReportPage() {
         return <AssessmentSection data={formData} updateData={updateFormData} />
       case 4:
         return <ReporterInfoSection data={formData} updateData={updateFormData} />
+      case 5:
+        return <AssessmentResultSection data={formData} updateData={updateFormData} />
       default:
         return null
     }
@@ -250,19 +262,23 @@ export default function NewReportPage() {
                   key={index}
                   className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}
                 >
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  <div 
+                    className="flex flex-col items-center cursor-pointer group"
+                    onClick={() => setCurrentStep(index)}
+                    title={`Chuyển đến ${step.subtitle}: ${step.title}`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
                       index === currentStep 
-                        ? 'bg-primary-600 text-white' 
+                        ? 'bg-primary-600 text-white ring-2 ring-primary-300' 
                         : index < currentStep 
-                          ? 'bg-green-600 text-white' 
-                          : 'bg-gray-200 text-gray-600'
+                          ? 'bg-green-600 text-white group-hover:bg-green-700' 
+                          : 'bg-gray-200 text-gray-600 group-hover:bg-gray-300'
                     }`}>
                       {index + 1}
                     </div>
                     <div className="text-center mt-2">
-                      <div className={`text-sm font-medium ${
-                        index === currentStep ? 'text-primary-600' : 'text-gray-900'
+                      <div className={`text-sm font-medium transition-colors ${
+                        index === currentStep ? 'text-primary-600' : 'text-gray-900 group-hover:text-primary-600'
                       }`}>
                         {step.title}
                       </div>
@@ -295,15 +311,27 @@ export default function NewReportPage() {
         <Card className="md:hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 flex-1">
-              <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold">
-                {currentStep + 1}
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold">
+                  {currentStep + 1}
+                </div>
               </div>
               <div className="flex-1">
                 <div className="text-sm font-semibold text-gray-900">
                   {steps[currentStep].title}
                 </div>
-                <div className="text-xs text-gray-500">
-                  {steps[currentStep].subtitle} • Bước {currentStep + 1}/{steps.length}
+                <div className="text-xs text-gray-500 flex items-center gap-2">
+                  <span>{steps[currentStep].subtitle}</span>
+                  <span>•</span>
+                  <button
+                    onClick={() => {
+                      const stepSelect = document.getElementById('mobile-step-select')
+                      if (stepSelect) stepSelect.click()
+                    }}
+                    className="text-primary-600 underline"
+                  >
+                    Chọn bước
+                  </button>
                 </div>
               </div>
             </div>
@@ -315,11 +343,23 @@ export default function NewReportPage() {
               <BookOpenIcon className="w-5 h-5" />
             </button>
           </div>
-          <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+          <div className="mt-3 w-full bg-gray-200 rounded-full h-2 cursor-pointer relative" title="Click để chọn bước">
             <div 
               className="bg-primary-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             />
+            <select
+              id="mobile-step-select"
+              value={currentStep}
+              onChange={(e) => setCurrentStep(Number(e.target.value))}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+            >
+              {steps.map((step, index) => (
+                <option key={index} value={index}>
+                  {step.subtitle}: {step.title}
+                </option>
+              ))}
+            </select>
           </div>
         </Card>
 

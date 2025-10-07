@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng đánh giá khả năng phòng tránh được của ADR</title>
+    <!-- Import Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .prose ul {
+            list-style-position: inside;
+            padding-left: 0;
+        }
+        .prose ul > li::marker {
+            content: '+ ';
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-6 md:p-8">
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-6 sm:p-8">
+            <!-- Header section -->
+            <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">Bảng đánh giá khả năng phòng tránh được của ADR</h1>
+            <p class="text-md sm:text-lg text-center text-gray-600 mb-8">(theo phương pháp P của Tổ chức Y tế Thế giới)</p>
+            
+            <!-- Introduction section from the document -->
+            <div class="prose max-w-none text-gray-700 space-y-4 mb-8">
+                <p>Phương pháp P được áp dụng để phát hiện một cách hệ thống các sai sót liên quan đến thuốc trong các báo cáo ca đơn lẻ về an toàn thuốc, có thể áp dụng được cho bất kỳ biến cố bất lợi nào sau khi xác định được quan hệ nhân quả giữa biến cố và thuốc nghi ngờ. Mục đích của phương pháp P không phải để phân loại các sai sót liên quan đến thuốc hay thực hiện phân tích nguyên nhân gốc rễ. Các tài liệu tham chiếu khuyến cáo nên được sử dụng trong đánh giá ca bao gồm tờ hướng dẫn sử dụng thuốc, các hướng dẫn điều trị của Bộ Y tế, của các hiệp hội trong nước và trên thế giới, và các tài liệu tham chiếu tương tự khi đánh giá khả năng phòng tránh được của ADR.</p>
+                <p>Phương pháp P yêu cầu câu trả lời “có”, “không”, “không áp dụng được” hoặc “không rõ” với từng câu hỏi của tất cả 20 tiêu chí với mỗi ADR. Câu trả lời “có” cho bất kỳ tiêu chí nào được coi là ADR xảy ra có thể “phòng tránh được”. Điều này gợi ý nguyên nhân gây ra ADR, từ đó xác định các tiêu chí quan trọng liên quan đến khả năng xảy ra ADR. Các tiêu chí quan trọng này thay đổi tùy thuộc vào nguyên nhân gây ADR:</p>
+                <ul class="space-y-2">
+                    <li>Nếu nguyên nhân gây ADR liên quan đến liều dùng, các tiêu chí quan trọng cần được khai thác bao gồm tiêu chí 1, 2, 3, 4, 9, 10, 12, 13 và 16.</li>
+                    <li>Nếu ADR liên quan đến yếu tố thời gian, các tiêu chí quan trọng là 3, 4, 7 và 15.</li>
+                    <li>Tiêu chí 9, 10 và 11 là các tiêu chí quan trọng với ADR liên quan đến tính nhạy cảm với thuốc của người bệnh.</li>
+                    <li>Hành vi của người bệnh và chất lượng thuốc nên được khai thác một cách hệ thống vì những yếu tố này có thể làm tăng khả năng xuất hiện bất cứ ADR nào (tiêu chí 5, 6, 17, 18, 19, 20).</li>
+                </ul>
+                <p>Một tiêu chí được xem là "không áp dụng được" nếu như không có mối liên hệ (ví dụ: việc kê đơn 2 thuốc có cùng thành phần không ảnh hưởng đến khả năng xảy ra dị ứng thuốc).</p>
+                <p>Kết quả đánh giá sẽ rơi vào 1 trong 3 trường hợp: "có thể phòng tránh được", "không thể phòng tránh được" và "không đánh giá được".</p>
+                 <ul class="space-y-2">
+                    <li>ADR được coi là “phòng tránh được” khi xác định được ít nhất 1 tiêu chí quan trọng.</li>
+                    <li>ADR được coi là “không phòng tránh được” nếu không có tiêu chí quan trọng nào được xác định từ báo cáo ca đơn lẻ về an toàn thuốc.</li>
+                    <li>Trường hợp được phân loại "không đánh giá được" nếu không có hoặc không đủ dữ liệu cần thiết để đánh giá. Ví dụ: phản vệ do kháng sinh nhóm penicillin được cho là "không đánh giá được" nếu không có thông tin khai thác về tiền sử dị ứng thuốc trước đó của người bệnh, hoặc trong những tình huống còn tranh cãi (ví dụ: một thuốc không được phê duyệt chính thức cho chỉ định trong nhi khoa nhưng thường xuyên được sử dụng cho trẻ em).</li>
+                </ul>
+            </div>
+
+            <!-- Table container with responsive overflow -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="border border-gray-300 p-3 text-left text-sm font-semibold text-gray-700 tracking-wider">Các yếu tố liên quan</th>
+                            <th class="border border-gray-300 p-3 text-left text-sm font-semibold text-gray-700 tracking-wider">Các tiêu chí về khả năng phòng tránh được</th>
+                            <th class="border border-gray-300 p-3 text-center text-sm font-semibold text-gray-700">Có</th>
+                            <th class="border border-gray-300 p-3 text-center text-sm font-semibold text-gray-700">Không</th>
+                            <th class="border border-gray-300 p-3 text-center text-sm font-semibold text-gray-700">Không rõ</th>
+                            <th class="border border-gray-300 p-3 text-center text-sm font-semibold text-gray-700">Không áp dụng</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Section 1: Thực hành chuyên môn "Pr" -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 align-top font-medium text-gray-800" rowspan="16">Thực hành chuyên môn "Pr"</td>
+                            <td class="border border-gray-300 p-3 text-gray-700">1. Liều không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q1" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q1" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q1" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q1" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">2. Đường dùng không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q2" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q2" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q2" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q2" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">3. Thời gian sử dụng thuốc không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q3" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q3" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q3" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q3" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">4. Sử dụng dạng thuốc không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q4" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q4" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q4" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q4" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">5. Sử dụng thuốc hết hạn?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q5" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q5" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q5" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q5" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">6. Bảo quản thuốc không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q6" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q6" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q6" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q6" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">7. Cách dùng không phù hợp (thời gian, tốc độ, tần suất, kỹ thuật, pha chế, thao tác, trộn lẫn)?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q7" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q7" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q7" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q7" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">8. Chỉ định không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q8" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q8" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q8" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q8" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">9. Không phù hợp với đặc điểm của người bệnh (tuổi, giới, phụ nữ mang thai, khác)?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q9" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q9" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q9" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q9" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">10. Không phù hợp với tình trạng lâm sàng (suy thận, suy gan…) hoặc bệnh lý đang có của người bệnh?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q10" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q10" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q10" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q10" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">11. Có tiền sử quá mẫn với thuốc hoặc các thuốc khác trong nhóm?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q11" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q11" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q11" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q11" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">12. Tương tác thuốc-thuốc?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q12" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q12" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q12" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q12" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">13. Trùng lặp điều trị (kê đơn 2 hay nhiều thuốc có thành phần tương tự nhau)?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q13" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q13" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q13" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q13" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">14. Không sử dụng thuốc cần dùng?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q14" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q14" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q14" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q14" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">15. Hội chứng cai thuốc (do ngừng thuốc đột ngột)?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q15" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q15" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q15" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q15" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">16. Xét nghiệm hoặc theo dõi lâm sàng không phù hợp?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q16" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q16" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q16" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q16" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+
+                        <!-- Section 2: Chế phẩm/ thuốc "Pd" -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 align-top font-medium text-gray-800" rowspan="2">Chế phẩm/ thuốc "Pd"</td>
+                            <td class="border border-gray-300 p-3 text-gray-700">17. Đã sử dụng thuốc nghi ngờ kém chất lượng?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q17" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q17" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q17" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q17" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">18. Đã sử dụng thuốc nghi ngờ là giả?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q18" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q18" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q18" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q18" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+
+                        <!-- Section 3: Người bệnh "Pa" -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 align-top font-medium text-gray-800" rowspan="2">Người bệnh "Pa"</td>
+                            <td class="border border-gray-300 p-3 text-gray-700">19. Không tuân thủ điều trị?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q19" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q19" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q19" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q19" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 p-3 text-gray-700">20. Người bệnh tự ý dùng thuốc kê đơn?</td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q20" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q20" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q20" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                            <td class="border border-gray-300 p-3 text-center"><input type="radio" name="q20" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+             <!-- Conclusion section -->
+            <div class="mt-8">
+                <h2 class="text-lg font-semibold text-gray-800">Kết quả đánh giá:</h2>
+                <!-- This is where the evaluation result would be displayed. You can add a textarea or another element here if needed. -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

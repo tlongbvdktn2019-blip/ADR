@@ -63,6 +63,8 @@ CREATE TABLE public.adr_reports (
   approved_by uuid,
   approved_at timestamp with time zone,
   approval_note text,
+  severity_assessment_result text,
+  preventability_assessment_result text,
   CONSTRAINT adr_reports_pkey PRIMARY KEY (id),
   CONSTRAINT adr_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(id),
   CONSTRAINT adr_reports_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
@@ -435,7 +437,7 @@ CREATE TABLE public.suspected_drugs (
 CREATE TABLE public.treatment_drugs (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  name character varying,
+  name character varying UNIQUE,
   CONSTRAINT treatment_drugs_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.units (

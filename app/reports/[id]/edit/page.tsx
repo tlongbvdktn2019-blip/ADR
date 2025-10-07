@@ -14,6 +14,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
+import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
@@ -72,6 +73,10 @@ export interface ADRFormData {
   reporter_email: string
   report_type: 'initial' | 'follow_up'
   report_date: string
+  
+  // Phần F: Đánh giá
+  severity_assessment_result?: string
+  preventability_assessment_result?: string
 }
 
 interface EditReportPageProps {
@@ -131,6 +136,8 @@ export default function EditReportPage({ params }: EditReportPageProps) {
     reporter_email: '',
     report_type: 'initial',
     report_date: '',
+    severity_assessment_result: '',
+    preventability_assessment_result: '',
   })
 
   // Fetch existing report data
@@ -233,6 +240,10 @@ export default function EditReportPage({ params }: EditReportPageProps) {
           reporter_email: reportData.reporter_email || '',
           report_type: reportData.report_type,
           report_date: reportData.report_date,
+          
+          // Assessment results
+          severity_assessment_result: reportData.severity_assessment_result || '',
+          preventability_assessment_result: reportData.preventability_assessment_result || '',
         })
 
       } catch (error) {
@@ -255,6 +266,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
     { title: 'Thuốc nghi ngờ', subtitle: 'Phần C' },
     { title: 'Thẩm định ADR', subtitle: 'Phần D' },
     { title: 'Người báo cáo', subtitle: 'Phần E' },
+    { title: 'Đánh giá', subtitle: 'Phần F' },
   ]
 
   const updateFormData = (updates: Partial<ADRFormData>) => {
@@ -325,6 +337,8 @@ export default function EditReportPage({ params }: EditReportPageProps) {
         return <AssessmentSection data={formData as any} updateData={updateFormData} />
       case 4:
         return <ReporterInfoSection data={formData as any} updateData={updateFormData} />
+      case 5:
+        return <AssessmentResultSection data={formData} updateData={updateFormData} />
       default:
         return null
     }
@@ -379,24 +393,28 @@ export default function EditReportPage({ params }: EditReportPageProps) {
                 <ol className="space-y-4 md:flex md:space-y-0 md:space-x-8">
                   {steps.map((step, index) => (
                     <li key={step.title} className="md:flex-1">
-                      <div
-                        className={`group pl-4 py-2 flex flex-col border-l-4 hover:border-gray-300 md:pl-0 md:pt-4 md:pb-0 md:border-l-0 md:border-t-4 ${
+                      <button
+                        onClick={() => setCurrentStep(index)}
+                        className={`w-full text-left group pl-4 py-2 flex flex-col border-l-4 hover:border-primary-400 md:pl-0 md:pt-4 md:pb-0 md:border-l-0 md:border-t-4 transition-colors cursor-pointer ${
                           index === currentStep
                             ? 'border-primary-600'
                             : index < currentStep
                             ? 'border-primary-600'
                             : 'border-gray-200'
                         }`}
+                        title={`Chuyển đến ${step.subtitle}: ${step.title}`}
                       >
                         <span
-                          className={`text-xs font-semibold tracking-wide uppercase ${
-                            index <= currentStep ? 'text-primary-600' : 'text-gray-500'
+                          className={`text-xs font-semibold tracking-wide uppercase transition-colors ${
+                            index <= currentStep ? 'text-primary-600 group-hover:text-primary-700' : 'text-gray-500 group-hover:text-gray-700'
                           }`}
                         >
                           {step.subtitle}
                         </span>
-                        <span className="text-sm font-medium">{step.title}</span>
-                      </div>
+                        <span className={`text-sm font-medium ${index === currentStep ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                          {step.title}
+                        </span>
+                      </button>
                     </li>
                   ))}
                 </ol>

@@ -160,6 +160,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         report_type: body.report_type,
         report_date: body.report_date,
         
+        // Assessment results
+        severity_assessment_result: body.severity_assessment_result || null,
+        preventability_assessment_result: body.preventability_assessment_result || null,
+        
         // Update timestamp
         updated_at: new Date().toISOString()
       })

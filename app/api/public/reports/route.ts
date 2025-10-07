@@ -88,6 +88,10 @@ export async function POST(request: NextRequest) {
         report_type: body.report_type,
         report_date: body.report_date,
         
+        // Assessment results
+        severity_assessment_result: body.severity_assessment_result || null,
+        preventability_assessment_result: body.preventability_assessment_result || null,
+        
         // Default to pending approval
         approval_status: 'pending'
       })

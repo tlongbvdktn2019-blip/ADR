@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Đánh Giá Mức Độ Nặng</title>
+    <!-- Tích hợp Tailwind CSS để có giao diện hiện đại -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tùy chỉnh font chữ để hỗ trợ tiếng Việt tốt hơn */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Thêm style cho hàng được chọn */
+        .selected-row {
+            background-color: #EBF8FF; /* Light blue for light mode */
+        }
+        .dark .selected-row {
+            background-color: #2A4365; /* Darker blue for dark mode */
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-4 sm:p-6 md:p-8">
+    <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <!-- Tiêu đề của bảng đánh giá -->
+        <div class="p-6 bg-blue-600 dark:bg-blue-700">
+            <h1 class="text-2xl sm:text-3xl font-bold text-white text-center">Đánh giá mức độ nặng của biến cố bất lợi</h1>
+        </div>
+
+        <!-- Bảng hiển thị các mức độ -->
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/4">
+                                Mức độ đánh giá
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Mô tả chi tiết
+                            </th>
+                            <th scope="col" class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Chọn
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="evaluationTableBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <!-- Dữ liệu các mức độ sẽ được chèn vào đây bằng JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Phần nhập kết quả đánh giá -->
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Kết quả đánh giá</h2>
+            <form id="evaluationForm">
+                 <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mức độ đã chọn</label>
+                    <input type="text" id="selected_level_display" name="selected_level_display" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 dark:bg-gray-700 dark:border-gray-600" placeholder="Vui lòng chọn một mức độ từ bảng trên" readonly>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
+                        Lưu Đánh Giá
+                    </button>
+                </div>
+            </form>
+        </div>
+        <!-- Thông báo lỗi -->
+        <div id="errorMessage" class="hidden p-4 text-center text-red-700 bg-red-100 dark:bg-red-900 dark:text-red-300 rounded-b-2xl"></div>
+        <!-- Thông báo sau khi lưu -->
+        <div id="successMessage" class="hidden p-4 text-center text-green-700 bg-green-100 dark:bg-green-900 dark:text-green-300 rounded-b-2xl">
+            Đã lưu kết quả thành công!
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tableBody = document.getElementById('evaluationTableBody');
+            const form = document.getElementById('evaluationForm');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const selectedLevelDisplay = document.getElementById('selected_level_display');
+
+            const levels = [
+                { id: 1, name: 'Mức độ 1 (Nhẹ)', description: 'Không có triệu chứng hoặc triệu chứng nhẹ; chỉ biết được thông qua quan sát để chẩn đoán hoặc biểu hiện lâm sàng; không cần đến can thiệp.', style: 'text-gray-900 dark:text-white' },
+                { id: 2, name: 'Mức độ 2 (Trung bình)', description: 'Cần đến can thiệp tối thiểu, tại chỗ hoặc không xâm lấn; ảnh hưởng đến một số chức năng vận động hoặc sinh hoạt thông thường.', style: 'text-gray-900 dark:text-white' },
+                { id: 3, name: 'Mức độ 3 (Nặng)', description: 'Ảnh hưởng đáng kể trên lâm sàng nhưng chưa đến mức đe dọa tính mạng; khiến người bệnh phải nhập viện hoặc kéo dài thời gian nằm viện; bị dị tật; giới hạn khả năng tự chăm sóc bản thân của người bệnh.', style: 'text-gray-900 dark:text-white' },
+                { id: 4, name: 'Mức độ 4 (Đe dọa tính mạng)', description: 'Gây ra hậu quả đe dọa tính mạng người bệnh; cần can thiệp khẩn cấp.', style: 'text-red-600 dark:text-red-400 font-bold' },
+                { id: 5, name: 'Mức độ 5 (Tử vong)', description: 'Tử vong liên quan đến biến cố bất lợi.', style: 'text-black dark:text-gray-300 bg-red-200 dark:bg-red-900 px-2 py-1 rounded' }
+            ];
+
+            // Tạo các hàng trong bảng
+            levels.forEach(level => {
+                const row = document.createElement('tr');
+                row.className = 'cursor-pointer transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700';
+                row.dataset.levelId = level.id;
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-semibold ${level.style}">${level.name}</div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                        ${level.description}
+                    </td>
+                    <td class="px-2 py-4 text-center">
+                        <input type="radio" name="selected_level" value="${level.id}" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Xử lý sự kiện click vào hàng
+            tableBody.addEventListener('click', function(event) {
+                const row = event.target.closest('tr');
+                if (!row) return;
+
+                document.querySelectorAll('#evaluationTableBody tr').forEach(r => {
+                    r.classList.remove('selected-row');
+                    r.querySelector('input[type="radio"]').checked = false;
+                });
+
+                row.classList.add('selected-row');
+                const radio = row.querySelector('input[type="radio"]');
+                radio.checked = true;
+
+                const selectedLevel = levels.find(l => l.id == row.dataset.levelId);
+                selectedLevelDisplay.value = selectedLevel ? selectedLevel.name : '';
+            });
+
+            // Xử lý việc gửi form
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); 
+
+                const formData = new FormData(form);
+                const selectedLevelId = formData.get('selected_level');
+                
+                if (!selectedLevelId) {
+                    errorMessage.textContent = 'Vui lòng chọn một mức độ đánh giá từ bảng.';
+                    errorMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        errorMessage.classList.add('hidden');
+                    }, 3000);
+                    return;
+                }
+
+                const selectedLevelData = levels.find(l => l.id == selectedLevelId);
+
+                console.log('--- KẾT QUẢ ĐÁNH GIÁ ---');
+                console.log('Mức độ đã chọn:', selectedLevelData.name);
+                
+                successMessage.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    successMessage.classList.add('hidden');
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>
+

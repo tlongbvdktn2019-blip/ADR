@@ -260,6 +260,85 @@ export interface Database {
           updated_at?: string
         }
       }
+      adr_performance_assessments: {
+        Row: {
+          id: string
+          user_id: string
+          assessment_date: string
+          total_score: number
+          max_score: number
+          percentage: number
+          status: 'draft' | 'submitted' | 'final'
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          assessment_date?: string
+          total_score?: number
+          max_score?: number
+          percentage?: number
+          status?: 'draft' | 'submitted' | 'final'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          assessment_date?: string
+          total_score?: number
+          max_score?: number
+          percentage?: number
+          status?: 'draft' | 'submitted' | 'final'
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      adr_performance_answers: {
+        Row: {
+          id: string
+          assessment_id: string
+          indicator_code: string
+          indicator_type: 'C' | 'P'
+          category: 'A' | 'B' | 'C' | 'D' | 'E'
+          question: string
+          answer: boolean | null
+          score: number
+          note: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          assessment_id: string
+          indicator_code: string
+          indicator_type: 'C' | 'P'
+          category: 'A' | 'B' | 'C' | 'D' | 'E'
+          question: string
+          answer?: boolean | null
+          score?: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          assessment_id?: string
+          indicator_code?: string
+          indicator_type?: 'C' | 'P'
+          category?: 'A' | 'B' | 'C' | 'D' | 'E'
+          question?: string
+          answer?: boolean | null
+          score?: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

@@ -141,6 +141,14 @@ export default function Header() {
               <span className="hidden md:inline">Thông tin ADR</span>
             </Link>
             <Link 
+              href="/adr-performance" 
+              className="flex items-center text-blue-200 hover:text-white transition-colors text-sm"
+              title="Đánh giá hiệu quả hoạt động ADR"
+            >
+              <ChartBarIcon className="w-4 h-4 mr-1" />
+              <span className="hidden md:inline">Đánh giá ADR</span>
+            </Link>
+            <Link 
               href="/training" 
               className="flex items-center text-blue-200 hover:text-white transition-colors text-sm"
               title="Tập huấn"
