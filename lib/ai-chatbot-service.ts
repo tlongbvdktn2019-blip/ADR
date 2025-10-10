@@ -12,6 +12,7 @@ export interface ChatMessage {
     sources?: string[]
     tokens_used?: number
     needsSetup?: boolean
+    setupProvider?: string
   }
 }
 

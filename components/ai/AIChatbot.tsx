@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { toast } from 'react-hot-toast'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -13,10 +14,14 @@ import {
   LightBulbIcon,
   ClockIcon,
   UserIcon,
-  ComputerDesktopIcon
+  ComputerDesktopIcon,
+  KeyIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { ChatMessage, ADRChatContext, AIChatbotService } from '@/lib/ai-chatbot-service'
 import { ADRFormData } from '@/app/reports/new/page'
+import { UserAPIKeyService } from '@/lib/user-api-key-service'
 
 interface AIChatbotProps {
   isOpen: boolean
@@ -26,6 +31,7 @@ interface AIChatbotProps {
 }
 
 export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }: AIChatbotProps) {
+  const { data: session, status } = useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -33,9 +39,29 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
   const [selectedProvider, setSelectedProvider] = useState<'chatgpt' | 'gemini'>('chatgpt')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [context, setContext] = useState<ADRChatContext | null>(null)
+  const [showAPIKeyModal, setShowAPIKeyModal] = useState(false)
+  const [hasAPIKey, setHasAPIKey] = useState<{ openai: boolean; gemini: boolean }>({ openai: false, gemini: false })
+  const [guestAPIKeys, setGuestAPIKeys] = useState<{ openai: string | null; gemini: string | null }>({ openai: null, gemini: null })
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Load guest API keys from localStorage on mount
+  useEffect(() => {
+    if (isOpen && !session?.user?.id) {
+      loadGuestAPIKeys()
+    }
+  }, [isOpen, session?.user?.id])
+
+  // Check API keys on mount (for logged-in users)
+  useEffect(() => {
+    if (isOpen && session?.user?.id) {
+      checkAPIKeys()
+    } else if (isOpen) {
+      // For guests, just check localStorage
+      loadGuestAPIKeys()
+    }
+  }, [isOpen, session?.user?.id])
 
   // Initialize context and welcome message
   useEffect(() => {
@@ -61,6 +87,64 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Load guest API keys from localStorage
+  const loadGuestAPIKeys = () => {
+    try {
+      const openaiKey = localStorage.getItem('guest_openai_key')
+      const geminiKey = localStorage.getItem('guest_gemini_key')
+      
+      setGuestAPIKeys({
+        openai: openaiKey,
+        gemini: geminiKey
+      })
+      
+      setHasAPIKey({
+        openai: !!openaiKey,
+        gemini: !!geminiKey
+      })
+    } catch (error) {
+      console.error('Failed to load guest API keys:', error)
+    }
+  }
+
+  // Save guest API key to localStorage
+  const saveGuestAPIKey = (provider: 'openai' | 'gemini', apiKey: string) => {
+    try {
+      localStorage.setItem(`guest_${provider}_key`, apiKey)
+      setGuestAPIKeys(prev => ({
+        ...prev,
+        [provider]: apiKey
+      }))
+      setHasAPIKey(prev => ({
+        ...prev,
+        [provider]: true
+      }))
+    } catch (error) {
+      console.error('Failed to save guest API key:', error)
+      throw new Error('Không thể lưu API key vào trình duyệt')
+    }
+  }
+
+  // Check API keys (for logged-in users)
+  const checkAPIKeys = async () => {
+    if (!session?.user?.id) {
+      console.log('No session, checking guest keys instead')
+      loadGuestAPIKeys()
+      return
+    }
+
+    try {
+      const keys = await UserAPIKeyService.getUserAPIKeys()
+      setHasAPIKey({
+        openai: keys.some(k => k.provider === 'openai' && k.is_active && k.is_valid),
+        gemini: keys.some(k => k.provider === 'gemini' && k.is_active && k.is_valid)
+      })
+    } catch (error) {
+      console.error('Failed to check API keys:', error)
+      // Don't show error to user, just log it
+    }
+  }
 
   // Load quick suggestions
   const loadSuggestions = async (ctx: ADRChatContext) => {
@@ -89,45 +173,80 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
     setIsTyping(true)
 
     try {
-      const response = await fetch('/api/ai/chatbot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: messageText,
-          context,
-          provider: selectedProvider === 'chatgpt' ? 'openai' : 'gemini',
-          chatHistory: messages
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        // Check if error is due to missing API key
-        if (result.needsAPIKey) {
+      const provider = selectedProvider === 'chatgpt' ? 'openai' : 'gemini'
+      const isGuest = !session?.user?.id
+      
+      // Check if guest has API key
+      if (isGuest) {
+        const guestKey = provider === 'openai' ? guestAPIKeys.openai : guestAPIKeys.gemini
+        
+        if (!guestKey) {
           const errorMessage: ChatMessage = {
             id: `error_${Date.now()}`,
             role: 'assistant',
-            content: `❌ ${result.error}\n\n🔑 **Cách khắc phục:**\n1. Nhấn vào "Settings" ở menu\n2. Thêm API key cho ${result.provider.toUpperCase()}\n3. Quay lại đây để chat\n\n💡 **Lưu ý:** API key của bạn sẽ được mã hóa và bảo mật tuyệt đối.`,
+            content: `❌ Chưa có API key cho ${provider.toUpperCase()}\n\n🔑 **Cách khắc phục:**\nBạn cần thêm API key để sử dụng AI chatbot.`,
             timestamp: new Date(),
-            metadata: { model: selectedProvider, confidence: 0, needsSetup: true }
+            metadata: { model: selectedProvider, confidence: 0, needsSetup: true, setupProvider: provider }
           }
           setMessages(prev => [...prev, errorMessage])
+          setIsLoading(false)
+          setIsTyping(false)
           return
         }
+
+        // Guest mode: call AI directly from client
+        const aiResponse = await AIChatbotService.sendMessageWithUserKey(
+          messageText,
+          context,
+          provider,
+          guestKey,
+          messages
+        )
+
+        setMessages(prev => [...prev, aiResponse])
         
-        throw new Error(result.error || 'Có lỗi xảy ra')
-      }
+      } else {
+        // Logged-in mode: use server API
+        const response = await fetch('/api/ai/chatbot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: messageText,
+            context,
+            provider,
+            chatHistory: messages
+          }),
+        })
 
-      // Add successful response with API key info
-      const responseWithInfo: ChatMessage = {
-        ...result.data.aiResponse,
-        content: result.data.aiResponse.content + `\n\n*🔑 Sử dụng: ${result.data.apiKeyUsed}*`
-      }
+        const result = await response.json()
 
-      setMessages(prev => [...prev, responseWithInfo])
+        if (!response.ok) {
+          // Check if error is due to missing API key
+          if (result.needsAPIKey) {
+            const errorMessage: ChatMessage = {
+              id: `error_${Date.now()}`,
+              role: 'assistant',
+              content: `❌ ${result.error}\n\n🔑 **Cách khắc phục:**\nBạn cần thêm API key cho ${result.provider.toUpperCase()} để sử dụng AI chatbot.`,
+              timestamp: new Date(),
+              metadata: { model: selectedProvider, confidence: 0, needsSetup: true, setupProvider: result.provider }
+            }
+            setMessages(prev => [...prev, errorMessage])
+            return
+          }
+          
+          throw new Error(result.error || 'Có lỗi xảy ra')
+        }
+
+        // Add successful response with API key info
+        const responseWithInfo: ChatMessage = {
+          ...result.data.aiResponse,
+          content: result.data.aiResponse.content + `\n\n*🔑 Sử dụng: ${result.data.apiKeyUsed}*`
+        }
+
+        setMessages(prev => [...prev, responseWithInfo])
+      }
       
     } catch (error) {
       console.error('Chat Error:', error)
@@ -190,7 +309,29 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
               <ChatBubbleLeftRightIcon className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">AI Medical Consultant</h3>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2 flex-wrap">
+                AI Medical Consultant
+                {!session?.user?.id && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    👤 Guest Mode
+                  </span>
+                )}
+                {(selectedProvider === 'chatgpt' ? hasAPIKey.openai : hasAPIKey.gemini) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                    <CheckCircleIcon className="w-3 h-3" />
+                    API Ready
+                  </span>
+                )}
+                {!(selectedProvider === 'chatgpt' ? hasAPIKey.openai : hasAPIKey.gemini) && (
+                  <button
+                    onClick={() => setShowAPIKeyModal(true)}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded-full text-xs font-medium transition-colors"
+                  >
+                    <KeyIcon className="w-3 h-3" />
+                    Setup Key
+                  </button>
+                )}
+              </h3>
               <p className="text-sm text-gray-600 flex items-center gap-2">
                 <span className="px-2 py-0.5 bg-white rounded-full text-xs font-medium">
                   {selectedProvider === 'chatgpt' ? '🤖 ChatGPT' : '✨ Gemini'}
@@ -262,6 +403,10 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
                   message={message}
                   onApplyInsight={() => handleApplyInsight(message)}
                   showApply={message.role === 'assistant' && !!onApplyInsight}
+                  onSetupAPIKey={(provider) => {
+                    setSelectedProvider(provider === 'gemini' ? 'gemini' : 'chatgpt')
+                    setShowAPIKeyModal(true)
+                  }}
                 />
               ))}
               {isTyping && (
@@ -314,6 +459,22 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
           {/* Sidebar - Scrollable */}
           <div className="w-80 border-l bg-gradient-to-b from-gray-50 to-white flex-shrink-0 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              
+              {/* Guest Mode Notice */}
+              {!session?.user?.id && (
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <UserIcon className="w-4 h-4 text-blue-600" />
+                    Guest Mode
+                  </h4>
+                  <p className="text-xs text-gray-700 mb-3">
+                    Bạn đang dùng chế độ Guest. API key sẽ lưu tạm trong trình duyệt.
+                  </p>
+                  <p className="text-xs text-blue-800 font-medium">
+                    💡 Đăng nhập để lưu key vĩnh viễn và sync trên nhiều thiết bị!
+                  </p>
+                </div>
+              )}
               
               {/* Quick Suggestions */}
               {suggestions.length > 0 && (
@@ -391,6 +552,24 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
           </div>
         </div>
       </div>
+
+      {/* API Key Setup Modal */}
+      {showAPIKeyModal && (
+        <APIKeySetupModal
+          provider={selectedProvider === 'chatgpt' ? 'openai' : 'gemini'}
+          isGuest={!session?.user?.id}
+          onClose={() => setShowAPIKeyModal(false)}
+          onSuccess={(apiKey) => {
+            if (!session?.user?.id) {
+              // Guest mode: save to localStorage
+              saveGuestAPIKey(selectedProvider === 'chatgpt' ? 'openai' : 'gemini', apiKey)
+            }
+            setShowAPIKeyModal(false)
+            checkAPIKeys()
+            toast.success('API key đã được lưu thành công!')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -399,14 +578,17 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
 function MessageBubble({ 
   message, 
   onApplyInsight, 
-  showApply 
+  showApply,
+  onSetupAPIKey 
 }: { 
   message: ChatMessage
   onApplyInsight: () => void
   showApply: boolean
+  onSetupAPIKey?: (provider: string) => void
 }) {
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+  const needsSetup = message.metadata?.needsSetup
 
   return (
     <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
@@ -425,16 +607,31 @@ function MessageBubble({
             ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-br-md' 
             : isSystem 
             ? 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-md'
+            : needsSetup
+            ? 'bg-gradient-to-r from-red-50 to-orange-50 text-gray-800 border-2 border-red-200 rounded-bl-md'
             : 'bg-white text-gray-800 border-2 border-gray-100 rounded-bl-md'
         }`}>
           <div className="p-4">
             <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
               {message.content}
             </div>
+            
+            {/* Setup API Key Button */}
+            {needsSetup && onSetupAPIKey && (
+              <div className="mt-4">
+                <button
+                  onClick={() => onSetupAPIKey(message.metadata?.setupProvider || 'openai')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <KeyIcon className="w-5 h-5" />
+                  Setup API Key Ngay
+                </button>
+              </div>
+            )}
           </div>
           
           {/* AI Metadata */}
-          {!isUser && message.metadata && (
+          {!isUser && message.metadata && !needsSetup && (
             <div className="flex items-center justify-between px-4 pb-3 pt-2 border-t border-gray-100">
               <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
                 <ComputerDesktopIcon className="w-4 h-4" />
@@ -478,6 +675,245 @@ function MessageBubble({
           <UserIcon className="w-5 h-5" />
         </div>
       )}
+    </div>
+  )
+}
+
+// API Key Setup Modal Component
+function APIKeySetupModal({ 
+  provider,
+  isGuest,
+  onClose, 
+  onSuccess 
+}: { 
+  provider: 'openai' | 'gemini'
+  isGuest: boolean
+  onClose: () => void
+  onSuccess: (apiKey: string) => void
+}) {
+  const { data: session } = useSession()
+  const [apiKey, setApiKey] = useState('')
+  const [keyName, setKeyName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const providerInfo = {
+    openai: {
+      name: 'OpenAI ChatGPT',
+      icon: '🤖',
+      placeholder: 'sk-proj-...',
+      description: 'Nhập API key từ OpenAI Platform',
+      website: 'https://platform.openai.com/api-keys',
+      instructions: [
+        'Truy cập OpenAI Platform',
+        'Đăng nhập hoặc tạo tài khoản',
+        'Vào mục "API Keys"',
+        'Tạo key mới và copy vào đây'
+      ]
+    },
+    gemini: {
+      name: 'Google Gemini',
+      icon: '✨',
+      placeholder: 'AIzaSy...',
+      description: 'Nhập API key từ Google AI Studio',
+      website: 'https://aistudio.google.com/app/apikey',
+      instructions: [
+        'Truy cập Google AI Studio',
+        'Đăng nhập với Google account',
+        'Nhấn "Get API Key"',
+        'Copy key và paste vào đây'
+      ]
+    }
+  }
+
+  const info = providerInfo[provider]
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    
+    if (!apiKey.trim()) {
+      setError('Vui lòng nhập API key')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      if (isGuest) {
+        // Guest mode: just validate format and return
+        const validation = UserAPIKeyService.getProviderInfo()[provider]
+        if (provider === 'openai' && !apiKey.startsWith('sk-')) {
+          throw new Error('OpenAI API key phải bắt đầu bằng "sk-"')
+        }
+        if (provider === 'gemini' && !apiKey.startsWith('AIzaSy')) {
+          throw new Error('Gemini API key phải bắt đầu bằng "AIzaSy"')
+        }
+        
+        // Return the key to be saved in localStorage
+        onSuccess(apiKey.trim())
+      } else {
+        // Logged-in mode: save to database
+        if (!session?.user?.id) {
+          throw new Error('Session không hợp lệ. Vui lòng đăng nhập lại.')
+        }
+        
+        await UserAPIKeyService.addAPIKey({
+          provider,
+          api_key: apiKey.trim(),
+          api_key_name: keyName.trim() || `${info.name} Key`
+        })
+
+        onSuccess(apiKey.trim())
+      }
+    } catch (err) {
+      console.error('Error adding API key:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Không thể thêm API key'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[99999] p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur">
+                {info.icon}
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Setup {info.name}</h3>
+                <p className="text-sm text-blue-100">{info.description}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Instructions */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <LightBulbIcon className="w-5 h-5 text-blue-600" />
+              Hướng dẫn lấy API Key:
+            </h4>
+            <ol className="space-y-1 text-sm text-gray-700 ml-7">
+              {info.instructions.map((instruction, idx) => (
+                <li key={idx} className="list-decimal">{instruction}</li>
+              ))}
+            </ol>
+            <a
+              href={info.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Mở {info.name} →
+            </a>
+          </div>
+
+          {/* API Key Input */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              API Key <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={info.placeholder}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm"
+              disabled={isSubmitting}
+              autoFocus
+            />
+          </div>
+
+          {/* Key Name Input */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Tên Key (tùy chọn)
+            </label>
+            <input
+              type="text"
+              value={keyName}
+              onChange={(e) => setKeyName(e.target.value)}
+              placeholder={`Ví dụ: ${info.name} Personal Key`}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+              ❌ {error}
+            </div>
+          )}
+
+          {/* Security Note */}
+          {isGuest ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+              <p className="text-sm text-blue-800">
+                💾 <strong>Guest Mode:</strong> API key sẽ được lưu trong trình duyệt của bạn (localStorage). 
+                Key sẽ bị mất nếu bạn xóa cookies hoặc đổi trình duyệt.
+              </p>
+              <p className="text-sm text-blue-800">
+                ✨ <strong>Khuyến nghị:</strong> Đăng nhập để lưu key vĩnh viễn và đồng bộ trên nhiều thiết bị.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+              <p className="text-sm text-green-800">
+                🔒 <strong>Bảo mật:</strong> API key của bạn sẽ được mã hóa và lưu trữ an toàn trong database. 
+                Chỉ bạn mới có thể sử dụng key này.
+              </p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 rounded-xl font-semibold transition-all"
+              disabled={isSubmitting}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={!apiKey.trim() || isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span>Đang lưu...</span>
+                </>
+              ) : (
+                <>
+                  <KeyIcon className="w-5 h-5" />
+                  <span>Lưu API Key</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

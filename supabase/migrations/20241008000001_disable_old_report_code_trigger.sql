@@ -16,3 +16,4 @@ DROP FUNCTION IF EXISTS generate_report_code();
 -- (Constraint này vẫn cần thiết để đảm bảo không trùng mã)
 
 
+

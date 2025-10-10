@@ -65,3 +65,4 @@ END $$;
 -- RAISE NOTICE 'Migration script ready. Uncomment the DO block to execute.';
 
 
+
