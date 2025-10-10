@@ -30,7 +30,9 @@ export default function ReportList({ initialData }: ReportListProps) {
     page: 1,
     limit: 10,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
+    totalOrganizations: 0,
+    organizationsOnPage: 0
   })
   const [loading, setLoading] = useState(!initialData)
   const [searchTerm, setSearchTerm] = useState('')
@@ -186,7 +188,7 @@ export default function ReportList({ initialData }: ReportListProps) {
       {/* Results Summary */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-gray-600">
         <span>
-          Hiển thị {reports.length} trong tổng số {pagination.total} báo cáo
+          Hiển thị {pagination.organizationsOnPage || 0} đơn vị ({reports.length} báo cáo) • Tổng {pagination.totalOrganizations || 0} đơn vị ({pagination.total} báo cáo)
         </span>
         <span className="text-xs">
           Trang {pagination.page} / {pagination.totalPages}

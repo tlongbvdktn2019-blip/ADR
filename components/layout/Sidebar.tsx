@@ -13,7 +13,7 @@ import {
   InformationCircleIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
-  PlusCircleIcon,
+  // PlusCircleIcon,
   WrenchScrewdriverIcon,
   HeartIcon,
   TrophyIcon,
@@ -169,7 +169,8 @@ export default function Sidebar() {
           )}
         </nav>
 
-        <div className="px-6 py-5 border-t border-gray-200 bg-gray-50">
+        {/* Nút "Báo cáo mới" đã bị ẩn */}
+        {/* <div className="px-6 py-5 border-t border-gray-200 bg-gray-50">
           <Link
             href="/reports/new"
             className="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
@@ -177,7 +178,7 @@ export default function Sidebar() {
             <PlusCircleIcon className="w-5 h-5 mr-2" />
             Báo cáo mới
           </Link>
-        </div>
+        </div> */}
       </div>
     </aside>
   )

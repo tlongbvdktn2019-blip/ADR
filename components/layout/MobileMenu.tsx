@@ -13,7 +13,7 @@ import {
   InformationCircleIcon,
   UsersIcon,
   ClipboardDocumentListIcon,
-  PlusCircleIcon,
+  // PlusCircleIcon,
   WrenchScrewdriverIcon,
   HeartIcon,
   TrophyIcon,
@@ -215,8 +215,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   </ul>
                 </nav>
 
-                {/* Bottom Action Button */}
-                <div className="border-t border-gray-200 pt-4">
+                {/* Nút "Báo cáo mới" đã bị ẩn */}
+                {/* <div className="border-t border-gray-200 pt-4">
                   <Link
                     href="/reports/new"
                     onClick={onClose}
@@ -225,7 +225,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     <PlusCircleIcon className="h-5 w-5" aria-hidden="true" />
                     Báo cáo mới
                   </Link>
-                </div>
+                </div> */}
               </div>
             </Dialog.Panel>
           </Transition.Child>

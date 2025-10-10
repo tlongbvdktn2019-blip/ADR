@@ -1,8 +1,8 @@
 import MainLayout from '@/components/layout/MainLayout'
-import Button from '@/components/ui/Button'
 import ReportList from '@/components/reports/ReportList'
-import Link from 'next/link'
-import { PlusIcon } from '@heroicons/react/24/outline'
+// import Button from '@/components/ui/Button'
+// import Link from 'next/link'
+// import { PlusIcon } from '@heroicons/react/24/outline'
 
 export default function ReportsPage() {
   return (
@@ -13,13 +13,14 @@ export default function ReportsPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Báo cáo ADR</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">Quản lý báo cáo phản ứng có hại của thuốc</p>
           </div>
-          <Link href="/reports/new" className="w-full sm:w-auto">
+          {/* Nút "Tạo báo cáo mới" đã bị ẩn */}
+          {/* <Link href="/reports/new" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto touch-target">
               <PlusIcon className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Tạo báo cáo mới</span>
               <span className="sm:hidden">Báo cáo mới</span>
             </Button>
-          </Link>
+          </Link> */}
         </div>
 
         {/* Reports List Component */}

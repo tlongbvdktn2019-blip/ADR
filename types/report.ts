@@ -96,6 +96,8 @@ export interface ReportListResponse {
     limit: number
     total: number
     totalPages: number
+    totalOrganizations?: number
+    organizationsOnPage?: number
   }
 }
 

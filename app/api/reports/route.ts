@@ -255,8 +255,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = (page - 1) * limit
+    const organizationsPerPage = 10 // Số đơn vị mỗi trang
     const search = searchParams.get('search')
     const severity = searchParams.get('severity')
 
@@ -276,55 +275,81 @@ export async function GET(request: NextRequest) {
 
     const isAdmin = userData.role === 'admin'
 
-    // Base query with joined data
-    let query = supabaseAdmin
+    // Base query to get ALL reports (for grouping by organization)
+    let allReportsQuery = supabaseAdmin
       .from('adr_reports')
       .select(`
         *,
         suspected_drugs(*)
-      `, { count: 'exact' })
+      `)
       .order('created_at', { ascending: false })
-
-    // Both admin and user can see all reports
-    // No role-based filtering needed
 
     // Apply search filter
     if (search && search.trim()) {
-      query = query.or(`report_code.ilike.%${search}%,patient_name.ilike.%${search}%,adr_description.ilike.%${search}%,organization.ilike.%${search}%,reporter_name.ilike.%${search}%`)
+      allReportsQuery = allReportsQuery.or(`report_code.ilike.%${search}%,patient_name.ilike.%${search}%,adr_description.ilike.%${search}%,organization.ilike.%${search}%,reporter_name.ilike.%${search}%`)
     }
 
     // Apply severity filter
     if (severity && severity !== '') {
-      query = query.eq('severity_level', severity)
+      allReportsQuery = allReportsQuery.eq('severity_level', severity)
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1)
+    const { data: allReports, error: allReportsError } = await allReportsQuery
 
-    const { data: reports, error, count } = await query
-
-    if (error) {
-      console.error('Get reports error:', error)
+    if (allReportsError) {
+      console.error('Get reports error:', allReportsError)
       return NextResponse.json(
-        { error: 'Kh??ng th??? l???y danh s??ch b??o c??o: ' + error.message },
+        { error: 'Không thể lấy danh sách báo cáo: ' + allReportsError.message },
         { status: 500 }
       )
     }
 
+    // Group reports by organization and count reports per organization
+    const organizationGroups: { [org: string]: any[] } = {}
+    ;(allReports as any[])?.forEach((report: any) => {
+      const org = report.organization || 'Không xác định'
+      if (!organizationGroups[org]) {
+        organizationGroups[org] = []
+      }
+      organizationGroups[org].push(report)
+    })
+
+    // Sort organizations by report count (descending)
+    const sortedOrganizations = Object.keys(organizationGroups).sort((a, b) => 
+      organizationGroups[b].length - organizationGroups[a].length
+    )
+
+    // Calculate pagination for organizations
+    const totalOrganizations = sortedOrganizations.length
+    const totalPages = Math.ceil(totalOrganizations / organizationsPerPage)
+    const startOrgIndex = (page - 1) * organizationsPerPage
+    const endOrgIndex = Math.min(startOrgIndex + organizationsPerPage, totalOrganizations)
+    
+    // Get organizations for current page
+    const currentPageOrganizations = sortedOrganizations.slice(startOrgIndex, endOrgIndex)
+
+    // Get all reports for organizations on current page
+    const reportsForCurrentPage: any[] = []
+    currentPageOrganizations.forEach((org) => {
+      reportsForCurrentPage.push(...organizationGroups[org])
+    })
+
     return NextResponse.json({
-      reports: reports || [],
+      reports: reportsForCurrentPage || [],
       pagination: {
         page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
+        limit: organizationsPerPage,
+        total: allReports?.length || 0,
+        totalPages: totalPages,
+        totalOrganizations: totalOrganizations,
+        organizationsOnPage: currentPageOrganizations.length
       }
     })
 
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'L???i m??y ch??? n???i b???' },
+      { error: 'Lỗi máy chủ nội bộ' },
       { status: 500 }
     )
   }

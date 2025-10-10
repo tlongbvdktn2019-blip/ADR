@@ -275,61 +275,65 @@ export default function DashboardPage() {
         {/* Stats Grid - Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Reports */}
-          <Card>
-            <div className="flex items-center justify-between">
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex items-center justify-between relative">
               <div>
                 <p className="text-sm font-medium text-gray-600">Tổng số báo cáo</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {stats?.totalReports || 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <DocumentTextIcon className="w-6 h-6 text-blue-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <DocumentTextIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </Card>
 
           {/* New Reports This Month */}
-          <Card>
-            <div className="flex items-center justify-between">
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex items-center justify-between relative">
               <div>
                 <p className="text-sm font-medium text-gray-600">Báo cáo tháng này</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {stats?.newReportsThisMonth || 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <ChartBarIcon className="w-6 h-6 text-green-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <ChartBarIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </Card>
 
           {/* New Reports Today */}
-          <Card>
-            <div className="flex items-center justify-between">
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-violet-600/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex items-center justify-between relative">
               <div>
                 <p className="text-sm font-medium text-gray-600">Báo cáo mới hôm nay</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {stats?.newReportsToday || 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                <ClockIcon className="w-6 h-6 text-indigo-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <ClockIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </Card>
 
           {/* Critical Reports */}
-          <Card>
-            <div className="flex items-center justify-between">
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-rose-500/10 to-rose-600/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex items-center justify-between relative">
               <div>
                 <p className="text-sm font-medium text-gray-600">Báo cáo nghiêm trọng</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {stats?.criticalReports || 0}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/30">
+                <ExclamationTriangleIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </Card>
@@ -338,8 +342,9 @@ export default function DashboardPage() {
         {/* Stats Grid - Row 2 (Pending Reports) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Pending/Unapproved Reports */}
-          <Card>
-            <div className="flex items-center justify-between">
+          <Card className="relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-full -mr-16 -mt-16"></div>
+            <div className="flex items-center justify-between relative">
               <div>
                 <p className="text-sm font-medium text-gray-600">Báo cáo chưa duyệt</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
@@ -349,20 +354,21 @@ export default function DashboardPage() {
                   Tổng số báo cáo đang chờ phê duyệt
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <CheckCircleIcon className="w-6 h-6 text-yellow-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <CheckCircleIcon className="w-7 h-7 text-white" />
               </div>
             </div>
           </Card>
 
           {/* Growth Rate */}
           {stats && stats.previousMonthReports > 0 && (
-            <Card>
-              <div className="flex items-center justify-between">
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-full -mr-16 -mt-16"></div>
+              <div className="flex items-center justify-between relative">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Tăng trưởng so với tháng trước</p>
                   <div className="flex items-center mt-2">
-                    <p className={`text-2xl font-bold ${stats.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-2xl font-bold ${stats.growthRate >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {stats.growthRate >= 0 ? '+' : ''}{stats.growthRate.toFixed(1)}%
                     </p>
                     <span className="text-sm text-gray-600 ml-2">
@@ -370,8 +376,8 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <ChartBarIcon className="w-6 h-6 text-purple-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                  <ChartBarIcon className="w-7 h-7 text-white" />
                 </div>
               </div>
             </Card>
