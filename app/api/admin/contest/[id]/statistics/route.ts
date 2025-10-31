@@ -43,8 +43,8 @@ export async function GET(
     const totalSubmissions = submissions?.length || 0;
     
     // Calculate average score
-    const averageScore = totalSubmissions > 0
-      ? submissions.reduce((sum, sub) => sum + (sub.score || 0), 0) / totalSubmissions
+    const averageScore = totalSubmissions > 0 && submissions
+      ? submissions.reduce((sum: number, sub: any) => sum + (sub.score || 0), 0) / totalSubmissions
       : 0;
 
     // Calculate completion rate
@@ -53,30 +53,39 @@ export async function GET(
       : 0;
 
     // Get top performers (with participant details)
-    const topPerformers = submissions
-      .sort((a, b) => {
-        if (b.score !== a.score) {
-          return b.score - a.score; // Higher score first
-        }
-        return a.time_taken - b.time_taken; // Lower time first
-      })
-      .slice(0, 10)
-      .map((sub, index) => ({
-        id: sub.id,
-        rank: index + 1,
-        full_name: sub.participant?.full_name || 'N/A',
-        department_name: sub.participant?.department?.name || 'N/A',
-        score: sub.score,
-        time_taken: sub.time_taken
-      }));
+    const topPerformers = submissions && submissions.length > 0
+      ? submissions
+          .sort((a: any, b: any) => {
+            if (b.score !== a.score) {
+              return b.score - a.score; // Higher score first
+            }
+            return a.time_taken - b.time_taken; // Lower time first
+          })
+          .slice(0, 10)
+          .map((sub: any, index: number) => ({
+            id: sub.id,
+            rank: index + 1,
+            full_name: sub.participant?.full_name || 'N/A',
+            department_name: sub.participant?.department?.name || 'N/A',
+            score: sub.score,
+            time_taken: sub.time_taken
+          }))
+      : [];
 
     // Score distribution
-    const scoreDistribution = [
-      { range: '0-3', count: submissions.filter(s => s.score >= 0 && s.score <= 3).length },
-      { range: '4-6', count: submissions.filter(s => s.score >= 4 && s.score <= 6).length },
-      { range: '7-8', count: submissions.filter(s => s.score >= 7 && s.score <= 8).length },
-      { range: '9-10', count: submissions.filter(s => s.score >= 9 && s.score <= 10).length }
-    ];
+    const scoreDistribution = submissions && submissions.length > 0
+      ? [
+          { range: '0-3', count: submissions.filter((s: any) => s.score >= 0 && s.score <= 3).length },
+          { range: '4-6', count: submissions.filter((s: any) => s.score >= 4 && s.score <= 6).length },
+          { range: '7-8', count: submissions.filter((s: any) => s.score >= 7 && s.score <= 8).length },
+          { range: '9-10', count: submissions.filter((s: any) => s.score >= 9 && s.score <= 10).length }
+        ]
+      : [
+          { range: '0-3', count: 0 },
+          { range: '4-6', count: 0 },
+          { range: '7-8', count: 0 },
+          { range: '9-10', count: 0 }
+        ];
 
     // Department stats - simplified (would need JOIN with participants)
     const departmentStats: any[] = [];
