@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Contest } from '@/types/contest';
 import ContestQuestionImport from '@/components/admin/ContestQuestionImport';
 import { Toaster } from 'react-hot-toast';
+import MainLayout from '@/components/layout/MainLayout';
 
 export default function AdminContestManagementPage() {
   const { data: session, status } = useSession();
@@ -101,13 +102,30 @@ export default function AdminContestManagementPage() {
   };
 
   if (loading) {
-    return <div className="p-8">Đang tải...</div>;
+    return (
+      <MainLayout requireAuth requireRole="admin">
+        <div className="p-8">Đang tải...</div>
+      </MainLayout>
+    );
   }
 
   return (
-    <>
+    <MainLayout requireAuth requireRole="admin">
       <Toaster position="top-right" />
       <div className="container mx-auto px-4 py-8">
+        {/* Nút Quay về */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Quay về Dashboard
+          </button>
+        </div>
+
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Cuộc thi</h1>
         <div className="flex gap-3">
@@ -238,7 +256,7 @@ export default function AdminContestManagementPage() {
         />
       )}
       </div>
-    </>
+    </MainLayout>
   );
 }
 

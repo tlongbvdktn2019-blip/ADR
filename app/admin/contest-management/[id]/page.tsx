@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Contest, ContestStatistics } from '@/types/contest';
+import MainLayout from '@/components/layout/MainLayout';
 
 export default function AdminContestDetailPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession();
@@ -52,23 +53,35 @@ export default function AdminContestDetailPage({ params }: { params: { id: strin
   };
 
   if (loading) {
-    return <div className="p-8">Đang tải...</div>;
+    return (
+      <MainLayout requireAuth requireRole="admin">
+        <div className="p-8">Đang tải...</div>
+      </MainLayout>
+    );
   }
 
   if (!contest || !statistics) {
-    return <div className="p-8">Không tìm thấy cuộc thi</div>;
+    return (
+      <MainLayout requireAuth requireRole="admin">
+        <div className="p-8">Không tìm thấy cuộc thi</div>
+      </MainLayout>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <button
-          onClick={() => router.push('/admin/contest-management')}
-          className="text-blue-600 hover:text-blue-700 font-semibold"
-        >
-          ← Quay lại
-        </button>
-      </div>
+    <MainLayout requireAuth requireRole="admin">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <button
+            onClick={() => router.push('/admin/contest-management')}
+            className="flex items-center text-blue-600 hover:text-blue-700 font-semibold transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Quay lại Quản lý Cuộc thi
+          </button>
+        </div>
 
       <h1 className="text-3xl font-bold text-gray-800 mb-8">{contest.title}</h1>
 
@@ -225,7 +238,8 @@ export default function AdminContestDetailPage({ params }: { params: { id: strin
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }
 

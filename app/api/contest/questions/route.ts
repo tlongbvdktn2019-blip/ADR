@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Lấy thông tin cuộc thi
+    const now = new Date().toISOString();
     const { data: contest, error: contestError } = await supabase
       .from('contests')
       .select('*')
@@ -28,6 +29,34 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Cuộc thi không tồn tại' },
         { status: 404 }
       );
+    }
+
+    // Kiểm tra cuộc thi có đang active không
+    if (contest.status !== 'active') {
+      return NextResponse.json(
+        { success: false, error: 'Cuộc thi không còn hoạt động' },
+        { status: 400 }
+      );
+    }
+
+    // Chỉ kiểm tra ngày kết thúc nếu có giá trị
+    if (contest.end_date) {
+      if (contest.end_date < now) {
+        return NextResponse.json(
+          { success: false, error: 'Cuộc thi đã kết thúc' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Chỉ kiểm tra ngày bắt đầu nếu có giá trị
+    if (contest.start_date) {
+      if (contest.start_date > now) {
+        return NextResponse.json(
+          { success: false, error: 'Cuộc thi chưa bắt đầu' },
+          { status: 400 }
+        );
+      }
     }
 
     const numberOfQuestions = contest.number_of_questions || 10;

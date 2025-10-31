@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Kiểm tra cuộc thi có tồn tại và đang active
+    const now = new Date().toISOString();
     const { data: contest, error: contestError } = await supabase
       .from('contests')
       .select('*')
@@ -30,6 +31,26 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Cuộc thi không tồn tại hoặc đã kết thúc' },
         { status: 404 }
       );
+    }
+
+    // Chỉ kiểm tra ngày kết thúc nếu có giá trị
+    if (contest.end_date) {
+      if (contest.end_date < now) {
+        return NextResponse.json(
+          { success: false, error: 'Cuộc thi đã kết thúc. Không thể đăng ký!' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Chỉ kiểm tra ngày bắt đầu nếu có giá trị
+    if (contest.start_date) {
+      if (contest.start_date > now) {
+        return NextResponse.json(
+          { success: false, error: 'Cuộc thi chưa bắt đầu!' },
+          { status: 400 }
+        );
+      }
     }
 
     // Lấy thông tin IP và User Agent

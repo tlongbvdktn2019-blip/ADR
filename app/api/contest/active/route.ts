@@ -7,20 +7,31 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     const now = new Date().toISOString();
     
-    const { data: contest, error } = await supabase
+    // Lấy tất cả cuộc thi active và public, sau đó filter trong code
+    const { data: contests, error } = await supabase
       .from('contests')
       .select('*')
       .eq('status', 'active')
       .eq('is_public', true)
-      .lte('start_date', now)
-      .gte('end_date', now)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .order('created_at', { ascending: false });
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      throw error;
-    }
+    if (error) throw error;
+
+    // Filter cuộc thi hợp lệ (xử lý start_date và end_date null)
+    const validContest = contests?.find((contest: any) => {
+      // Nếu có start_date, kiểm tra đã bắt đầu chưa
+      if (contest.start_date && contest.start_date > now) {
+        return false;
+      }
+      // Nếu có end_date, kiểm tra đã kết thúc chưa
+      if (contest.end_date && contest.end_date < now) {
+        return false;
+      }
+      return true;
+    });
+
+    // Convert về single result
+    const contest = validContest || null;
 
     return NextResponse.json({
       success: true,

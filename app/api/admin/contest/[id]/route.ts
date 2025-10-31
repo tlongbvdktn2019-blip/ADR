@@ -35,13 +35,28 @@ export async function GET(
       );
     }
 
-    const { data: contest, error } = await supabaseAdmin
-      .from('contests')
+    // @ts-ignore - contests table not in Database types yet
+    const { data: contest, error } = await (supabaseAdmin
+      .from('contests') as any)
       .select('*')
       .eq('id', params.id)
       .single();
 
     if (error) throw error;
+
+    // Kiểm tra và tự động cập nhật trạng thái nếu đã hết hạn
+    if (contest && contest.status === 'active' && contest.end_date) {
+      const now = new Date().toISOString();
+      if (contest.end_date < now) {
+        // Cập nhật trạng thái sang 'ended'
+        await (supabaseAdmin
+          .from('contests') as any)
+          .update({ status: 'ended' })
+          .eq('id', params.id);
+        
+        contest.status = 'ended';
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -18,6 +18,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
+    // Tự động cập nhật trạng thái các cuộc thi đã hết hạn
+    const now = new Date().toISOString();
+    await (supabaseAdmin
+      .from('contests') as any)
+      .update({ status: 'ended' })
+      .eq('status', 'active')
+      .lt('end_date', now);
+
     // @ts-ignore - contest tables not in Database types yet
     let query = (supabaseAdmin
       .from('contests') as any)
