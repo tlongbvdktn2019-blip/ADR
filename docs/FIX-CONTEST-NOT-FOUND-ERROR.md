@@ -115,13 +115,38 @@ Nếu gặp lỗi "Cuộc thi không tồn tại", hãy kiểm tra theo thứ t�
 
 ### ✅ **Bước 2: Kiểm tra ngày bắt đầu/kết thúc**
 
-Kiểm tra trong form tạo/sửa cuộc thi:
-- `start_date`: Để trống hoặc chọn ngày trong quá khứ
-- `end_date`: Để trống hoặc chọn ngày trong tương lai
+⚠️ **LỖI PHỔ BIẾN NHẤT:** Cuộc thi đã kết thúc vì `end_date` trong quá khứ!
+
+**Kiểm tra trong SQL:**
+```sql
+SELECT 
+  title,
+  start_date,
+  end_date,
+  NOW() as current_time,
+  CASE
+    WHEN start_date > NOW() THEN '❌ Chưa bắt đầu'
+    WHEN end_date < NOW() THEN '❌ ĐÃ KẾT THÚC!'
+    ELSE '✅ Đang diễn ra'
+  END as time_status
+FROM contests
+WHERE status = 'active';
+```
+
+**Fix nhanh:**
+```sql
+-- Xóa giới hạn thời gian (KHUYẾN NGHỊ)
+UPDATE contests
+SET 
+  start_date = NULL,
+  end_date = NULL
+WHERE id = 'your-contest-id';
+```
 
 **Lưu ý:**
-- Nếu để trống → cuộc thi luôn khả dụng
-- Nếu điền → phải đảm bảo `start_date <= now <= end_date`
+- ✅ **Để trống (NULL)** → cuộc thi luôn khả dụng (KHUYẾN NGHỊ)
+- ⚠️ Nếu điền → phải đảm bảo `start_date <= now <= end_date`
+- 🚫 TRÁNH đặt `end_date` quá gần (ví dụ: 1 tiếng)
 
 ### ✅ **Bước 3: Kiểm tra câu hỏi trong ngân hàng**
 
