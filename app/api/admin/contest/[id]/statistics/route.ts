@@ -1,48 +1,103 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth-config'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
-interface RouteParams {
-  params: {
-    id: string
-  }
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+/**
+ * GET: Lấy thống kê cuộc thi (Admin)
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions);
     
-    if (!session) {
+    if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
-      )
+      );
     }
 
-    const contestId = params.id
+    const contestId = params.id;
 
-    // Get contest statistics
-    const { data: stats, error } = await supabaseAdmin
+    // Get total participants
+    const { data: participants, error: pError } = await supabaseAdmin
+      .from('contest_participants')
+      .select('id', { count: 'exact' })
+      .eq('contest_id', contestId);
+
+    if (pError) throw pError;
+
+    // Get submissions
+    const { data: submissions, error: sError } = await supabaseAdmin
       .from('contest_submissions')
       .select('*')
       .eq('contest_id', contestId)
+      .eq('status', 'completed');
 
-    if (error) {
-      console.error('Statistics error:', error)
-      return NextResponse.json(
-        { error: 'Failed to get statistics' },
-        { status: 500 }
-      )
-    }
+    if (sError) throw sError;
 
-    return NextResponse.json({ stats })
+    const totalParticipants = participants?.length || 0;
+    const totalSubmissions = submissions?.length || 0;
+    
+    // Calculate average score
+    const averageScore = totalSubmissions > 0
+      ? submissions.reduce((sum, sub) => sum + (sub.score || 0), 0) / totalSubmissions
+      : 0;
 
-  } catch (error) {
-    console.error('API error:', error)
+    // Calculate completion rate
+    const completionRate = totalParticipants > 0
+      ? (totalSubmissions / totalParticipants) * 100
+      : 0;
+
+    // Get top performers (with participant details)
+    const topPerformers = submissions
+      .sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score; // Higher score first
+        }
+        return a.time_taken - b.time_taken; // Lower time first
+      })
+      .slice(0, 10)
+      .map((sub, index) => ({
+        id: sub.id,
+        rank: index + 1,
+        full_name: sub.participant?.full_name || 'N/A',
+        department_name: sub.participant?.department?.name || 'N/A',
+        score: sub.score,
+        time_taken: sub.time_taken
+      }));
+
+    // Score distribution
+    const scoreDistribution = [
+      { range: '0-3', count: submissions.filter(s => s.score >= 0 && s.score <= 3).length },
+      { range: '4-6', count: submissions.filter(s => s.score >= 4 && s.score <= 6).length },
+      { range: '7-8', count: submissions.filter(s => s.score >= 7 && s.score <= 8).length },
+      { range: '9-10', count: submissions.filter(s => s.score >= 9 && s.score <= 10).length }
+    ];
+
+    // Department stats - simplified (would need JOIN with participants)
+    const departmentStats: any[] = [];
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        total_participants: totalParticipants,
+        total_submissions: totalSubmissions,
+        average_score: averageScore,
+        completion_rate: completionRate,
+        top_performers: topPerformers,
+        score_distribution: scoreDistribution,
+        department_stats: departmentStats
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching contest statistics:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: error.message },
       { status: 500 }
-    )
+    );
   }
 }

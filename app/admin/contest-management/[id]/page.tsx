@@ -60,7 +60,7 @@ export default function AdminContestDetailPage({ params }: { params: { id: strin
     );
   }
 
-  if (!contest || !statistics) {
+  if (!contest) {
     return (
       <MainLayout requireAuth requireRole="admin">
         <div className="p-8">Không tìm thấy cuộc thi</div>
