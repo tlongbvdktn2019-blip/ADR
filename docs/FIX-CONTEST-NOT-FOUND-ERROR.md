@@ -1,5 +1,17 @@
 # Fix: Lỗi "Cuộc thi không tồn tại" khi làm bài
 
+## 🆕 Công cụ Debug mới (Khuyến nghị)
+
+**Cách nhanh nhất để khắc phục:**
+1. Đăng nhập Admin
+2. Truy cập `/admin/debug-contest`
+3. Xem cuộc thi nào hiển thị màu đỏ ❌
+4. Click nút **Fix** hoặc làm theo hướng dẫn
+
+📖 **Chi tiết:** Xem [CONTEST-DEBUG-TOOL-GUIDE.md](./CONTEST-DEBUG-TOOL-GUIDE.md)
+
+---
+
 ## 🔍 Vấn đề
 
 Khi tạo cuộc thi mới và thử đăng ký làm bài, hệ thống báo lỗi:
@@ -21,7 +33,21 @@ Trước đây, API yêu cầu:
 - Supabase filter `.lte(null)` và `.gte(null)` sẽ loại bỏ record này
 - → Cuộc thi không xuất hiện!
 
-### 2. **Chưa import câu hỏi vào ngân hàng cuộc thi**
+### 2. **Trường `is_public` không được set đúng**
+**Vấn đề:**
+- Cuộc thi cần có `is_public = true` để hiển thị công khai
+- Nếu `is_public = false` hoặc `NULL` → cuộc thi không xuất hiện
+- → API `/api/contest/active` không trả về cuộc thi này
+
+**Nguyên nhân:**
+- Khi tạo cuộc thi, có thể trường này không được set đúng
+- Hoặc bị sửa thành `false` trong quá trình chỉnh sửa
+
+**Giải pháp:**
+- Dùng công cụ Debug (`/admin/debug-contest`) để phát hiện và fix 1-click
+- Hoặc cập nhật trực tiếp trong database
+
+### 3. **Chưa import câu hỏi vào ngân hàng cuộc thi**
 - Cuộc thi cần có câu hỏi trong bảng `contest_questions`
 - Nếu chưa import → báo lỗi "Không đủ câu hỏi"
 

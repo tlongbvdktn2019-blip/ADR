@@ -130,6 +130,13 @@ export default function AdminContestManagementPage() {
           <h1 className="text-3xl font-bold text-gray-800">Quản lý Cuộc thi</h1>
         <div className="flex gap-3">
           <button
+            onClick={() => router.push('/admin/debug-contest')}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition flex items-center gap-2"
+            title="Debug cuộc thi không hiện"
+          >
+            🔍 Debug
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition flex items-center gap-2"
           >
