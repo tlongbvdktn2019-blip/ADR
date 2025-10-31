@@ -7,6 +7,15 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
     const now = new Date().toISOString();
     
+    // DEBUG: Log environment info
+    console.log('🌍 [Contest API] Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
+      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      serverTime: now,
+      timestamp: new Date().toLocaleString('vi-VN')
+    });
+    
     // Lấy tất cả cuộc thi active và public, sau đó filter trong code
     const { data: contests, error } = await supabase
       .from('contests')
@@ -16,7 +25,13 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Supabase query error:', error);
+      console.error('❌ Supabase query error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       throw error;
     }
 
