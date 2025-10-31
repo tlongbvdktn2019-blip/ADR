@@ -1,0 +1,3 @@
+Force deployment trigger - 2025-01-01 18:52
+Build: Fix contest register API endpoint
+
