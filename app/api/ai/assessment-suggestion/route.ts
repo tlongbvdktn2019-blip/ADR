@@ -6,15 +6,8 @@ import { ADRFormData } from '@/app/reports/new/page'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    // Check authentication (optional - allows guest access)
     const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Bạn cần đăng nhập để sử dụng tính năng AI gợi ý' },
-        { status: 401 }
-      )
-    }
 
     const body = await request.json()
     const { formData }: { formData: ADRFormData } = body
@@ -31,7 +24,8 @@ export async function POST(request: NextRequest) {
     const suggestion = await AIAssessmentService.analyzeCausality(formData)
     
     // Log the suggestion for monitoring (optional)
-    console.log(`AI Assessment generated for user ${session.user?.email}:`, {
+    const userIdentifier = session?.user?.email || 'guest'
+    console.log(`AI Assessment generated for user ${userIdentifier}:`, {
       whoSuggestion: suggestion.whoSuggestion.suggestedLevel,
       naranjoSuggestion: suggestion.naranjoSuggestion.suggestedLevel,
       overallRecommendation: suggestion.overallRecommendation,

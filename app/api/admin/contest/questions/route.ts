@@ -16,34 +16,57 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const search = searchParams.get('search') || ''
+    const offset = (page - 1) * limit
 
-    // @ts-ignore - contest tables not in Database types yet
-    const { data, error } = await (supabaseAdmin
-      .from('contest_questions') as any)
-      .select('*')
-      .eq('is_active', true)
+    // Build query
+    let query = supabaseAdmin
+      .from('contest_questions')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(limit)
 
-    if (error) throw error
+    // Apply search filter
+    if (search) {
+      query = query.or(`question_text.ilike.%${search}%,explanation.ilike.%${search}%`)
+    }
+
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1)
+
+    const { data, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching contest questions:', error)
+      return NextResponse.json(
+        { error: 'Lỗi khi lấy danh sách câu hỏi' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      data: data || []
+      data: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
     })
 
   } catch (error: any) {
-    console.error('Get contest questions error:', error)
+    console.error('GET contest questions error:', error)
     return NextResponse.json(
-      { error: 'Lỗi khi lấy danh sách câu hỏi' },
+      { error: 'Lỗi server', details: error.message },
       { status: 500 }
     )
   }
 }
 
-// POST: Tạo câu hỏi mới
-export async function POST(request: NextRequest) {
+// DELETE: Xóa nhiều câu hỏi
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -54,80 +77,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const {
-      question_text,
-      options,
-      correct_answer,
-      explanation,
-      points_value = 10
-    } = body
+    const { ids } = await request.json()
 
-    // Validation
-    if (!question_text || !options || !correct_answer) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(
-        { error: 'Thiếu thông tin bắt buộc (câu hỏi, đáp án, đáp án đúng)' },
+        { error: 'Danh sách ID không hợp lệ' },
         { status: 400 }
       )
     }
 
-    // Validate options format - phải có đúng 4 đáp án A, B, C, D
-    if (!Array.isArray(options) || options.length !== 4) {
-      return NextResponse.json(
-        { error: 'Phải có đúng 4 đáp án A, B, C, D' },
-        { status: 400 }
-      )
-    }
-
-    // Validate correct_answer
-    if (!['A', 'B', 'C', 'D'].includes(correct_answer)) {
-      return NextResponse.json(
-        { error: 'Đáp án đúng phải là A, B, C hoặc D' },
-        { status: 400 }
-      )
-    }
-
-    // Check if correct_answer exists in options
-    const optionKeys = options.map((opt: any) => opt.key)
-    if (!optionKeys.includes(correct_answer)) {
-      return NextResponse.json(
-        { error: 'Đáp án đúng không khớp với các lựa chọn' },
-        { status: 400 }
-      )
-    }
-
-    // @ts-ignore - contest tables not in Database types yet
-    const { data, error } = await (supabaseAdmin
-      .from('contest_questions') as any)
-      .insert({
-        question_text,
-        options,
-        correct_answer,
-        explanation,
-        points_value,
-        is_active: true,
-        created_by: session.user.id
-      })
-      .select()
-      .single()
+    // Delete questions
+    const { error } = await supabaseAdmin
+      .from('contest_questions')
+      .delete()
+      .in('id', ids)
 
     if (error) {
-      console.error('Error creating contest question:', error)
-      throw error
+      console.error('Error deleting contest questions:', error)
+      return NextResponse.json(
+        { error: 'Lỗi khi xóa câu hỏi', details: error.message },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Tạo câu hỏi thành công',
-      data
+      message: `Đã xóa ${ids.length} câu hỏi thành công`
     })
 
   } catch (error: any) {
-    console.error('Create contest question error:', error)
+    console.error('DELETE contest questions error:', error)
     return NextResponse.json(
-      { error: 'Lỗi khi tạo câu hỏi' },
+      { error: 'Lỗi server', details: error.message },
       { status: 500 }
     )
   }
 }
-
