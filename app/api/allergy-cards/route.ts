@@ -275,16 +275,17 @@ export async function POST(request: NextRequest) {
     completeCard.suspected_drugs = suspectedDrugs;
 
     // Generate QR code for the card (always generate for every card)
-    // QR chứa MÃ THẺ để dễ dàng tra cứu khi quét
+    // QR chứa URL CÔNG KHAI để bất kỳ ai quét cũng có thể xem thông tin
     let qrCodeUrl = null;
     let qrCodeData = null;
     
     try {
-      // Generate QR code containing CARD CODE (not ID)
-      // Ví dụ QR sẽ chứa: "AC-2024-000001"
+      // Generate QR code containing PUBLIC URL
+      // Ví dụ QR sẽ chứa: "https://domain.com/allergy-cards/public/AC-2024-000001"
+      // Khi quét bằng bất kỳ app QR nào, sẽ mở trang public với đầy đủ thông tin
       qrCodeUrl = await QRCardService.generateCardQR(cardResult.card_code);
       
-      // Store card code as QR data
+      // Store card code as QR data for reference
       qrCodeData = cardResult.card_code;
       
       // Update card with QR code

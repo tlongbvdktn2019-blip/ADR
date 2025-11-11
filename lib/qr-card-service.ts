@@ -9,17 +9,20 @@ import QRCode from 'qrcode';
 export class QRCardService {
   /**
    * Tạo QR code cho thẻ dị ứng dựa trên MÃ THẺ
-   * QR sẽ chứa MÃ THẺ (card_code) để dễ dàng tra cứu khi quét
+   * QR sẽ chứa URL CÔNG KHAI để bất kỳ ai quét cũng có thể xem thông tin
    * @param cardCode - Mã thẻ (ví dụ: AC-2024-000001)
-   * @param baseUrl - Domain của app (tùy chọn, để tạo link đầy đủ)
+   * @param baseUrl - Domain của app (tùy chọn, mặc định lấy từ env)
    * @returns Data URL của QR code (base64)
    */
   static async generateCardQR(cardCode: string, baseUrl?: string): Promise<string> {
     try {
-      // QR chứa MÃ THẺ đơn giản để dễ quét và tra cứu
-      // Ví dụ: AC-2024-000001
-      // Khi quét, hệ thống sẽ tự động tra cứu thẻ bằng mã này
-      const qrContent = cardCode;
+      // Lấy base URL từ env hoặc parameter
+      const appUrl = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      
+      // QR chứa URL CÔNG KHAI đến trang xem thẻ
+      // Ví dụ: https://your-domain.com/allergy-cards/public/AC-2024-000001
+      // Khi quét bằng bất kỳ app QR nào, sẽ mở được trang public với đầy đủ thông tin
+      const qrContent = `${appUrl}/allergy-cards/public/${cardCode}`;
 
       // Generate QR code
       const qrCodeDataUrl = await QRCode.toDataURL(qrContent, {

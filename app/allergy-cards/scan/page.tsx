@@ -35,8 +35,8 @@ export default function QRScannerPage() {
       if (/^AC-\d{4}-\d{6}$/.test(trimmedContent)) {
         toast.loading('Đang tra cứu thẻ dị ứng...');
         
-        // Gọi API tra cứu thẻ bằng mã thẻ
-        const response = await fetch(`/api/allergy-cards/lookup/${trimmedContent}`);
+        // Gọi API tra cứu CÔNG KHAI (không cần đăng nhập)
+        const response = await fetch(`/api/allergy-cards/public/${trimmedContent}`);
         const result = await response.json();
         
         if (response.ok && result.card) {
@@ -51,8 +51,9 @@ export default function QRScannerPage() {
             }), 1000);
           }
           
+          // Chuyển đến trang PUBLIC VIEW (không cần đăng nhập)
           setTimeout(() => {
-            router.push(`/allergy-cards/view/${result.card.id}`);
+            router.push(`/allergy-cards/public/${trimmedContent}`);
             setIsProcessing(false);
           }, 1000);
           return;
@@ -64,7 +65,21 @@ export default function QRScannerPage() {
         }
       }
 
-      // 2. Kiểm tra xem có phải URL thẻ dị ứng không
+      // 2. Kiểm tra xem có phải URL thẻ dị ứng PUBLIC không (ưu tiên)
+      if (trimmedContent.includes('/allergy-cards/public/')) {
+        const match = trimmedContent.match(/\/allergy-cards\/public\/(AC-\d{4}-\d{6})/);
+        if (match) {
+          const cardCode = match[1];
+          toast.success('Đã quét thẻ dị ứng! Đang chuyển hướng...');
+          setTimeout(() => {
+            router.push(`/allergy-cards/public/${cardCode}`);
+            setIsProcessing(false);
+          }, 500);
+          return;
+        }
+      }
+
+      // 3. Kiểm tra xem có phải URL thẻ dị ứng cũ không (fallback)
       if (trimmedContent.includes('/allergy-cards/view/')) {
         const match = trimmedContent.match(/\/allergy-cards\/view\/([a-f0-9-]+)/);
         if (match) {
@@ -78,7 +93,7 @@ export default function QRScannerPage() {
         }
       }
 
-      // 3. Kiểm tra xem có phải Google Drive URL không
+      // 4. Kiểm tra xem có phải Google Drive URL không
       if (trimmedContent.includes('drive.google.com')) {
         setScannedUrl(trimmedContent);
         toast.success('Đã quét Google Drive! Đang mở file...');
@@ -90,7 +105,7 @@ export default function QRScannerPage() {
         return;
       }
 
-      // 4. Thử parse JSON (cho QR data offline)
+      // 5. Thử parse JSON (cho QR data offline)
       try {
         const data = JSON.parse(trimmedContent);
         if (data.type === 'allergy_card') {

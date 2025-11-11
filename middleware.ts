@@ -47,6 +47,21 @@ export default withAuth(
           return true
         }
 
+        // Allow public access to allergy card public pages (NEW - no auth required)
+        if (req.nextUrl.pathname.startsWith('/allergy-cards/public/')) {
+          return true
+        }
+
+        // Allow public API access for allergy cards (NEW - no auth required)
+        if (req.nextUrl.pathname.startsWith('/api/allergy-cards/public/')) {
+          return true
+        }
+
+        // Allow public access to QR scanner page
+        if (req.nextUrl.pathname.startsWith('/allergy-cards/scan')) {
+          return true
+        }
+
         // Require authentication for all other pages
         if (!token) {
           return false
