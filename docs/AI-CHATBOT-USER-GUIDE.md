@@ -2,12 +2,20 @@
 
 ## 🎯 **Tổng quan**
 
-Hệ thống ADR đã được cập nhật để hỗ trợ **AI Chatbot cá nhân**. Từ nay, mỗi người dùng sẽ sử dụng API key riêng của mình thay vì chia sẻ chung, mang lại nhiều lợi ích:
+Hệ thống ADR đã được cập nhật để hỗ trợ **AI Chatbot cá nhân** với khả năng **tư vấn toàn diện**:
 
-✅ **Bảo mật cao hơn** - API key được mã hóa riêng
+### **🤖 Khả năng của AI:**
+✅ **Đánh giá ADR** - Phân tích theo WHO-UMC và Naranjo
+✅ **Tư vấn Dược lý** - Giải đáp về tác dụng phụ, cơ chế, tương tác thuốc
+✅ **Hỗ trợ Lâm sàng** - Gợi ý xử trí và theo dõi
+✅ **Giáo dục Y khoa** - Giải thích kiến thức dược học
+
+### **🔑 Quản lý API Key:**
+✅ **Bảo mật cao** - API key được mã hóa riêng
 ✅ **Không giới hạn quota** - Sử dụng quota riêng của bạn
 ✅ **Tự quản lý chi phí** - Chỉ trả tiền cho những gì bạn sử dụng
 ✅ **Lựa chọn AI** - ChatGPT hoặc Gemini tùy ý
+✅ **Guest Mode** - Có thể dùng không cần đăng nhập
 
 ---
 
@@ -59,15 +67,35 @@ Hệ thống ADR đã được cập nhật để hỗ trợ **AI Chatbot cá nh
 
 ## 💡 **CÁCH SỬ DỤNG AI CHATBOT HIỆU QUẢ**
 
-### **✅ Câu hỏi nên hỏi:**
+### **✅ Câu hỏi về ADR Assessment (Case cụ thể):**
 
 ```
 ✅ "Phân tích case này theo thang WHO-UMC"
 ✅ "Tính điểm Naranjo chi tiết cho trường hợp này"
+✅ "Đánh giá mối liên quan giữa Aspirin và xuất huyết tiêu hóa"
 ✅ "Khuyến nghị xử trí lâm sàng cụ thể"
 ✅ "Cần làm thêm xét nghiệm gì để hỗ trợ đánh giá?"
 ✅ "Phân tích dechallenge/rechallenge"
 ✅ "Risk factors cần lưu ý cho bệnh nhân này"
+```
+
+### **✅ Câu hỏi về Dược lý tổng quát:**
+
+```
+✅ "Tác dụng phụ của Metformin là gì?"
+✅ "Cơ chế gây độc gan của Paracetamol?"
+✅ "Tại sao ACE inhibitor thường gây ho khan?"
+✅ "Tương tác giữa Warfarin và Aspirin?"
+✅ "Yếu tố nào tăng nguy cơ độc thận của Gentamicin?"
+✅ "Cách phòng ngừa tác dụng phụ của Corticosteroid?"
+```
+
+### **✅ Câu hỏi về Xử trí và Theo dõi:**
+
+```
+✅ "Xử trí khi bệnh nhân quá mẫn với Penicillin?"
+✅ "Cần monitor gì khi dùng Methotrexate?"
+✅ "Follow-up plan cho bệnh nhân sau ADR?"
 ```
 
 ### **❌ Câu hỏi nên tránh:**
@@ -75,7 +103,8 @@ Hệ thống ADR đã được cập nhật để hỗ trợ **AI Chatbot cá nh
 ```
 ❌ "Phân tích" (quá chung chung)
 ❌ "Có gì?" (không cụ thể)
-❌ "Thuốc này thế nào?" (thiếu context)
+❌ "Thuốc" (quá mơ hồ)
+❌ "Làm sao?" (thiếu ngữ cảnh)
 ```
 
 ### **🎯 Tips sử dụng:**

@@ -73,7 +73,7 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
       const welcomeMessage: ChatMessage = {
         id: 'welcome',
         role: 'assistant', 
-        content: `🤖 Xin chào! Tôi là AI Consultant chuyên về ADR assessment.\n\nTôi đã phân tích thông tin case của bạn. Bạn có thể hỏi tôi về:\n• Đánh giá mối liên quan thuốc-ADR\n• Phân tích theo thang WHO/Naranjo\n• Gợi ý xử trí lâm sàng\n• Xét nghiệm cần bổ sung\n\nHãy đặt câu hỏi bất kỳ!`,
+        content: `🤖 Xin chào! Tôi là AI Consultant chuyên về Dược lâm sàng và Pharmacovigilance.\n\n✨ **Tôi có thể giúp bạn:**\n• Đánh giá ADR theo WHO-UMC/Naranjo (cho case cụ thể)\n• Tư vấn về tác dụng không mong muốn của thuốc\n• Phân tích cơ chế và yếu tố nguy cơ\n• Gợi ý xử trí lâm sàng và xét nghiệm\n• Giải đáp câu hỏi dược lý tổng quát\n\n💬 Hãy đặt câu hỏi bất kỳ về ADR hoặc dược lý!`,
         timestamp: new Date(),
         metadata: { model: selectedProvider, confidence: 1 }
       }
@@ -510,7 +510,11 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
                     "Khuyến nghị xử trí lâm sàng",
                     "Cần làm thêm xét nghiệm gì?",
                     "Risk factors cần lưu ý",
-                    "Follow-up plan cho bệnh nhân"
+                    "Follow-up plan cho bệnh nhân",
+                    "Tác dụng phụ thường gặp của thuốc này?",
+                    "Cơ chế gây ADR là gì?",
+                    "Tương tác thuốc cần lưu ý",
+                    "Yếu tố nguy cơ làm tăng ADR"
                   ].map((question, index) => (
                     <button
                       key={index}
@@ -532,15 +536,23 @@ export default function AIChatbot({ isOpen, onClose, formData, onApplyInsight }:
                 <div className="text-xs text-gray-700 space-y-2">
                   <p className="flex items-start gap-2">
                     <span className="text-green-600">✓</span>
-                    <span>Dựa trên WHO-UMC & Naranjo</span>
+                    <span>Chuyên gia Dược lâm sàng & Pharmacovigilance</span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-green-600">✓</span>
-                    <span>Trained on medical literature</span>
+                    <span>Đánh giá theo WHO-UMC & Naranjo</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Tư vấn dược lý và tác dụng phụ</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-blue-600">💡</span>
+                    <span>Có thể hỏi cả câu hỏi tổng quát</span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-yellow-600">⚠</span>
-                    <span>Chỉ mang tính tham khảo</span>
+                    <span>Thông tin mang tính tham khảo</span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="text-yellow-600">⚠</span>
