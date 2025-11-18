@@ -322,3 +322,124 @@ export interface AllergyCardAuditLog {
   user_agent?: string;
 }
 
+// =====================================================
+// ALLERGY CARD UPDATES (HISTORY)
+// =====================================================
+
+/**
+ * Type of update being performed
+ */
+export type UpdateType = 'new_allergy' | 'medical_facility' | 'additional_info' | 'severity_update';
+
+/**
+ * Allergy information added in an update
+ */
+export interface UpdateAllergy {
+  id: string;
+  update_id: string;
+  allergen_name: string;
+  certainty_level: CertaintyLevel;
+  clinical_manifestation?: string;
+  severity_level?: SeverityLevel;
+  reaction_type?: string;
+  discovered_date?: string;
+  is_approved: boolean;
+  approved_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Allergy card update/history entry
+ */
+export interface AllergyCardUpdate {
+  // Primary identification
+  id: string;
+  card_id: string;
+  
+  // Thông tin người bổ sung
+  updated_by_name: string; // Tên người bổ sung (không cần đăng nhập)
+  updated_by_organization: string; // Tổ chức/Bệnh viện
+  updated_by_role?: string; // Vai trò: Bác sĩ, Y tá, etc.
+  updated_by_phone?: string; // Số điện thoại liên hệ
+  updated_by_email?: string; // Email liên hệ
+  
+  // Thông tin cơ sở y tế (nơi bổ sung)
+  facility_name: string; // Tên bệnh viện/cơ sở y tế
+  facility_department?: string; // Khoa/phòng
+  
+  // Loại cập nhật
+  update_type: UpdateType;
+  
+  // Ghi chú về lần bổ sung
+  update_notes?: string;
+  reason_for_update?: string; // Lý do bổ sung (khám bệnh, cấp cứu, etc.)
+  
+  // Trạng thái xác minh
+  is_verified: boolean; // Đã xác minh bởi chủ thẻ
+  verified_at?: string;
+  
+  // System fields
+  created_at: string;
+  updated_at: string;
+  
+  // Related allergies (when populated)
+  allergies_added?: UpdateAllergy[];
+  allergies_count?: number;
+}
+
+/**
+ * Form data for adding update to allergy card
+ */
+export interface AllergyCardUpdateFormData {
+  // Card to update
+  card_id: string;
+  card_code: string; // For verification
+  
+  // Thông tin người bổ sung
+  updated_by_name: string;
+  updated_by_organization: string;
+  updated_by_role?: string;
+  updated_by_phone?: string;
+  updated_by_email?: string;
+  
+  // Thông tin cơ sở y tế
+  facility_name: string;
+  facility_department?: string;
+  
+  // Loại cập nhật
+  update_type: UpdateType;
+  
+  // Ghi chú
+  update_notes?: string;
+  reason_for_update?: string;
+  
+  // Allergies to add
+  allergies: {
+    allergen_name: string;
+    certainty_level: CertaintyLevel;
+    clinical_manifestation?: string;
+    severity_level?: SeverityLevel;
+    reaction_type?: string;
+    discovered_date?: string;
+  }[];
+}
+
+/**
+ * Response from adding update to allergy card
+ */
+export interface AllergyCardUpdateResponse {
+  success: boolean;
+  update?: AllergyCardUpdate;
+  allergies_added?: number;
+  error?: string;
+}
+
+/**
+ * Allergy card with full update history
+ */
+export interface AllergyCardWithHistory extends AllergyCard {
+  updates: AllergyCardUpdate[];
+  total_updates: number;
+}
+
