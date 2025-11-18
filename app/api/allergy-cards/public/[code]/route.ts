@@ -126,6 +126,14 @@ export async function GET(
 
     // DEBUG LOGGING
     console.log(`🔍 [${cardCode}] Updates count: ${updates?.length || 0}`);
+    if (updates && updates.length > 0) {
+      console.log(`🔍 [${cardCode}] Updates details:`, updates.map(u => ({
+        id: u.id,
+        type: u.update_type,
+        by: u.updated_by_name,
+        date: u.created_at
+      })));
+    }
     console.log(`✅ [${cardCode}] Final allergies count: ${sortedAllergies.length}`);
 
     // Return card with allergies and updates (public safe data only)

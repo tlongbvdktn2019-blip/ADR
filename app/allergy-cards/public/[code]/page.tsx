@@ -53,6 +53,11 @@ export default function PublicAllergyCardPage() {
         const data = await response.json();
 
         if (response.ok && data.success) {
+          console.log('📦 Frontend received data:', {
+            allergies: data.card?.allergies?.length,
+            updates: data.updates?.length,
+            updatesList: data.updates?.map((u: any) => u.updated_by_name)
+          });
           setCard(data.card);
           setUpdates(data.updates || []);
           setWarning(data.warning || null);
