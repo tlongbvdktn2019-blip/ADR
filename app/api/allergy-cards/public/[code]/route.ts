@@ -85,7 +85,12 @@ export async function GET(
       .from('card_allergies')
       .select('*')
       .eq('card_id', card.id)
-      .order('severity_level', { ascending: false }); // Severe first
+      .order('created_at', { ascending: true }); // Oldest first (original order)
+
+    // DEBUG LOGGING
+    console.log(`🔍 [${cardCode}] Card ID: ${card.id}`);
+    console.log(`🔍 [${cardCode}] Allergies count: ${allergies?.length || 0}`);
+    console.log(`🔍 [${cardCode}] Allergies:`, allergies?.map(a => a.allergen_name));
 
     if (allergiesError) {
       console.error('Allergies fetch error:', allergiesError);
@@ -93,6 +98,19 @@ export async function GET(
         error: 'Lỗi khi lấy thông tin dị ứng' 
       }, { status: 500 });
     }
+
+    // Sort allergies by severity in application layer
+    const sortedAllergies = (allergies || []).sort((a, b) => {
+      const severityOrder: Record<string, number> = {
+        'life_threatening': 1,
+        'severe': 2,
+        'moderate': 3,
+        'mild': 4
+      };
+      const orderA = severityOrder[a.severity_level] || 99;
+      const orderB = severityOrder[b.severity_level] || 99;
+      return orderA - orderB;
+    });
 
     // Fetch update history (lịch sử bổ sung)
     const { data: updates, error: updatesError } = await adminSupabase
@@ -106,12 +124,16 @@ export async function GET(
       // Continue without updates if error
     }
 
+    // DEBUG LOGGING
+    console.log(`🔍 [${cardCode}] Updates count: ${updates?.length || 0}`);
+    console.log(`✅ [${cardCode}] Final allergies count: ${sortedAllergies.length}`);
+
     // Return card with allergies and updates (public safe data only)
     const response = NextResponse.json({
       success: true,
       card: {
         ...card,
-        allergies: allergies || []
+        allergies: sortedAllergies // Use sorted allergies
       },
       updates: updates || [],
       total_updates: updates?.length || 0,
@@ -119,8 +141,9 @@ export async function GET(
     });
 
     // Disable caching để luôn lấy dữ liệu mới nhất
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     
     return response;
 

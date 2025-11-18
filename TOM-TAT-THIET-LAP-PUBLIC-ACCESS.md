@@ -176,3 +176,4 @@ Sau khi chạy file SQL, hệ thống thẻ dị ứng của bạn sẽ:
 **Phiên bản**: 1.0  
 **Trạng thái**: ✅ Sẵn sàng để chạy
 
+

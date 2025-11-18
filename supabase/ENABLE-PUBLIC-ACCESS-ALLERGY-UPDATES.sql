@@ -150,3 +150,4 @@ SELECT 'Bây giờ có thể xem và bổ sung thông tin thẻ dị ứng mà K
 -- - Bảo mật: Chỉ người có mã thẻ mới bổ sung được (validate trong API)
 -- =====================================================
 
+

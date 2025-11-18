@@ -73,3 +73,4 @@ Hoặc chạy file test:
 **Ngày**: 18/11/2024  
 **Mục đích**: Thiết lập tính năng bổ sung thông tin thẻ dị ứng không cần đăng nhập
 
+

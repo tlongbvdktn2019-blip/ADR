@@ -257,3 +257,4 @@ Bất kỳ ai quét QR code hoặc biết ID thẻ đều có thể:
 **Version**: 1.0  
 **Ngày tạo**: 18/11/2024
 
+

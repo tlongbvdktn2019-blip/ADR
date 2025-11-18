@@ -89,3 +89,4 @@ LIMIT 20;
 -- Fix completed
 SELECT 'Trigger fixed! Run the query above to check existing allergies.' as status;
 
+
