@@ -235,7 +235,7 @@ export default function PublicAllergyCardPage() {
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-red-300">
             <ShieldExclamationIcon className="w-7 h-7 text-red-600" />
             <h2 className="text-2xl font-bold text-red-900">
-              THÔNG TIN DỊ ỨNG
+              THÔNG TIN DỊ ỨNG ({card.allergies?.length || 0})
             </h2>
           </div>
 
@@ -248,39 +248,63 @@ export default function PublicAllergyCardPage() {
                 return (
                   <div 
                     key={allergy.id || index}
-                    className="bg-white rounded-lg p-4 border-2 border-red-300 shadow-sm"
+                    className="bg-white rounded-lg p-4 border-2 border-red-300 shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">
-                          {config.icon} {allergy.allergen_name}
-                        </h3>
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${config.color}`}>
-                            {config.label}
+                    {/* Header với tên dị nguyên */}
+                    <div className="mb-3">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                        {config.icon} {allergy.allergen_name}
+                      </h3>
+                      
+                      {/* Badges */}
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {/* Certainty Level Badge */}
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${
+                          allergy.certainty_level === 'confirmed' 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-yellow-500 text-white'
+                        }`}>
+                          {allergy.certainty_level === 'confirmed' ? '✓ Chắc chắn' : '⚠ Nghi ngờ'}
+                        </span>
+                        
+                        {/* Severity Level Badge */}
+                        {allergy.severity_level && (
+                          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold ${config.color}`}>
+                            {config.icon} {config.label}
                           </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            allergy.certainty_level === 'confirmed' 
-                              ? 'bg-gray-900 text-white' 
-                              : 'bg-gray-300 text-gray-700'
-                          }`}>
-                            {allergy.certainty_level === 'confirmed' ? 'Đã xác nhận' : 'Nghi ngờ'}
-                          </span>
-                        </div>
+                        )}
                       </div>
                     </div>
 
+                    {/* Biểu hiện lâm sàng */}
                     {allergy.clinical_manifestation && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-sm text-gray-600 font-medium mb-1">Biểu hiện lâm sàng:</p>
-                        <p className="text-gray-800">{allergy.clinical_manifestation}</p>
+                      <div className="mb-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-sm font-semibold text-red-900 mb-1 flex items-center gap-1">
+                          <span className="text-lg">🩺</span>
+                          Biểu hiện lâm sàng:
+                        </p>
+                        <p className="text-gray-800 leading-relaxed">{allergy.clinical_manifestation}</p>
                       </div>
                     )}
 
+                    {/* Loại phản ứng */}
                     {allergy.reaction_type && (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-600 font-medium mb-1">Loại phản ứng:</p>
+                      <div className="mb-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <p className="text-sm font-semibold text-orange-900 mb-1 flex items-center gap-1">
+                          <span className="text-lg">⚡</span>
+                          Loại phản ứng:
+                        </p>
                         <p className="text-gray-800">{allergy.reaction_type}</p>
+                      </div>
+                    )}
+
+                    {/* Warning footer nếu nghiêm trọng */}
+                    {(allergy.severity_level === 'severe' || allergy.severity_level === 'life_threatening') && (
+                      <div className="mt-3 pt-3 border-t border-red-300">
+                        <p className="text-xs text-red-700 font-medium flex items-center gap-1">
+                          <ExclamationTriangleIcon className="w-4 h-4" />
+                          ⚠️ CẢNH BÁO: Tránh hoàn toàn dị nguyên này
+                        </p>
                       </div>
                     )}
                   </div>
@@ -288,9 +312,10 @@ export default function PublicAllergyCardPage() {
               })}
             </div>
           ) : (
-            <p className="text-gray-600 text-center py-4">
-              Không có thông tin dị ứng
-            </p>
+            <div className="text-center py-8">
+              <ShieldExclamationIcon className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">Không có thông tin dị ứng</p>
+            </div>
           )}
         </Card>
 
