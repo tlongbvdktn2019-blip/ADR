@@ -254,63 +254,8 @@ export default function PublicAllergyCardPage() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* QR Code Section */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 text-center">
-              <h2 className="text-xl font-semibold mb-4 text-blue-900">Mã QR thẻ dị ứng</h2>
-              
-              {/* QR Code Display */}
-              {card.qr_code_url ? (
-                <div className="mb-4">
-                  <img 
-                    src={card.qr_code_url} 
-                    alt={`QR Code - ${card.card_code}`}
-                    className="mx-auto w-48 h-48 border-2 border-blue-200 rounded-lg shadow-sm"
-                  />
-                </div>
-              ) : (
-                <div className="mb-4 w-48 h-48 mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-400 text-sm px-4 text-center">
-                    QR code đang được tạo...
-                  </p>
-                </div>
-              )}
-              
-              {/* Card Code */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Mã thẻ:</p>
-                <p className="text-xl font-mono font-bold text-blue-900">{card.card_code}</p>
-              </div>
-              
-              <div className="text-sm text-gray-600 mb-4 text-left bg-gray-50 p-3 rounded-lg">
-                <p className="font-medium mb-2">📱 Cách sử dụng QR:</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Quét QR bằng camera điện thoại</li>
-                  <li>• Hoặc nhập mã thẻ để tra cứu</li>
-                  <li>• QR chứa mã thẻ: <span className="font-mono font-semibold">{card.card_code}</span></li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                {card.qr_code_url && (
-                  <a 
-                    href={card.qr_code_url}
-                    download={`QR-${card.card_code}.png`}
-                    className="block w-full"
-                  >
-                    <Button variant="outline" className="w-full">
-                      💾 Tải QR Code
-                    </Button>
-                  </a>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Content - Full Width */}
+        <div className="space-y-6">
             
             {/* Patient Information */}
             <Card className="p-6">
@@ -633,7 +578,6 @@ export default function PublicAllergyCardPage() {
                 </div>
               )}
             </Card>
-          </div>
         </div>
 
         {/* Footer */}
