@@ -74,7 +74,16 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/allergy-cards/${params.id}`);
+      // Lấy card_code từ URL nếu có (từ public QR scan)
+      const cardCodeFromUrl = searchParams.get('card_code');
+      
+      // Nếu có card_code, dùng API public, ngược lại dùng API thông thường
+      let response;
+      if (cardCodeFromUrl) {
+        response = await fetch(`/api/allergy-cards/public/${cardCodeFromUrl}`);
+      } else {
+        response = await fetch(`/api/allergy-cards/${params.id}`);
+      }
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -85,7 +94,6 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
       setCard(data.card);
 
       // Tự động verify nếu có card_code trong URL (từ QR scan)
-      const cardCodeFromUrl = searchParams.get('card_code');
       if (cardCodeFromUrl && data.card && cardCodeFromUrl === data.card.card_code) {
         setFormData(prev => ({ ...prev, card_code: cardCodeFromUrl }));
         setShowCardCodeVerify(false);
