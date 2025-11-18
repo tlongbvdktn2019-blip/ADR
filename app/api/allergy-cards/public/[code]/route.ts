@@ -113,9 +113,25 @@ export async function GET(
     });
 
     // Fetch update history (lịch sử bổ sung)
+    // Query trực tiếp từ table thay vì view để tránh vấn đề GROUP BY
     const { data: updates, error: updatesError } = await adminSupabase
-      .from('allergy_card_updates_with_details')
-      .select('*')
+      .from('allergy_card_updates')
+      .select(`
+        *,
+        allergies_added:update_allergies(
+          id,
+          allergen_name,
+          certainty_level,
+          clinical_manifestation,
+          severity_level,
+          reaction_type,
+          discovered_date,
+          is_approved,
+          approved_at,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('card_id', card.id)
       .order('created_at', { ascending: false });
 
