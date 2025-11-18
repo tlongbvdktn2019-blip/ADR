@@ -62,6 +62,20 @@ export default withAuth(
           return true
         }
 
+        // Allow public access to allergy card detail pages (via QR code)
+        // Pattern: /allergy-cards/[uuid] hoặc /allergy-cards/[uuid]/add-info
+        const allergyCardDetailPattern = /^\/allergy-cards\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\/add-info)?$/i;
+        if (allergyCardDetailPattern.test(req.nextUrl.pathname)) {
+          return true
+        }
+
+        // Allow public API access for allergy card details and updates
+        // Pattern: /api/allergy-cards/[uuid] hoặc /api/allergy-cards/[uuid]/updates
+        const allergyCardApiPattern = /^\/api\/allergy-cards\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\/updates)?$/i;
+        if (allergyCardApiPattern.test(req.nextUrl.pathname)) {
+          return true
+        }
+
         // Require authentication for all other pages
         if (!token) {
           return false
