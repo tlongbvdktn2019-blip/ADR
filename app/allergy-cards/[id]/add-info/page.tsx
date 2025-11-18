@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
@@ -40,6 +40,7 @@ interface AddInfoPageProps {
 
 export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [card, setCard] = useState<AllergyCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,6 +83,14 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
       const data = await response.json();
       setCard(data.card);
+
+      // Tự động verify nếu có card_code trong URL (từ QR scan)
+      const cardCodeFromUrl = searchParams.get('card_code');
+      if (cardCodeFromUrl && data.card && cardCodeFromUrl === data.card.card_code) {
+        setFormData(prev => ({ ...prev, card_code: cardCodeFromUrl }));
+        setShowCardCodeVerify(false);
+        toast.success('Đã xác thực mã thẻ tự động');
+      }
 
     } catch (error) {
       console.error('Load card error:', error);
@@ -195,8 +204,12 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
       toast.success(`Đã bổ sung thành công! ${data.allergies_added || 0} dị ứng được thêm vào.`);
       
-      // Redirect to card detail page
-      router.push(`/allergy-cards/${params.id}`);
+      // Redirect back to public view page if coming from QR scan
+      if (card?.card_code) {
+        router.push(`/allergy-cards/public/${card.card_code}`);
+      } else {
+        router.push(`/allergy-cards/${params.id}`);
+      }
 
     } catch (error) {
       console.error('Submit error:', error);
@@ -238,7 +251,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Link href={`/allergy-cards/${params.id}`}>
+            <Link href={card?.card_code ? `/allergy-cards/public/${card.card_code}` : `/allergy-cards/${params.id}`}>
               <Button variant="outline" className="flex items-center gap-2">
                 <ArrowLeftIcon className="w-4 h-4" />
                 Quay lại
@@ -566,7 +579,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
             {/* Submit buttons */}
             <div className="flex gap-3 justify-end">
-              <Link href={`/allergy-cards/${params.id}`}>
+              <Link href={card?.card_code ? `/allergy-cards/public/${card.card_code}` : `/allergy-cards/${params.id}`}>
                 <Button type="button" variant="outline">
                   Hủy bỏ
                 </Button>

@@ -412,7 +412,7 @@ export default function PublicAllergyCardPage() {
                   </p>
                 </div>
               </div>
-              <Link href={`/allergy-cards/${card.id}/add-info`}>
+              <Link href={`/allergy-cards/${card.id}/add-info?card_code=${card.card_code}`}>
                 <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
                   <PlusCircleIcon className="w-5 h-5" />
                   Bổ sung thông tin
