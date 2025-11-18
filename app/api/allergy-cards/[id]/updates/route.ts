@@ -192,22 +192,42 @@ export async function POST(
 
         // 2. ĐỒNG THỜI thêm vào card_allergies (dị ứng chính của thẻ)
         // Để dị ứng mới hiển thị ngay trên thẻ khi quét lại QR
-        const cardAllergiesToInsert = body.allergies.map(allergy => ({
-          card_id: cardId,
-          allergen_name: allergy.allergen_name,
-          certainty_level: allergy.certainty_level,
-          clinical_manifestation: allergy.clinical_manifestation,
-          severity_level: allergy.severity_level,
-          reaction_type: allergy.reaction_type
-        }));
-
-        const { error: cardAllergiesError } = await supabase
+        // QUAN TRỌNG: Kiểm tra trùng lặp trước khi insert
+        
+        // Lấy danh sách dị ứng hiện có của thẻ
+        const { data: existingAllergies } = await supabase
           .from('card_allergies')
-          .insert(cardAllergiesToInsert);
+          .select('allergen_name')
+          .eq('card_id', cardId);
+        
+        const existingAllergenNames = new Set(
+          (existingAllergies || []).map(a => a.allergen_name.toLowerCase().trim())
+        );
+        
+        // Chỉ thêm những dị ứng chưa tồn tại (so sánh tên không phân biệt hoa thường)
+        const cardAllergiesToInsert = body.allergies
+          .filter(allergy => !existingAllergenNames.has(allergy.allergen_name.toLowerCase().trim()))
+          .map(allergy => ({
+            card_id: cardId,
+            allergen_name: allergy.allergen_name,
+            certainty_level: allergy.certainty_level,
+            clinical_manifestation: allergy.clinical_manifestation,
+            severity_level: allergy.severity_level,
+            reaction_type: allergy.reaction_type
+          }));
 
-        if (cardAllergiesError) {
-          console.error('Insert card allergies error:', cardAllergiesError);
-          // Log error nhưng không fail request vì đã lưu vào update_allergies
+        // Chỉ insert nếu có dị ứng mới (chưa tồn tại)
+        if (cardAllergiesToInsert.length > 0) {
+          const { error: cardAllergiesError } = await supabase
+            .from('card_allergies')
+            .insert(cardAllergiesToInsert);
+
+          if (cardAllergiesError) {
+            console.error('Insert card allergies error:', cardAllergiesError);
+            // Log error nhưng không fail request vì đã lưu vào update_allergies
+          }
+        } else {
+          console.log('Tất cả dị ứng đã tồn tại trong card_allergies, bỏ qua insert duplicate');
         }
       }
     }

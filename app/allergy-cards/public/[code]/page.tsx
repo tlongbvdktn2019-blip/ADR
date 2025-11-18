@@ -594,42 +594,30 @@ export default function PublicAllergyCardPage() {
                               </div>
                             )}
 
-                            {/* Allergies added */}
+                            {/* Allergies added - CHỈ HIỂN THỊ TÊN, chi tiết xem ở section "Thông tin dị ứng" */}
                             {update.allergies_added && update.allergies_added.length > 0 && (
                               <div className="mt-3 pt-3 border-t border-gray-200">
                                 <p className="text-sm font-medium text-gray-700 mb-2">
-                                  🔴 Dị ứng được bổ sung ({update.allergies_added.length}):
+                                  🔴 Đã bổ sung {update.allergies_added.length} dị ứng:
                                 </p>
-                                <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
                                   {update.allergies_added.map((allergy: any) => (
-                                    <div key={allergy.id} className="bg-white p-2 rounded border border-gray-200">
-                                      <div className="flex items-start justify-between">
-                                        <p className="font-medium">{allergy.allergen_name}</p>
-                                        <div className="flex gap-1">
-                                          {allergy.certainty_level === 'confirmed' ? (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">
-                                              Chắc chắn
-                                            </span>
-                                          ) : (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800">
-                                              Nghi ngờ
-                                            </span>
-                                          )}
-                                          {allergy.severity_level && (
-                                            <span className={`px-2 py-0.5 text-xs rounded ${getSeverityBadgeColor(allergy.severity_level)}`}>
-                                              {getSeverityText(allergy.severity_level)}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      {allergy.clinical_manifestation && (
-                                        <p className="text-sm text-gray-600 mt-1">
-                                          {allergy.clinical_manifestation}
-                                        </p>
+                                    <span 
+                                      key={allergy.id} 
+                                      className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 border border-red-200 rounded-full text-sm"
+                                    >
+                                      <span className="font-medium text-red-900">{allergy.allergen_name}</span>
+                                      {allergy.severity_level && (
+                                        <span className={`text-xs px-2 py-0.5 rounded ${getSeverityBadgeColor(allergy.severity_level)}`}>
+                                          {getSeverityText(allergy.severity_level)}
+                                        </span>
                                       )}
-                                    </div>
+                                    </span>
                                   ))}
                                 </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                  💡 Xem chi tiết đầy đủ trong phần "Thông tin dị ứng" ở trên
+                                </p>
                               </div>
                             )}
                           </div>
