@@ -94,13 +94,27 @@ export async function GET(
       }, { status: 500 });
     }
 
-    // Return card with allergies (public safe data only)
+    // Fetch update history (lịch sử bổ sung)
+    const { data: updates, error: updatesError } = await adminSupabase
+      .from('allergy_card_updates_with_details')
+      .select('*')
+      .eq('card_id', card.id)
+      .order('created_at', { ascending: false });
+
+    if (updatesError) {
+      console.error('Updates fetch error:', updatesError);
+      // Continue without updates if error
+    }
+
+    // Return card with allergies and updates (public safe data only)
     return NextResponse.json({
       success: true,
       card: {
         ...card,
         allergies: allergies || []
       },
+      updates: updates || [],
+      total_updates: updates?.length || 0,
       warning
     });
 
