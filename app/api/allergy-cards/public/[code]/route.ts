@@ -107,7 +107,7 @@ export async function GET(
     }
 
     // Return card with allergies and updates (public safe data only)
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       card: {
         ...card,
@@ -117,6 +117,12 @@ export async function GET(
       total_updates: updates?.length || 0,
       warning
     });
+
+    // Disable caching để luôn lấy dữ liệu mới nhất
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    
+    return response;
 
   } catch (error) {
     console.error('Public card lookup error:', error);

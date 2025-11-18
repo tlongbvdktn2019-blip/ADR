@@ -63,7 +63,14 @@ export default function PublicAllergyCardPage() {
   useEffect(() => {
     async function fetchCard() {
       try {
-        const response = await fetch(`/api/allergy-cards/public/${cardCode}`);
+        // Thêm timestamp để tránh cache
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/allergy-cards/public/${cardCode}?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
         const data = await response.json();
 
         if (response.ok && data.success) {

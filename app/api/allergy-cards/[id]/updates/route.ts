@@ -166,6 +166,7 @@ export async function POST(
 
     // Insert allergies if provided
     if (body.allergies && body.allergies.length > 0) {
+      // 1. Lưu vào update_allergies (lịch sử)
       const allergiesToInsert = body.allergies.map(allergy => ({
         update_id: updateRecord.id,
         allergen_name: allergy.allergen_name,
@@ -188,6 +189,26 @@ export async function POST(
         // Continue anyway, update was created
       } else {
         allergiesAdded = insertedAllergies?.length || 0;
+
+        // 2. ĐỒNG THỜI thêm vào card_allergies (dị ứng chính của thẻ)
+        // Để dị ứng mới hiển thị ngay trên thẻ khi quét lại QR
+        const cardAllergiesToInsert = body.allergies.map(allergy => ({
+          card_id: cardId,
+          allergen_name: allergy.allergen_name,
+          certainty_level: allergy.certainty_level,
+          clinical_manifestation: allergy.clinical_manifestation,
+          severity_level: allergy.severity_level,
+          reaction_type: allergy.reaction_type
+        }));
+
+        const { error: cardAllergiesError } = await supabase
+          .from('card_allergies')
+          .insert(cardAllergiesToInsert);
+
+        if (cardAllergiesError) {
+          console.error('Insert card allergies error:', cardAllergiesError);
+          // Log error nhưng không fail request vì đã lưu vào update_allergies
+        }
       }
     }
 
