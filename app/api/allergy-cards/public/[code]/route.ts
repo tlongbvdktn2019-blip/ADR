@@ -98,10 +98,10 @@ export async function GET(
     
     console.log(`✅ [${cardCode}] After sorting: ${sortedAllergies.length} allergies`);
 
-    // Fetch update history using view (same as internal API)
-    // View includes allergies_added already joined
+    // Fetch update history - Query directly from tables to ensure all updates are retrieved
+    // This ensures we get all updates including the latest ones
     const { data: updates, error: updatesError } = await supabase
-      .from('allergy_card_updates_with_details')
+      .from('allergy_card_updates')
       .select('*')
       .eq('card_id', card.id)
       .order('created_at', { ascending: false });
@@ -111,15 +111,43 @@ export async function GET(
       // Continue without updates if error
     }
 
-    // Transform updates to ensure allergies_added is always an array
-    const transformedUpdates = (updates || []).map(update => ({
-      ...update,
-      allergies_added: Array.isArray(update.allergies_added) ? update.allergies_added : [],
-      allergies_count: Array.isArray(update.allergies_added) ? update.allergies_added.length : 0
-    }));
+    // Fetch allergies for each update
+    let transformedUpdates: any[] = [];
+    if (updates && updates.length > 0) {
+      const updateIds = updates.map(u => u.id);
+      
+      // Get all allergies for all updates in one query
+      const { data: allergiesData, error: allergiesError } = await supabase
+        .from('update_allergies')
+        .select('*')
+        .in('update_id', updateIds)
+        .order('severity_level', { ascending: false, nullsFirst: false });
+
+      if (allergiesError) {
+        console.error('Allergies fetch error for updates:', allergiesError);
+      }
+
+      // Group allergies by update_id
+      const allergiesByUpdateId = new Map<string, any[]>();
+      (allergiesData || []).forEach(allergy => {
+        const updateId = allergy.update_id;
+        if (!allergiesByUpdateId.has(updateId)) {
+          allergiesByUpdateId.set(updateId, []);
+        }
+        allergiesByUpdateId.get(updateId)!.push(allergy);
+      });
+
+      // Map allergies to each update
+      transformedUpdates = (updates || []).map(update => ({
+        ...update,
+        allergies_added: allergiesByUpdateId.get(update.id) || [],
+        allergies_count: (allergiesByUpdateId.get(update.id) || []).length
+      }));
+    }
 
     // DEBUG LOGGING - Chi tiết để tìm update bị thiếu
-    console.log(`🔍 [${cardCode}] Updates from view: ${transformedUpdates?.length || 0}`);
+    console.log(`🔍 [${cardCode}] Raw updates from DB: ${updates?.length || 0}`);
+    console.log(`🔍 [${cardCode}] Transformed updates: ${transformedUpdates?.length || 0}`);
     
     if (updates && updates.length > 0) {
       console.log(`📋 [${cardCode}] All updates:`, updates.map(u => ({
@@ -128,8 +156,15 @@ export async function GET(
         by: u.updated_by_name,
         org: u.updated_by_organization,
         facility: u.facility_name,
+        date: u.created_at
+      })));
+      
+      console.log(`📋 [${cardCode}] Transformed updates with allergies:`, transformedUpdates.map(u => ({
+        id: u.id,
+        type: u.update_type,
+        by: u.updated_by_name,
         date: u.created_at,
-        allergies_count: Array.isArray(u.allergies_added) ? u.allergies_added.length : 0
+        allergies_count: u.allergies_count || 0
       })));
     }
     
