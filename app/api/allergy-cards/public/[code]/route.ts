@@ -30,8 +30,16 @@ export async function GET(
       }, { status: 400 });
     }
 
-    // Use direct service role client (same as internal updates API)
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Use direct service role client with auth options to bypass RLS completely
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      db: {
+        schema: 'public'
+      }
+    });
 
     // Lookup card by card code
     const { data: card, error: cardError } = await supabase
@@ -90,7 +98,8 @@ export async function GET(
       .from('card_allergies')
       .select('*')
       .eq('card_id', card.id)
-      .order('created_at', { ascending: true }); // Oldest first (original order)
+      .order('created_at', { ascending: true })
+      .limit(100); // Explicit limit to prevent default restrictions
 
     // DEBUG LOGGING - Chi tiết allergies
     console.log(`🔍 [${cardCode}] Card ID: ${card.id}`);
@@ -99,10 +108,15 @@ export async function GET(
     console.log(`🔍 [${cardCode}] All allergy IDs:`, allergies?.map(a => a.id));
 
     if (allergiesError) {
-      console.error('Allergies fetch error:', allergiesError);
+      console.error(`❌ [${cardCode}] Allergies fetch error:`, allergiesError);
       return NextResponse.json({ 
-        error: 'Lỗi khi lấy thông tin dị ứng' 
+        error: 'Lỗi khi lấy thông tin dị ứng',
+        details: allergiesError
       }, { status: 500 });
+    }
+    
+    if (!allergies || allergies.length === 0) {
+      console.warn(`⚠️ [${cardCode}] No allergies returned from query`);
     }
 
     // Sort allergies by severity in application layer
