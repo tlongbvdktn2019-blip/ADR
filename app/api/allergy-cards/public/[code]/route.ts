@@ -118,10 +118,25 @@ export async function GET(
     });
 
     // Fetch update history (lịch sử bổ sung)
-    // Dùng VIEW và service client GIỐNG HỆT API nội bộ
+    // Query trực tiếp từ bảng (VIEW có vấn đề với GROUP BY)
     const { data: updates, error: updatesError } = await supabase
-      .from('allergy_card_updates_with_details')
-      .select('*')
+      .from('allergy_card_updates')
+      .select(`
+        *,
+        allergies_added:update_allergies(
+          id,
+          allergen_name,
+          certainty_level,
+          clinical_manifestation,
+          severity_level,
+          reaction_type,
+          discovered_date,
+          is_approved,
+          approved_at,
+          created_at,
+          updated_at
+        )
+      `)
       .eq('card_id', card.id)
       .order('created_at', { ascending: false });
 
@@ -130,14 +145,22 @@ export async function GET(
       // Continue without updates if error
     }
 
+    // Transform updates to ensure allergies_added is always an array
+    const transformedUpdates = (updates || []).map(update => ({
+      ...update,
+      allergies_added: Array.isArray(update.allergies_added) ? update.allergies_added : [],
+      allergies_count: Array.isArray(update.allergies_added) ? update.allergies_added.length : 0
+    }));
+
     // DEBUG LOGGING
-    console.log(`🔍 [${cardCode}] Updates count: ${updates?.length || 0}`);
-    if (updates && updates.length > 0) {
-      console.log(`🔍 [${cardCode}] Updates details:`, updates.map(u => ({
+    console.log(`🔍 [${cardCode}] Updates count: ${transformedUpdates?.length || 0}`);
+    if (transformedUpdates && transformedUpdates.length > 0) {
+      console.log(`🔍 [${cardCode}] Updates details:`, transformedUpdates.map(u => ({
         id: u.id,
         type: u.update_type,
         by: u.updated_by_name,
-        date: u.created_at
+        date: u.created_at,
+        allergies: u.allergies_count
       })));
     }
     console.log(`✅ [${cardCode}] Final allergies count: ${sortedAllergies.length}`);
@@ -149,8 +172,8 @@ export async function GET(
         ...card,
         allergies: sortedAllergies // Use sorted allergies
       },
-      updates: updates || [],
-      total_updates: updates?.length || 0,
+      updates: transformedUpdates,
+      total_updates: transformedUpdates.length,
       warning
     });
 
