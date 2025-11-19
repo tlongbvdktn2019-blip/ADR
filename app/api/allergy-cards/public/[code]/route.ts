@@ -41,27 +41,11 @@ export async function GET(
       }
     });
 
-    // Lookup card by card code
+    // Lookup card by card code using view (same as internal API)
+    // View includes allergies already joined, ensuring real-time data
     const { data: card, error: cardError } = await supabase
-      .from('allergy_cards')
-      .select(`
-        id,
-        card_code,
-        patient_name,
-        patient_gender,
-        patient_age,
-        patient_id_number,
-        hospital_name,
-        department,
-        doctor_name,
-        doctor_phone,
-        issued_date,
-        expiry_date,
-        organization,
-        status,
-        notes,
-        created_at
-      `)
+      .from('allergy_cards_with_details')
+      .select('*')
       .eq('card_code', cardCode)
       .maybeSingle();
 
@@ -93,34 +77,9 @@ export async function GET(
       }
     }
 
-    // Fetch allergies for this card
-    const { data: allergies, error: allergiesError } = await supabase
-      .from('card_allergies')
-      .select('*')
-      .eq('card_id', card.id)
-      .order('created_at', { ascending: true })
-      .limit(100); // Explicit limit to prevent default restrictions
-
-    // DEBUG LOGGING - Chi tiết allergies
-    console.log(`🔍 [${cardCode}] Card ID: ${card.id}`);
-    console.log(`🔍 [${cardCode}] Raw allergies from DB: ${allergies?.length || 0}`);
-    console.log(`🔍 [${cardCode}] All allergen names:`, allergies?.map(a => a.allergen_name));
-    console.log(`🔍 [${cardCode}] All allergy IDs:`, allergies?.map(a => a.id));
-
-    if (allergiesError) {
-      console.error(`❌ [${cardCode}] Allergies fetch error:`, allergiesError);
-      return NextResponse.json({ 
-        error: 'Lỗi khi lấy thông tin dị ứng',
-        details: allergiesError
-      }, { status: 500 });
-    }
-    
-    if (!allergies || allergies.length === 0) {
-      console.warn(`⚠️ [${cardCode}] No allergies returned from query`);
-    }
-
+    // Allergies are already included in the view
     // Sort allergies by severity in application layer
-    const sortedAllergies = (allergies || []).sort((a, b) => {
+    const sortedAllergies = ((card.allergies || []) as any[]).sort((a, b) => {
       const severityOrder: Record<string, number> = {
         'life_threatening': 1,
         'severe': 2,
@@ -131,33 +90,21 @@ export async function GET(
       const orderB = severityOrder[b.severity_level] || 99;
       return orderA - orderB;
     });
+
+    // DEBUG LOGGING - Chi tiết allergies
+    console.log(`🔍 [${cardCode}] Card ID: ${card.id}`);
+    console.log(`🔍 [${cardCode}] Allergies from view: ${sortedAllergies?.length || 0}`);
+    console.log(`🔍 [${cardCode}] All allergen names:`, sortedAllergies?.map(a => a.allergen_name));
     
     console.log(`✅ [${cardCode}] After sorting: ${sortedAllergies.length} allergies`);
 
-    // Fetch update history (lịch sử bổ sung)
-    // Query 2 bước riêng biệt để tránh nested select issue
-    
-    // Bước 1: Lấy tất cả updates
+    // Fetch update history using view (same as internal API)
+    // View includes allergies_added already joined
     const { data: updates, error: updatesError } = await supabase
-      .from('allergy_card_updates')
+      .from('allergy_card_updates_with_details')
       .select('*')
       .eq('card_id', card.id)
       .order('created_at', { ascending: false });
-    
-    // Bước 2: Lấy allergies cho từng update
-    if (updates && updates.length > 0) {
-      const updateIds = updates.map(u => u.id);
-      const { data: allergiesData } = await supabase
-        .from('update_allergies')
-        .select('*')
-        .in('update_id', updateIds)
-        .order('severity_level', { ascending: false, nullsFirst: false });
-      
-      // Map allergies vào từng update
-      updates.forEach(update => {
-        update.allergies_added = (allergiesData || []).filter(a => a.update_id === update.id);
-      });
-    }
 
     if (updatesError) {
       console.error('Updates fetch error:', updatesError);
@@ -172,8 +119,7 @@ export async function GET(
     }));
 
     // DEBUG LOGGING - Chi tiết để tìm update bị thiếu
-    console.log(`🔍 [${cardCode}] Raw updates from DB: ${updates?.length || 0}`);
-    console.log(`🔍 [${cardCode}] Transformed updates: ${transformedUpdates?.length || 0}`);
+    console.log(`🔍 [${cardCode}] Updates from view: ${transformedUpdates?.length || 0}`);
     
     if (updates && updates.length > 0) {
       console.log(`📋 [${cardCode}] All updates:`, updates.map(u => ({
@@ -183,7 +129,6 @@ export async function GET(
         org: u.updated_by_organization,
         facility: u.facility_name,
         date: u.created_at,
-        allergies_raw: u.allergies_added,
         allergies_count: Array.isArray(u.allergies_added) ? u.allergies_added.length : 0
       })));
     }
