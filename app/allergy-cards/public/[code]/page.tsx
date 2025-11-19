@@ -63,10 +63,31 @@ export default function PublicAllergyCardPage() {
         console.log('📦 Frontend received data:', {
           allergies: data.card?.allergies?.length,
           updates: data.updates?.length,
-          updatesList: data.updates?.map((u: any) => u.updated_by_name)
+          total_updates: data.total_updates,
+          updatesList: data.updates?.map((u: any) => ({
+            id: u.id,
+            type: u.update_type,
+            by: u.updated_by_name,
+            date: u.created_at,
+            allergies_count: u.allergies_count || u.allergies_added?.length || 0
+          }))
         });
+        
+        // Ensure updates are sorted by created_at descending
+        const sortedUpdates = (data.updates || []).sort((a: any, b: any) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateB - dateA; // Newest first
+        });
+        
+        console.log('📋 Sorted updates:', sortedUpdates.map((u: any) => ({
+          id: u.id,
+          date: u.created_at,
+          by: u.updated_by_name
+        })));
+        
         setCard(data.card);
-        setUpdates(data.updates || []);
+        setUpdates(sortedUpdates);
         setWarning(data.warning || null);
         setError(null); // Clear any previous errors
       } else {
@@ -510,8 +531,21 @@ export default function PublicAllergyCardPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {updates.map((update, index) => (
-                    <div key={update.id} className="relative">
+                  {updates.map((update, index) => {
+                    // Debug log for each update being rendered
+                    if (index === 0) {
+                      console.log('🎨 Rendering updates:', {
+                        total: updates.length,
+                        first_update: {
+                          id: update.id,
+                          type: update.update_type,
+                          by: update.updated_by_name,
+                          date: update.created_at
+                        }
+                      });
+                    }
+                    return (
+                    <div key={`update-${update.id}-${index}`} className="relative">
                       {/* Timeline line */}
                       {index < updates.length - 1 && (
                         <div className="absolute left-4 top-12 bottom-0 w-0.5 bg-gray-200" />
@@ -618,7 +652,8 @@ export default function PublicAllergyCardPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>

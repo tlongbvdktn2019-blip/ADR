@@ -161,13 +161,14 @@ export async function GET(
     console.log(`🔍 [${cardCode}] Transformed updates: ${transformedUpdates?.length || 0}`);
     
     if (updates && updates.length > 0) {
-      console.log(`📋 [${cardCode}] All updates:`, updates.map(u => ({
+      console.log(`📋 [${cardCode}] All updates (raw):`, updates.map(u => ({
         id: u.id,
         type: u.update_type,
         by: u.updated_by_name,
         org: u.updated_by_organization,
         facility: u.facility_name,
-        date: u.created_at
+        date: u.created_at,
+        card_id: u.card_id
       })));
       
       console.log(`📋 [${cardCode}] Transformed updates with allergies:`, transformedUpdates.map(u => ({
@@ -175,14 +176,18 @@ export async function GET(
         type: u.update_type,
         by: u.updated_by_name,
         date: u.created_at,
-        allergies_count: u.allergies_count || 0
+        allergies_count: u.allergies_count || 0,
+        allergies_added_ids: u.allergies_added?.map((a: any) => a.id) || []
       })));
+    } else {
+      console.log(`⚠️ [${cardCode}] WARNING: No updates found in database for card_id: ${card.id}`);
     }
     
     console.log(`✅ [${cardCode}] Final counts - Allergies: ${sortedAllergies.length}, Updates: ${transformedUpdates.length}`);
+    console.log(`✅ [${cardCode}] Response will include ${transformedUpdates.length} updates`);
 
     // Return card with allergies and updates (public safe data only)
-    const response = NextResponse.json({
+    const responseData = {
       success: true,
       card: {
         ...card,
@@ -191,7 +196,17 @@ export async function GET(
       updates: transformedUpdates,
       total_updates: transformedUpdates.length,
       warning
+    };
+    
+    // Final verification log
+    console.log(`✅ [${cardCode}] Response data summary:`, {
+      card_id: card.id,
+      allergies_count: sortedAllergies.length,
+      updates_count: transformedUpdates.length,
+      updates_ids: transformedUpdates.map(u => u.id)
     });
+    
+    const response = NextResponse.json(responseData);
 
     // Disable caching để luôn lấy dữ liệu mới nhất
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
