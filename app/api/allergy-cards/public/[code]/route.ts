@@ -5,11 +5,7 @@
 // =====================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client with service role (same as internal API)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createAdminClient } from '@/lib/supabase';
 
 /**
  * GET /api/allergy-cards/public/[code]
@@ -30,16 +26,8 @@ export async function GET(
       }, { status: 400 });
     }
 
-    // Use direct service role client with auth options to bypass RLS completely
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      },
-      db: {
-        schema: 'public'
-      }
-    });
+    // Use admin client to bypass RLS completely (same as internal API)
+    const supabase = createAdminClient();
 
     // Lookup card by card code using view (same as internal API)
     // View includes allergies already joined, ensuring real-time data
@@ -100,31 +88,42 @@ export async function GET(
 
     // Fetch update history - Query directly from tables to ensure all updates are retrieved
     // This ensures we get all updates including the latest ones
+    // Use explicit limit to ensure we get all records (Supabase default limit is 1000)
     const { data: updates, error: updatesError } = await supabase
       .from('allergy_card_updates')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('card_id', card.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000); // Explicit limit to ensure we get all updates
 
     if (updatesError) {
-      console.error('Updates fetch error:', updatesError);
-      // Continue without updates if error
+      console.error(`❌ [${cardCode}] Updates fetch error:`, updatesError);
+      console.error(`❌ [${cardCode}] Error details:`, JSON.stringify(updatesError, null, 2));
+      // Continue without updates if error, but log it
     }
+
+    console.log(`🔍 [${cardCode}] Found ${updates?.length || 0} updates for card_id: ${card.id}`);
 
     // Fetch allergies for each update
     let transformedUpdates: any[] = [];
     if (updates && updates.length > 0) {
       const updateIds = updates.map(u => u.id);
+      console.log(`🔍 [${cardCode}] Fetching allergies for ${updateIds.length} updates:`, updateIds);
       
       // Get all allergies for all updates in one query
+      // Use explicit limit to ensure we get all records
       const { data: allergiesData, error: allergiesError } = await supabase
         .from('update_allergies')
-        .select('*')
+        .select('*', { count: 'exact' })
         .in('update_id', updateIds)
-        .order('severity_level', { ascending: false, nullsFirst: false });
+        .order('severity_level', { ascending: false, nullsFirst: false })
+        .limit(1000); // Explicit limit
 
       if (allergiesError) {
-        console.error('Allergies fetch error for updates:', allergiesError);
+        console.error(`❌ [${cardCode}] Allergies fetch error for updates:`, allergiesError);
+        console.error(`❌ [${cardCode}] Error details:`, JSON.stringify(allergiesError, null, 2));
+      } else {
+        console.log(`✅ [${cardCode}] Found ${allergiesData?.length || 0} allergies for updates`);
       }
 
       // Group allergies by update_id
@@ -137,12 +136,24 @@ export async function GET(
         allergiesByUpdateId.get(updateId)!.push(allergy);
       });
 
+      console.log(`🔍 [${cardCode}] Allergies grouped by update_id:`, 
+        Array.from(allergiesByUpdateId.entries()).map(([id, allergies]) => ({
+          update_id: id,
+          count: allergies.length
+        }))
+      );
+
       // Map allergies to each update
-      transformedUpdates = (updates || []).map(update => ({
-        ...update,
-        allergies_added: allergiesByUpdateId.get(update.id) || [],
-        allergies_count: (allergiesByUpdateId.get(update.id) || []).length
-      }));
+      transformedUpdates = (updates || []).map(update => {
+        const allergies = allergiesByUpdateId.get(update.id) || [];
+        return {
+          ...update,
+          allergies_added: allergies,
+          allergies_count: allergies.length
+        };
+      });
+    } else {
+      console.log(`⚠️ [${cardCode}] No updates found for card_id: ${card.id}`);
     }
 
     // DEBUG LOGGING - Chi tiết để tìm update bị thiếu
