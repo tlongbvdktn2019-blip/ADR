@@ -152,18 +152,24 @@ export async function GET(
       allergies_count: Array.isArray(update.allergies_added) ? update.allergies_added.length : 0
     }));
 
-    // DEBUG LOGGING
-    console.log(`🔍 [${cardCode}] Updates count: ${transformedUpdates?.length || 0}`);
-    if (transformedUpdates && transformedUpdates.length > 0) {
-      console.log(`🔍 [${cardCode}] Updates details:`, transformedUpdates.map(u => ({
+    // DEBUG LOGGING - Chi tiết để tìm update bị thiếu
+    console.log(`🔍 [${cardCode}] Raw updates from DB: ${updates?.length || 0}`);
+    console.log(`🔍 [${cardCode}] Transformed updates: ${transformedUpdates?.length || 0}`);
+    
+    if (updates && updates.length > 0) {
+      console.log(`📋 [${cardCode}] All updates:`, updates.map(u => ({
         id: u.id,
         type: u.update_type,
         by: u.updated_by_name,
+        org: u.updated_by_organization,
+        facility: u.facility_name,
         date: u.created_at,
-        allergies: u.allergies_count
+        allergies_raw: u.allergies_added,
+        allergies_count: Array.isArray(u.allergies_added) ? u.allergies_added.length : 0
       })));
     }
-    console.log(`✅ [${cardCode}] Final allergies count: ${sortedAllergies.length}`);
+    
+    console.log(`✅ [${cardCode}] Final counts - Allergies: ${sortedAllergies.length}, Updates: ${transformedUpdates.length}`);
 
     // Return card with allergies and updates (public safe data only)
     const response = NextResponse.json({
