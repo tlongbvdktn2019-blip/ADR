@@ -49,12 +49,15 @@ export default function PublicAllergyCardPage() {
         setIsRefreshing(true);
       }
       
-      // Thêm timestamp để tránh cache
+      // Thêm timestamp để tránh cache (đặc biệt quan trọng cho Vercel)
       const timestamp = new Date().getTime();
-      const response = await fetch(`/api/allergy-cards/public/${cardCode}?t=${timestamp}`, {
+      const response = await fetch(`/api/allergy-cards/public/${cardCode}?t=${timestamp}&_=${Math.random()}`, {
         cache: 'no-store',
+        next: { revalidate: 0 },
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
       const data = await response.json();

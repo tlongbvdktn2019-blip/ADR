@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 
+// Force dynamic rendering and disable all caching (Vercel)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 /**
  * GET /api/allergy-cards/public/[code]
  * Public endpoint to lookup allergy card by card code
@@ -119,19 +124,67 @@ export async function GET(
     console.log(`🔍 [${cardCode}] Query result - Found ${updates?.length || 0} updates, Count: ${count}`);
     console.log(`🔍 [${cardCode}] Card ID: ${card.id}, Card Code: ${cardCode}`);
     
-    // Debug: Check if there are any updates with different card_id but same card_code
-    const { data: allUpdatesByCode, error: codeError } = await supabase
+    // Debug: Check if there are any cards with same card_code but different id
+    const { data: cardsWithSameCode, error: cardsError } = await supabase
+      .from('allergy_cards')
+      .select('id, card_code')
+      .eq('card_code', cardCode);
+    
+    if (cardsWithSameCode && cardsWithSameCode.length > 1) {
+      console.error(`❌ [${cardCode}] WARNING: Found ${cardsWithSameCode.length} cards with same card_code!`);
+      console.error(`❌ [${cardCode}] Card IDs:`, cardsWithSameCode.map(c => c.id));
+    }
+    
+    // Debug: Check all updates for all cards with this card_code
+    if (cardsWithSameCode && cardsWithSameCode.length > 0) {
+      const allCardIds = cardsWithSameCode.map(c => c.id);
+      const { data: allUpdatesForCode, error: allUpdatesError } = await supabase
+        .from('allergy_card_updates')
+        .select('id, card_id, created_at, updated_by_name, update_type')
+        .in('card_id', allCardIds)
+        .order('created_at', { ascending: false });
+      
+      console.log(`🔍 [${cardCode}] All updates for all cards with this code: ${allUpdatesForCode?.length || 0}`);
+      if (allUpdatesForCode && allUpdatesForCode.length > 0) {
+        console.log(`📋 [${cardCode}] Updates by card_id:`, allUpdatesForCode.map(u => ({
+          id: u.id,
+          card_id: u.card_id,
+          created_at: u.created_at,
+          by: u.updated_by_name,
+          type: u.update_type
+        })));
+      }
+    }
+    
+    // Debug: Query again without any filters to verify
+    const { data: rawAllUpdates, error: rawError } = await supabase
       .from('allergy_card_updates')
-      .select('id, card_id, created_at, updated_by_name')
+      .select('id, card_id, created_at, updated_by_name, update_type')
       .eq('card_id', card.id);
     
-    if (!codeError && allUpdatesByCode) {
-      console.log(`🔍 [${cardCode}] All updates by card_id (for verification):`, allUpdatesByCode.map(u => ({
+    console.log(`🔍 [${cardCode}] Raw query (no order/limit) - Found ${rawAllUpdates?.length || 0} updates`);
+    if (rawAllUpdates && rawAllUpdates.length > 0) {
+      console.log(`📋 [${cardCode}] All updates (raw, no filters):`, rawAllUpdates.map(u => ({
         id: u.id,
         card_id: u.card_id,
         created_at: u.created_at,
-        by: u.updated_by_name
+        by: u.updated_by_name,
+        type: u.update_type
       })));
+    }
+    
+    // Compare với query có order và limit
+    if (updates && rawAllUpdates) {
+      const updatesIds = new Set(updates.map(u => u.id));
+      const rawIds = new Set(rawAllUpdates.map(u => u.id));
+      
+      const missingIds = Array.from(rawIds).filter(id => !updatesIds.has(id));
+      if (missingIds.length > 0) {
+        console.error(`❌ [${cardCode}] MISSING UPDATES after order/limit:`, missingIds);
+        console.error(`❌ [${cardCode}] Missing updates details:`, rawAllUpdates.filter(u => missingIds.includes(u.id)));
+      } else {
+        console.log(`✅ [${cardCode}] All updates found - no missing after order/limit`);
+      }
     }
 
     // Fetch allergies for each update
@@ -238,10 +291,13 @@ export async function GET(
     
     const response = NextResponse.json(responseData);
 
-    // Disable caching để luôn lấy dữ liệu mới nhất
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    // Disable ALL caching - đặc biệt quan trọng cho Vercel
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+    response.headers.set('CDN-Cache-Control', 'no-store');
+    response.headers.set('Vercel-CDN-Cache-Control', 'no-store');
     
     return response;
 
