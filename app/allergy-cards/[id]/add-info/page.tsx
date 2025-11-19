@@ -212,11 +212,11 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
       toast.success(`Đã bổ sung thành công! ${data.allergies_added || 0} dị ứng được thêm vào.`);
       
-      // Redirect back to public view page if coming from QR scan
+      // Redirect back with updated=true param to trigger auto-refresh
       if (card?.card_code) {
-        router.push(`/allergy-cards/public/${card.card_code}`);
+        router.push(`/allergy-cards/public/${card.card_code}?updated=true`);
       } else {
-        router.push(`/allergy-cards/${params.id}`);
+        router.push(`/allergy-cards/${params.id}?updated=true`);
       }
 
     } catch (error) {

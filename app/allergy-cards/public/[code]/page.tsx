@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ExclamationTriangleIcon,
@@ -23,7 +23,8 @@ import {
   CheckCircleIcon,
   ClipboardDocumentListIcon,
   PrinterIcon,
-  ShareIcon
+  ShareIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -31,6 +32,7 @@ import { AllergyCard, AllergyCardUpdate, SeverityLevel } from '@/types/allergy-c
 
 export default function PublicAllergyCardPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const cardCode = params.code as string;
   
   const [card, setCard] = useState<AllergyCard | null>(null);
@@ -38,44 +40,76 @@ export default function PublicAllergyCardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function fetchCard() {
-      try {
-        // Thêm timestamp để tránh cache
-        const timestamp = new Date().getTime();
-        const response = await fetch(`/api/allergy-cards/public/${cardCode}?t=${timestamp}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          console.log('📦 Frontend received data:', {
-            allergies: data.card?.allergies?.length,
-            updates: data.updates?.length,
-            updatesList: data.updates?.map((u: any) => u.updated_by_name)
-          });
-          setCard(data.card);
-          setUpdates(data.updates || []);
-          setWarning(data.warning || null);
-        } else {
-          setError(data.error || 'Không thể tải thông tin thẻ dị ứng');
+  // Function to fetch card data
+  const fetchCard = async (showRefreshingState = false) => {
+    try {
+      if (showRefreshingState) {
+        setIsRefreshing(true);
+      }
+      
+      // Thêm timestamp để tránh cache
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/allergy-cards/public/${cardCode}?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
         }
-      } catch (err) {
-        console.error('Fetch error:', err);
-        setError('Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.');
-      } finally {
-        setLoading(false);
+      });
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        console.log('📦 Frontend received data:', {
+          allergies: data.card?.allergies?.length,
+          updates: data.updates?.length,
+          updatesList: data.updates?.map((u: any) => u.updated_by_name)
+        });
+        setCard(data.card);
+        setUpdates(data.updates || []);
+        setWarning(data.warning || null);
+        setError(null); // Clear any previous errors
+      } else {
+        setError(data.error || 'Không thể tải thông tin thẻ dị ứng');
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Lỗi kết nối. Vui lòng kiểm tra internet và thử lại.');
+    } finally {
+      setLoading(false);
+      if (showRefreshingState) {
+        setIsRefreshing(false);
       }
     }
+  };
 
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    await fetchCard(true);
+  };
+
+  // Initial load
+  useEffect(() => {
     if (cardCode) {
-      fetchCard();
+      fetchCard(false);
     }
   }, [cardCode]);
+
+  // Auto-refresh when returning from add-info page
+  useEffect(() => {
+    const updated = searchParams.get('updated');
+    if (updated === 'true' && card) {
+      console.log('🔄 Auto-refreshing after update...');
+      fetchCard(true);
+      
+      // Clean up URL after refresh
+      if (window.history.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('updated');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [searchParams]);
 
   const getUpdateTypeText = (type: string) => {
     switch (type) {
@@ -205,6 +239,16 @@ export default function PublicAllergyCardPage() {
             </div>
             
             <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 border-green-300 text-green-700 hover:bg-green-50"
+              >
+                <ArrowPathIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Đang tải...' : 'Làm mới'}
+              </Button>
+
               <Button
                 variant="outline"
                 onClick={handlePrint}
