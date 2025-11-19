@@ -118,27 +118,29 @@ export async function GET(
     });
 
     // Fetch update history (lịch sử bổ sung)
-    // Query trực tiếp từ bảng (VIEW có vấn đề với GROUP BY)
+    // Query 2 bước riêng biệt để tránh nested select issue
+    
+    // Bước 1: Lấy tất cả updates
     const { data: updates, error: updatesError } = await supabase
       .from('allergy_card_updates')
-      .select(`
-        *,
-        allergies_added:update_allergies(
-          id,
-          allergen_name,
-          certainty_level,
-          clinical_manifestation,
-          severity_level,
-          reaction_type,
-          discovered_date,
-          is_approved,
-          approved_at,
-          created_at,
-          updated_at
-        )
-      `)
+      .select('*')
       .eq('card_id', card.id)
       .order('created_at', { ascending: false });
+    
+    // Bước 2: Lấy allergies cho từng update
+    if (updates && updates.length > 0) {
+      const updateIds = updates.map(u => u.id);
+      const { data: allergiesData } = await supabase
+        .from('update_allergies')
+        .select('*')
+        .in('update_id', updateIds)
+        .order('severity_level', { ascending: false, nullsFirst: false });
+      
+      // Map allergies vào từng update
+      updates.forEach(update => {
+        update.allergies_added = (allergiesData || []).filter(a => a.update_id === update.id);
+      });
+    }
 
     if (updatesError) {
       console.error('Updates fetch error:', updatesError);
