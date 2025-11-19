@@ -20,7 +20,8 @@ import {
   PencilIcon,
   TrashIcon,
   ClipboardDocumentListIcon,
-  QrCodeIcon
+  QrCodeIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -281,6 +282,13 @@ export default function AllergyCardsPage() {
             </div>
             
             <div className="flex gap-3">
+              <Link href="/dashboard">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  Quay lại
+                </Button>
+              </Link>
+              
               <Link href="/allergy-cards/scan">
                 <Button variant="outline" className="flex items-center gap-2">
                   <QrCodeIcon className="w-5 h-5" />
