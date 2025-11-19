@@ -89,7 +89,21 @@ export async function GET(
     // Fetch update history - Query directly from tables to ensure all updates are retrieved
     // This ensures we get all updates including the latest ones
     // Use explicit limit to ensure we get all records (Supabase default limit is 1000)
-    const { data: updates, error: updatesError } = await supabase
+    
+    // First, let's verify all updates exist in database
+    const { count: totalUpdatesCount, error: countError } = await supabase
+      .from('allergy_card_updates')
+      .select('*', { count: 'exact', head: true })
+      .eq('card_id', card.id);
+    
+    console.log(`🔍 [${cardCode}] Total updates in DB for card_id ${card.id}: ${totalUpdatesCount || 0}`);
+    
+    if (countError) {
+      console.error(`❌ [${cardCode}] Count error:`, countError);
+    }
+    
+    // Now fetch all updates
+    const { data: updates, error: updatesError, count } = await supabase
       .from('allergy_card_updates')
       .select('*', { count: 'exact' })
       .eq('card_id', card.id)
@@ -102,7 +116,23 @@ export async function GET(
       // Continue without updates if error, but log it
     }
 
-    console.log(`🔍 [${cardCode}] Found ${updates?.length || 0} updates for card_id: ${card.id}`);
+    console.log(`🔍 [${cardCode}] Query result - Found ${updates?.length || 0} updates, Count: ${count}`);
+    console.log(`🔍 [${cardCode}] Card ID: ${card.id}, Card Code: ${cardCode}`);
+    
+    // Debug: Check if there are any updates with different card_id but same card_code
+    const { data: allUpdatesByCode, error: codeError } = await supabase
+      .from('allergy_card_updates')
+      .select('id, card_id, created_at, updated_by_name')
+      .eq('card_id', card.id);
+    
+    if (!codeError && allUpdatesByCode) {
+      console.log(`🔍 [${cardCode}] All updates by card_id (for verification):`, allUpdatesByCode.map(u => ({
+        id: u.id,
+        card_id: u.card_id,
+        created_at: u.created_at,
+        by: u.updated_by_name
+      })));
+    }
 
     // Fetch allergies for each update
     let transformedUpdates: any[] = [];
