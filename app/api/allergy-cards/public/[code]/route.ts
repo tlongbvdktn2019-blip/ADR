@@ -92,10 +92,11 @@ export async function GET(
       .eq('card_id', card.id)
       .order('created_at', { ascending: true }); // Oldest first (original order)
 
-    // DEBUG LOGGING
+    // DEBUG LOGGING - Chi tiết allergies
     console.log(`🔍 [${cardCode}] Card ID: ${card.id}`);
-    console.log(`🔍 [${cardCode}] Allergies count: ${allergies?.length || 0}`);
-    console.log(`🔍 [${cardCode}] Allergies:`, allergies?.map(a => a.allergen_name));
+    console.log(`🔍 [${cardCode}] Raw allergies from DB: ${allergies?.length || 0}`);
+    console.log(`🔍 [${cardCode}] All allergen names:`, allergies?.map(a => a.allergen_name));
+    console.log(`🔍 [${cardCode}] All allergy IDs:`, allergies?.map(a => a.id));
 
     if (allergiesError) {
       console.error('Allergies fetch error:', allergiesError);
@@ -116,6 +117,8 @@ export async function GET(
       const orderB = severityOrder[b.severity_level] || 99;
       return orderA - orderB;
     });
+    
+    console.log(`✅ [${cardCode}] After sorting: ${sortedAllergies.length} allergies`);
 
     // Fetch update history (lịch sử bổ sung)
     // Query 2 bước riêng biệt để tránh nested select issue
