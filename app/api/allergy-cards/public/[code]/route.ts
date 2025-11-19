@@ -5,7 +5,11 @@
 // =====================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client with service role (same as internal API)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 /**
  * GET /api/allergy-cards/public/[code]
@@ -26,10 +30,11 @@ export async function GET(
       }, { status: 400 });
     }
 
-    const adminSupabase = createAdminClient();
+    // Use direct service role client (same as internal updates API)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Lookup card by card code
-    const { data: card, error: cardError } = await adminSupabase
+    const { data: card, error: cardError } = await supabase
       .from('allergy_cards')
       .select(`
         id,
@@ -81,7 +86,7 @@ export async function GET(
     }
 
     // Fetch allergies for this card
-    const { data: allergies, error: allergiesError } = await adminSupabase
+    const { data: allergies, error: allergiesError } = await supabase
       .from('card_allergies')
       .select('*')
       .eq('card_id', card.id)
@@ -113,8 +118,8 @@ export async function GET(
     });
 
     // Fetch update history (lịch sử bổ sung)
-    // Dùng VIEW giống như trang nội bộ để đảm bảo consistency
-    const { data: updates, error: updatesError } = await adminSupabase
+    // Dùng VIEW và service client GIỐNG HỆT API nội bộ
+    const { data: updates, error: updatesError } = await supabase
       .from('allergy_card_updates_with_details')
       .select('*')
       .eq('card_id', card.id)
