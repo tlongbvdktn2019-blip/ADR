@@ -54,8 +54,14 @@ export async function GET(
       .order('created_at', { ascending: false })
       .limit(1000);
 
-    // 5. Kiểm tra RLS policies
-    const { data: rlsCheck } = await supabase.rpc('check_rls_policies', {}).catch(() => null);
+    // 5. Kiểm tra RLS policies (skip if function doesn't exist)
+    let rlsCheck = null;
+    try {
+      const { data } = await supabase.rpc('check_rls_policies', {});
+      rlsCheck = data;
+    } catch (error) {
+      // RPC function might not exist, skip
+    }
 
     // 6. Query từng update riêng biệt để kiểm tra
     let individualUpdates: any[] = [];
