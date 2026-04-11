@@ -270,7 +270,7 @@ export default function AdminContestManagementPage() {
           onClose={() => setShowImportModal(false)}
           onSuccess={() => {
             setShowImportModal(false);
-            alert('Import câu hỏi thành công! Các câu hỏi đã được thêm vào ngân hàng câu hỏi CUỘC THI (riêng biệt với Quiz Training).');
+            alert('Import câu hỏi thành công! Các câu hỏi đã được thêm vào ngân hàng câu hỏi CUỘC THI.');
           }}
         />
       )}
@@ -411,4 +411,3 @@ function CreateContestModal({ onClose, onCreate }: any) {
     </div>
   );
 }
-

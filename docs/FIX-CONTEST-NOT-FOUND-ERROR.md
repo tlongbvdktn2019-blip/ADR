@@ -262,9 +262,8 @@ LIMIT 10;
 ## 📝 Lưu ý quan trọng
 
 1. **Ngân hàng câu hỏi riêng biệt:**
-   - `contest_questions` → Dành cho cuộc thi
-   - `quiz_questions` → Dành cho quiz training
-   - **Không lẫn lộn!**
+   - `contest_questions` → Ngân hàng câu hỏi duy nhất được module cuộc thi sử dụng
+   - **Không import sang bảng khác nếu muốn dùng cho cuộc thi.**
 
 2. **Import câu hỏi:**
    - Phải import vào đúng ngân hàng `contest_questions`

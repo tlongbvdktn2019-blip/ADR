@@ -6,19 +6,8 @@ import { createClient } from '../../../../lib/supabase'
 // GET /api/adr-information/test - Test database connection and schema
 export async function GET(request: NextRequest) {
   try {
-    console.log('=== ADR Information Test API ===')
-    
     // Test 1: Auth session
     const session = await getServerSession(authOptions)
-    console.log('Session:', {
-      exists: !!session,
-      user: session?.user ? {
-        id: session.user.id,
-        name: session.user.name,
-        role: session.user.role,
-        email: session.user.email
-      } : null
-    })
 
     if (!session?.user) {
       return NextResponse.json({
@@ -30,18 +19,12 @@ export async function GET(request: NextRequest) {
 
     // Test 2: Supabase connection
     const supabase = createClient()
-    console.log('Supabase client created')
 
     // Test 3: Check if table exists
     const { data: tableCheck, error: tableError } = await supabase
       .from('adr_information')
       .select('id')
       .limit(1)
-
-    console.log('Table check:', {
-      error: tableError,
-      hasData: !!tableCheck
-    })
 
     if (tableError) {
       return NextResponse.json({
@@ -58,12 +41,6 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select('id, name, role, email, organization', { count: 'exact' })
       .eq('id', session.user.id)
-
-    console.log('User check:', {
-      error: userError,
-      users: userCheck,
-      count: count
-    })
 
     if (userError) {
       return NextResponse.json({
@@ -112,19 +89,11 @@ export async function GET(request: NextRequest) {
         status: 'draft'
       }
 
-      console.log('Attempting test insert with data:', testData)
-
       const { data: insertResult, error: insertError } = await supabase
         .from('adr_information')
         .insert([testData])
         .select()
         .single()
-
-      console.log('Insert result:', {
-        error: insertError,
-        success: !!insertResult,
-        data: insertResult
-      })
 
       if (insertError) {
         return NextResponse.json({
@@ -189,8 +158,6 @@ export async function GET(request: NextRequest) {
 // POST /api/adr-information/test - Test creation with detailed logging
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== POST Test API ===')
-    
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({
@@ -201,7 +168,6 @@ export async function POST(request: NextRequest) {
     }
 
     const requestData = await request.json()
-    console.log('Request data received:', requestData)
 
     const supabase = createClient()
 
@@ -221,15 +187,11 @@ export async function POST(request: NextRequest) {
       status: 'draft'
     }
 
-    console.log('Insert data prepared:', insertData)
-
     const { data: result, error } = await supabase
       .from('adr_information')
       .insert([insertData])
       .select()
       .single()
-
-    console.log('Insert result:', { error, result })
 
     if (error) {
       return NextResponse.json({

@@ -485,12 +485,10 @@ LƯU Ý QUAN TRỌNG:
           lastError = response.statusText || 'Unknown error'
         }
         
-        console.log(`Gemini model ${modelName} failed: ${lastError}`)
         continue
 
       } catch (error) {
         lastError = error instanceof Error ? error.message : 'Unknown error'
-        console.log(`Gemini model ${modelName} error: ${lastError}`)
         continue
       }
     }
@@ -718,16 +716,9 @@ LƯU Ý QUAN TRỌNG:
    * Log chat session for audit
    */
   static async logChatSession(session: ChatSession): Promise<void> {
-    // Implement audit logging
-    console.log('Chat session logged:', {
-      sessionId: session.id,
-      messageCount: session.messages.length,
-      reportId: session.reportId,
-      timestamp: new Date().toISOString()
-    })
+    void session
   }
 }
-
 
 
 

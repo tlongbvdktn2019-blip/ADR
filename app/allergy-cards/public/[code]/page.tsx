@@ -239,7 +239,7 @@ export default function PublicAllergyCardPage() {
 
   const handlePrint = () => {
     if (!card.id) return;
-    const printUrl = `/api/allergy-cards/${card.id}/print-view`;
+    const printUrl = `/api/allergy-cards/${card.id}/print-view?card_code=${encodeURIComponent(card.card_code)}`;
     window.open(printUrl, '_blank');
   };
 

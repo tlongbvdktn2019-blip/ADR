@@ -286,8 +286,7 @@ export async function DELETE(
     }
 
     // Hard delete: First delete related allergies, then delete the card
-    console.log(`Deleting allergy card ${cardId} permanently...`);
-    
+
     // Delete related allergies first (foreign key constraint)
     const { error: allergiesDeleteError } = await adminSupabase
       .from('card_allergies')

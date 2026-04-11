@@ -54,9 +54,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const report = reportData as ADRReport
 
-    console.log('=== SIMPLE HTML PDF SOLUTION ===')
-    console.log('Report ID:', reportId)
-    
     // Return HTML page that can be printed as PDF
     const html = `
     <!DOCTYPE html>

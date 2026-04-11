@@ -128,13 +128,6 @@ export default function LoginPage() {
                       <p className="text-gray-600">Tra cứu thông tin về các phản ứng có hại của thuốc</p>
                     </div>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">✓</div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">Tập huấn và kiểm tra kiến thức</h4>
-                      <p className="text-gray-600">Nâng cao năng lực nhân viên y tế về quản lý ADR</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

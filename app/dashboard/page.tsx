@@ -529,19 +529,6 @@ export default function DashboardPage() {
                   </Card>
                 </Link>
 
-                <Link href="/admin/quiz">
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-pink-500">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                        <AcademicCapIcon className="w-6 h-6 text-pink-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">Quiz</h3>
-                        <p className="text-sm text-gray-600">Quản lý câu hỏi</p>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
               </>
             )}
           </div>

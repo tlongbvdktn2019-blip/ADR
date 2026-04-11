@@ -117,15 +117,6 @@ export async function POST(request: NextRequest) {
       chatHistory
     )
 
-    // Log interaction for audit
-    console.log(`AI Chatbot used by ${session.user?.email}:`, {
-      provider,
-      apiKeyId: userAPIKey.id,
-      messageLength: message.length,
-      responseLength: aiResponse.content.length,
-      confidence: aiResponse.metadata?.confidence
-    })
-
     // Track usage (optional)
     try {
       await trackUserAIUsage(userId, userAPIKey.id, provider, aiResponse.metadata?.tokens_used || 0)
@@ -259,6 +250,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
 
 

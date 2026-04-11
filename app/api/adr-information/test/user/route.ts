@@ -6,8 +6,6 @@ import { createClient } from '../../../../../lib/supabase'
 // GET /api/adr-information/test/user - Check and fix user record
 export async function GET(request: NextRequest) {
   try {
-    console.log('=== User Check and Fix API ===')
-    
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({
@@ -20,8 +18,6 @@ export async function GET(request: NextRequest) {
     const userEmail = session.user.email
     const userName = session.user.name
 
-    console.log('Session user:', { userId, userEmail, userName })
-
     const supabase = createClient()
 
     // Step 1: Check if user exists in public.users
@@ -31,8 +27,6 @@ export async function GET(request: NextRequest) {
       .eq('id', userId)
       .maybeSingle()
     let publicUser = fetchedPublicUser
-
-    console.log('Public user check:', { publicUser, publicError })
 
     // Step 2: Check if user exists in auth.users (using service client)
     let authUser = null
@@ -45,7 +39,7 @@ export async function GET(request: NextRequest) {
         exists: true // We know it exists because we have a session
       }
     } catch (error) {
-      console.log('Auth user check error:', error)
+      void error
     }
 
     // Step 3: If user doesn't exist in public.users, create them
@@ -53,8 +47,6 @@ export async function GET(request: NextRequest) {
     let createError = null
 
     if (!publicUser && !publicError) {
-      console.log('Creating missing user in public.users...')
-      
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert([{
@@ -73,7 +65,6 @@ export async function GET(request: NextRequest) {
         console.error('Error creating user:', insertError)
         createError = insertError.message
       } else {
-        console.log('User created successfully:', newUser)
         userCreated = true
         publicUser = newUser
       }
@@ -84,8 +75,6 @@ export async function GET(request: NextRequest) {
     let updateError = null
 
     if (publicUser && publicUser.role !== 'admin') {
-      console.log('Updating user role to admin...')
-      
       const { data: updatedUser, error: roleError } = await supabase
         .from('users')
         .update({
@@ -100,7 +89,6 @@ export async function GET(request: NextRequest) {
         console.error('Error updating user role:', roleError)
         updateError = roleError.message
       } else {
-        console.log('User role updated successfully:', updatedUser)
         roleUpdated = true
         publicUser = updatedUser
       }
@@ -143,8 +131,6 @@ export async function GET(request: NextRequest) {
         console.error('Insert test failed:', testInsertError)
       } else {
         insertTest = 'SUCCESS'
-        console.log('Insert test passed:', insertResult)
-        
         // Clean up test data
         await supabase
           .from('adr_information')

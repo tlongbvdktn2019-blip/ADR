@@ -9,10 +9,8 @@ import { useSession } from 'next-auth/react'
 import {
   ChartBarIcon,
   DocumentTextIcon,
-  AcademicCapIcon,
   InformationCircleIcon,
   UsersIcon,
-  ClipboardDocumentListIcon,
   // PlusCircleIcon,
   WrenchScrewdriverIcon,
   HeartIcon,
@@ -36,7 +34,6 @@ const baseNavItems: NavItem[] = [
   { label: 'Bảng điều khiển', href: '/dashboard', icon: ChartBarIcon },
   { label: 'Báo cáo ADR', href: '/reports', icon: DocumentTextIcon },
   { label: 'Thẻ dị ứng', href: '/allergy-cards', icon: HeartIcon },
-  { label: 'Tập huấn', href: '/training', icon: AcademicCapIcon },
   { label: 'Cuộc thi Kiến thức ADR', href: '/contest', icon: TrophyIcon },
   { label: 'Đánh giá hoạt động ADR', href: '/adr-performance', icon: ClipboardDocumentCheckIcon },
   { label: 'Cài đặt', href: '/settings', icon: Cog6ToothIcon }
@@ -44,7 +41,6 @@ const baseNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { label: 'Quản lý người dùng', href: '/admin/users', icon: UsersIcon, roles: ['admin'] },
-  { label: 'Quản lý bài kiểm tra', href: '/admin/quiz', icon: ClipboardDocumentListIcon, roles: ['admin'] },
   { label: 'Quản lý tin ADR', href: '/admin/adr-information', icon: InformationCircleIcon, roles: ['admin'] },
   { label: 'Quản lý Cuộc thi', href: '/admin/contest-management', icon: TrophyIcon, roles: ['admin'] },
   { label: 'Quản lý Đơn vị/Khoa', href: '/admin/departments', icon: BuildingOfficeIcon, roles: ['admin'] }
@@ -183,4 +179,3 @@ export default function Sidebar() {
     </aside>
   )
 }
-

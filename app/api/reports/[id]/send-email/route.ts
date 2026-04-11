@@ -79,14 +79,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Log the email sending (optional - could be stored in database)
-    console.log(`Email sent for report ${(report as any)?.report_code || 'unknown'}:`, {
-      messageId: emailResult.messageId,
-      previewURL: emailResult.previewURL,
-      recipient: customEmail || 'di.pvcenter@gmail.com',
-      sender: session.user.email
-    })
-
     // Return success response
     const response = {
       success: true,
@@ -163,5 +155,4 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     )
   }
 }
-
 

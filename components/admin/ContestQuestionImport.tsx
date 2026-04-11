@@ -144,7 +144,7 @@ export default function ContestQuestionImport({ onSuccess, onClose }: ContestQue
             <div className="text-sm text-blue-800">
               <p className="font-semibold mb-2">📌 Cấu trúc đơn giản:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong>Ngân hàng câu hỏi riêng cho CUỘC THI</strong> - Không trùng với Quiz Training</li>
+                <li><strong>Ngân hàng câu hỏi dành riêng cho CUỘC THI</strong></li>
                 <li>Chỉ cần câu hỏi trắc nghiệm 4 đáp án A, B, C, D</li>
                 <li><strong>KHÔNG</strong> phân danh mục, <strong>KHÔNG</strong> phân độ khó</li>
                 <li>Tải template Excel mẫu và điền thông tin</li>
@@ -304,4 +304,3 @@ export default function ContestQuestionImport({ onSuccess, onClose }: ContestQue
     </div>
   )
 }
-

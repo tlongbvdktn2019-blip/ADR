@@ -9,8 +9,6 @@ export const fetchCache = 'force-no-store';
 // Simple test endpoint to check if API is working
 export async function GET(request: NextRequest) {
   try {
-    console.log('Simple test API called')
-    
     const session = await getServerSession(authOptions)
     
     return NextResponse.json({

@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 
-// GET: Lấy cuộc thi đang diễn ra
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
+
+// GET: return the current public contest, if any
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const now = new Date().toISOString();
-    
-    // DEBUG: Log environment info
-    console.log('🌍 [Contest API] Environment:', {
-      NODE_ENV: process.env.NODE_ENV,
-      SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
-      hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      serverTime: now,
-      timestamp: new Date().toLocaleString('vi-VN')
-    });
-    
-    // Lấy tất cả cuộc thi active và public, sau đó filter trong code
+
     const { data: contests, error } = await supabase
       .from('contests')
       .select('*')
@@ -25,66 +20,41 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Supabase query error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
+      console.error('Supabase query error:', error);
       throw error;
     }
 
-    // Debug logging
-    console.log('🔍 DEBUG - Active contests found:', contests?.length || 0);
-    if (contests && contests.length > 0) {
-      contests.forEach((c: any) => {
-        console.log(`📋 Contest: ${c.title}`, {
-          status: c.status,
-          is_public: c.is_public,
-          start_date: c.start_date,
-          end_date: c.end_date,
-          now: now
-        });
-      });
-    }
+    const validContest =
+      contests?.find((contest: any) => {
+        if (contest.start_date && contest.start_date > now) {
+          return false;
+        }
 
-    // Filter cuộc thi hợp lệ (xử lý start_date và end_date null)
-    const validContest = contests?.find((contest: any) => {
-      // Nếu có start_date, kiểm tra đã bắt đầu chưa
-      if (contest.start_date && contest.start_date > now) {
-        console.log(`❌ Contest "${contest.title}" chưa bắt đầu`);
-        return false;
-      }
-      // Nếu có end_date, kiểm tra đã kết thúc chưa
-      if (contest.end_date && contest.end_date < now) {
-        console.log(`❌ Contest "${contest.title}" đã kết thúc. End: ${contest.end_date}, Now: ${now}`);
-        return false;
-      }
-      console.log(`✅ Contest "${contest.title}" hợp lệ`);
-      return true;
-    });
+        if (contest.end_date && contest.end_date < now) {
+          return false;
+        }
 
-    // Convert về single result
-    const contest = validContest || null;
+        return true;
+      }) || null;
 
-    // Debug response
-    if (!contest && contests && contests.length > 0) {
-      console.warn('⚠️ Có cuộc thi trong DB nhưng không hợp lệ về thời gian');
-    } else if (!contests || contests.length === 0) {
-      console.warn('⚠️ Không có cuộc thi active + public trong DB');
-    }
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
-      data: contest,
-      // Debug info (chỉ để dev, có thể xóa sau)
-      debug: process.env.NODE_ENV === 'development' ? {
-        totalContests: contests?.length || 0,
-        serverTime: now,
-        hasValidContest: !!contest
-      } : undefined
+      data: validContest,
+      debug:
+        process.env.NODE_ENV === 'development'
+          ? {
+              totalContests: contests?.length || 0,
+              serverTime: now,
+              hasValidContest: !!validContest,
+            }
+          : undefined,
     });
+
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
+    return response;
   } catch (error: any) {
     console.error('Error fetching active contest:', error);
     return NextResponse.json(
@@ -93,34 +63,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

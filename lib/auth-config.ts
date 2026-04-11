@@ -39,18 +39,15 @@ export const authOptions: NextAuthOptions = {
             .single()
 
           if (error) {
-            console.log('Database error:', error)
             throw new Error('Thông tin đăng nhập không chính xác')
           }
 
           if (!user) {
-            console.log('User not found:', credentials.email)
             throw new Error('Thông tin đăng nhập không chính xác')
           }
 
           // Check if user has a password set
           if (!(user as any).password_hash) {
-            console.log('User has no password set:', (user as any).email)
             throw new Error('Tài khoản chưa được thiết lập mật khẩu. Vui lòng liên hệ admin.')
           }
 
@@ -58,11 +55,8 @@ export const authOptions: NextAuthOptions = {
           const isValidPassword = await bcrypt.compare(credentials.password, (user as any).password_hash)
           
           if (!isValidPassword) {
-            console.log('Invalid password for user:', (user as any).email, 'role:', (user as any).role)
             throw new Error('Mật khẩu không chính xác')
           }
-
-          console.log('Login successful for:', (user as any).email, 'role:', (user as any).role)
 
           return {
             id: (user as any).id,

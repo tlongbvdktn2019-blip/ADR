@@ -395,7 +395,7 @@ Nếu dùng Vercel/Netlify, tự động có CDN.
 - [ ] Test lại trên production
 - [ ] Monitor trong 24h đầu
 - [ ] Thông báo cho users
-- [ ] Chuẩn bị training materials
+- [ ] Chuẩn bị tài liệu hướng dẫn
 - [ ] Setup support channel
 
 ### **Sau khi deploy:**

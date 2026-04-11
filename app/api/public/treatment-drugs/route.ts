@@ -11,7 +11,6 @@ export const revalidate = 0
  * Dùng cho form báo cáo công khai
  */
 export async function GET(request: NextRequest) {
-  console.log('🔵 PUBLIC API: Fetching treatment drugs - No auth required')
   try {
     // Lấy danh sách treatment drugs từ database
     const { data: treatmentDrugs, error } = await supabaseAdmin
@@ -29,15 +28,6 @@ export async function GET(request: NextRequest) {
         },
         { status: 500 }
       )
-    }
-
-    console.log('✅ PUBLIC API: Found', treatmentDrugs?.length || 0, 'treatment drugs')
-    
-    // Log first few items for debugging
-    if (treatmentDrugs && treatmentDrugs.length > 0) {
-      console.log('Sample data:', treatmentDrugs.slice(0, 3))
-    } else {
-      console.warn('⚠️ WARNING: treatment_drugs table is empty!')
     }
     
     return NextResponse.json({ 

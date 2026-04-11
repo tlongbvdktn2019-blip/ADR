@@ -23,15 +23,6 @@ export async function POST(request: NextRequest) {
     // Perform AI analysis
     const suggestion = await AIAssessmentService.analyzeCausality(formData)
     
-    // Log the suggestion for monitoring (optional)
-    const userIdentifier = session?.user?.email || 'guest'
-    console.log(`AI Assessment generated for user ${userIdentifier}:`, {
-      whoSuggestion: suggestion.whoSuggestion.suggestedLevel,
-      naranjoSuggestion: suggestion.naranjoSuggestion.suggestedLevel,
-      overallRecommendation: suggestion.overallRecommendation,
-      confidence: suggestion.confidence
-    })
-
     return NextResponse.json({
       success: true,
       data: suggestion
@@ -66,6 +57,5 @@ export async function GET() {
     ]
   })
 }
-
 
 

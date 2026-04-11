@@ -14,7 +14,6 @@ import {
   DocumentTextIcon,
   HeartIcon,
   UsersIcon,
-  AcademicCapIcon,
   LockClosedIcon,
   InformationCircleIcon,
   TrophyIcon,
@@ -149,14 +148,6 @@ export default function Header() {
               <span className="hidden md:inline">Đánh giá ADR</span>
             </Link>
             <Link 
-              href="/training" 
-              className="flex items-center text-blue-200 hover:text-white transition-colors text-sm"
-              title="Tập huấn"
-            >
-              <AcademicCapIcon className="w-4 h-4 mr-1" />
-              <span className="hidden md:inline">Tập huấn</span>
-            </Link>
-            <Link 
               href="/contest" 
               className="flex items-center text-yellow-200 hover:text-yellow-100 transition-colors text-sm font-semibold"
               title="Cuộc thi ADR"
@@ -174,14 +165,6 @@ export default function Header() {
                 >
                   <UsersIcon className="w-4 h-4 mr-1" />
                   <span className="hidden lg:inline">Users</span>
-                </Link>
-                <Link 
-                  href="/admin/quiz" 
-                  className="flex items-center text-blue-200 hover:text-white transition-colors text-sm"
-                  title="Quiz Manager"
-                >
-                  <AcademicCapIcon className="w-4 h-4 mr-1" />
-                  <span className="hidden lg:inline">Quiz</span>
                 </Link>
                 <Link 
                   href="/admin/adr-information" 
@@ -273,6 +256,5 @@ export default function Header() {
     </>
   )
 }
-
 
 

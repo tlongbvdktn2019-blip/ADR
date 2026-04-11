@@ -116,9 +116,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create suspected drugs entries
-    console.log('=== DEBUG: Suspected drugs from request body ===')
-    console.log('First drug:', JSON.stringify(body.suspected_drugs[0], null, 2))
-    
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
       drug_name: drug.drug_name,
@@ -138,9 +135,6 @@ export async function POST(request: NextRequest) {
       reaction_reoccurred_after_rechallenge: drug.reaction_reoccurred_after_rechallenge,
     }))
     
-    console.log('=== DEBUG: Data to insert ===')
-    console.log('First drug to insert:', JSON.stringify(drugsToInsert[0], null, 2))
-
     const { error: drugsError } = await supabaseAdmin
       .from('suspected_drugs')
       .insert(drugsToInsert)
@@ -205,11 +199,9 @@ export async function POST(request: NextRequest) {
           includeOrganization: true // Gửi cho tổ chức
         }).then(result => {
           if (result.success) {
-            console.log(`📧 Auto email sent successfully for report ${reportData.report_code}:`, {
               sentTo: result.sentTo
             })
           } else {
-            console.warn(`⚠️ Auto email failed for report ${reportData.report_code}:`, {
               failures: result.failures
             })
           }
@@ -223,7 +215,6 @@ export async function POST(request: NextRequest) {
     }
     */
     
-    console.log(`✅ Report created: ${reportData.report_code} (Auto-email: DISABLED)`)
 
     return NextResponse.json({
       message: 'Báo cáo ADR đã được tạo thành công',
@@ -354,7 +345,6 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
 
 
 

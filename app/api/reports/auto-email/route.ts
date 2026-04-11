@@ -90,14 +90,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Log the auto email sending
-    console.log(`📧 Auto email sent for report ${typedReport.report_code}:`, {
-      reportId: typedReport.id,
-      organization: typedReport.organization,
-      sentTo: result.sentTo,
-      failures: result.failures.length > 0 ? result.failures : undefined
-    })
-
     return NextResponse.json({
       success: true,
       message: 'Email tự động đã được gửi thành công',

@@ -163,11 +163,6 @@ export async function sendAutoReportEmail(
 
       if (result.success) {
         sentTo.push(recipientEmail)
-        console.log(`✅ Auto email sent to: ${recipientEmail}`, {
-          reportCode: report.report_code,
-          messageId: result.messageId,
-          previewURL: result.previewURL
-        })
       } else {
         failures.push({
           email: recipientEmail,

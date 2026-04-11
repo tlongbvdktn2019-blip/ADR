@@ -137,7 +137,6 @@ export class AllergyCardPDFService {
    * Legacy method - returns HTML instead of PDF buffer
    */
   static async generatePDF(card: AllergyCard): Promise<string> {
-    console.log('⚠️ AllergyCardPDFService: Using HTML fallback instead of PDF generation');
     return this.generateHTML(card);
   }
 }

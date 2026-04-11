@@ -107,9 +107,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create suspected drugs entries
-    console.log('=== DEBUG PUBLIC REPORT: Suspected drugs from request ===')
-    console.log('First drug:', JSON.stringify(body.suspected_drugs[0], null, 2))
-    
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
       drug_name: drug.drug_name,
@@ -129,9 +126,6 @@ export async function POST(request: NextRequest) {
       reaction_reoccurred_after_rechallenge: drug.reaction_reoccurred_after_rechallenge,
     }));
     
-    console.log('=== DEBUG PUBLIC REPORT: Data to insert ===')
-    console.log('First drug to insert:', JSON.stringify(drugsToInsert[0], null, 2))
-
     // @ts-ignore
     const { error: drugsError } = await (supabaseAdmin
       .from('suspected_drugs') as any)
@@ -191,13 +185,7 @@ export async function POST(request: NextRequest) {
           includeOrganization: true // Gửi cho tổ chức
         }).then(result => {
           if (result.success) {
-            console.log(`📧 Auto email sent for public report ${reportData.report_code}:`, {
-              sentTo: result.sentTo
-            });
           } else {
-            console.warn(`⚠️ Auto email failed for public report ${reportData.report_code}:`, {
-              failures: result.failures
-            });
           }
         }).catch(err => {
           console.error(`❌ Auto email error for public report ${reportData.report_code}:`, err);
@@ -209,16 +197,6 @@ export async function POST(request: NextRequest) {
     }
     */
     
-    console.log(`✅ Public report created: ${reportData.report_code} (Auto-email: DISABLED)`)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Báo cáo ADR đã được gửi thành công',
-      report: {
-        id: reportData.id,
-        report_code: reportData.report_code,
-      }
-    });
 
   } catch (error: any) {
     console.error('API error:', error);
@@ -228,6 +206,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
 
 

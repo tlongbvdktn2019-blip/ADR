@@ -39,8 +39,6 @@ export async function getOrCreateUser(email: string, name?: string): Promise<str
 
   // User doesn't exist, create new user
   if (fetchError && fetchError.code === 'PGRST116') {
-    console.log('Creating new user:', email)
-    
     const { data: newUser, error: createError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -60,7 +58,6 @@ export async function getOrCreateUser(email: string, name?: string): Promise<str
       throw new Error('User creation returned no data')
     }
 
-    console.log('New user created:', newUser.id)
     return newUser.id
   }
 

@@ -110,7 +110,6 @@ export async function sendTelegramNotification(
       }
     }
 
-    console.log(`✅ Telegram notification sent for report ${report.report_code}`)
     return { success: true }
 
   } catch (error) {
@@ -139,7 +138,6 @@ export async function testTelegramConnection(): Promise<boolean> {
     const data = await response.json()
 
     if (data.ok) {
-      console.log('✅ Telegram bot connected:', data.result.username)
       return true
     } else {
       console.error('❌ Telegram bot error:', data.description)

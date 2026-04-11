@@ -71,16 +71,8 @@ function generatePrintHTML(report: ADRReport): string {
       let singleDose = drug.dosage || ''
       let frequency = drug.frequency || ''
       
-      // Debug log
-      console.log(`Drug ${index}:`, {
-        dosage: drug.dosage,
-        frequency: drug.frequency,
-        dosage_and_frequency: drug.dosage_and_frequency
-      })
-      
       // Fallback: if new fields are empty but old field exists, split it
       if ((!singleDose || singleDose === 'null') && (!frequency || frequency === 'null') && drug.dosage_and_frequency) {
-        console.log('Using fallback split for drug', index)
         const dosageParts = drug.dosage_and_frequency.split(/[xX×\s]+/)
         singleDose = dosageParts[0]?.trim() || ''
         frequency = dosageParts.length > 1 ? dosageParts.slice(1).join(' ').trim() : ''
@@ -530,7 +522,6 @@ function generatePrintHTML(report: ADRReport): string {
     <script>
         // Auto focus when page loads
         window.addEventListener('load', function() {
-            console.log('Form-style print view loaded for report: ${report.report_code}');
         });
         
         // Handle keyboard shortcuts
@@ -561,10 +552,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    console.log('=== PRINT VIEW REQUEST ===')
-    console.log('Report ID:', reportId)
-    console.log('User:', session.user.email)
-
     // Get the report with suspected and concurrent drugs
     const supabase = createAdminClient()
     const { data: reportData, error } = await supabase
@@ -586,21 +573,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const report = reportData as ADRReport
-    console.log('Report found:', report.report_code)
-    console.log('Suspected drugs count:', report.suspected_drugs?.length)
-    if (report.suspected_drugs?.[0]) {
-      console.log('First drug data:', {
-        drug_name: report.suspected_drugs[0].drug_name,
-        dosage: report.suspected_drugs[0].dosage,
-        frequency: report.suspected_drugs[0].frequency,
-        dosage_and_frequency: report.suspected_drugs[0].dosage_and_frequency
-      })
-    }
 
     // Generate form-style HTML exactly like template.html
     const html = generatePrintHTML(report)
-    
-    console.log('✅ Form-style HTML generated successfully (template match)')
 
     // Return HTML response
     return new NextResponse(html, {

@@ -10,8 +10,6 @@ export const fetchCache = 'force-no-store';
 // GET /api/adr-information/test/rls - Test RLS policies specifically
 export async function GET(request: NextRequest) {
   try {
-    console.log('=== RLS Policy Test ===')
-    
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({
@@ -37,9 +35,6 @@ export async function GET(request: NextRequest) {
       .eq('id', session.user.id)
       .single()
 
-    console.log('Current user:', currentUser)
-    console.log('User error:', userError)
-
     if (userError) {
       return NextResponse.json({
         error: 'Cannot find current user',
@@ -53,9 +48,6 @@ export async function GET(request: NextRequest) {
     const { data: authTest, error: authError } = await supabase
       .rpc('get_current_user_id')
 
-    console.log('Auth UID test:', authTest)
-    console.log('Auth error:', authError)
-
     // Test 3: Try direct RLS test query
     const testQuery = `
       SELECT EXISTS (
@@ -68,16 +60,11 @@ export async function GET(request: NextRequest) {
     const { data: rlsTest, error: rlsError } = await supabase
       .rpc('execute_sql', { query: testQuery })
 
-    console.log('RLS test result:', rlsTest)
-    console.log('RLS test error:', rlsError)
-
     // Test 4: Check existing policies
     const { data: policies, error: policyError } = await supabase
       .from('pg_policies')
       .select('*')
       .eq('tablename', 'adr_information')
-
-    console.log('Existing policies:', policies)
 
     // Test 5: Try insert with RLS bypass (service role)
     const serviceSupabase = createAdminClient() // Use service role if available
@@ -103,9 +90,6 @@ export async function GET(request: NextRequest) {
       .select()
       .single()
 
-    console.log('Service role insert:', serviceInsert)
-    console.log('Service role error:', serviceError)
-
     // Clean up service role test data
     if (serviceInsert) {
       await serviceSupabase
@@ -120,9 +104,6 @@ export async function GET(request: NextRequest) {
       .insert([testData])
       .select()
       .single()
-
-    console.log('Regular insert:', regularInsert)
-    console.log('Regular insert error:', regularError)
 
     return NextResponse.json({
       message: 'RLS policy test completed',

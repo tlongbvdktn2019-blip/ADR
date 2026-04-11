@@ -6,27 +6,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
-import { createServerClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 import { generateAllergyCardPrintHTML } from '@/lib/allergy-card-print-template';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Helper function to safely get user role
 async function getUserRole(userId: string): Promise<string | null> {
   try {
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('users')
       .select('role')
       .eq('id', userId)
       .maybeSingle();
-    
+
     if (error) {
       console.error('Error getting user role:', error);
       return null;
     }
-    
+
     return data?.role || null;
   } catch (error) {
     console.error('Exception getting user role:', error);
@@ -36,7 +35,9 @@ async function getUserRole(userId: string): Promise<string | null> {
 
 /**
  * GET /api/allergy-cards/[id]/print-view
- * Generate HTML print preview based on capthe.html template
+ * Supports:
+ * - authenticated owner/admin
+ * - public QR flow when the request includes the matching card_code
  */
 export async function GET(
   request: NextRequest,
@@ -44,15 +45,10 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const supabase = createServerClient();
+    const publicCardCode = request.nextUrl.searchParams.get('card_code');
+    const supabase = createAdminClient();
     const cardId = params.id;
 
-    // Fetch card with allergies
     const { data: card, error } = await supabase
       .from('allergy_cards_with_details')
       .select('*')
@@ -61,31 +57,32 @@ export async function GET(
 
     if (error || !card) {
       console.error('Database error:', error);
-      return NextResponse.json({ error: 'Không tìm thấy thẻ dị ứng' }, { status: 404 });
+      return NextResponse.json({ error: 'Khong tim thay the di ung' }, { status: 404 });
     }
 
-    // Check permissions
-    const userRole = await getUserRole(session.user.id);
-    const isAdmin = userRole === 'admin';
-    const isOwner = card.issued_by_user_id === session.user.id;
+    if (!session?.user?.id) {
+      if (!publicCardCode || publicCardCode !== card.card_code) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      const userRole = await getUserRole(session.user.id);
+      const isAdmin = userRole === 'admin';
+      const isOwner = card.issued_by_user_id === session.user.id;
 
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json({ error: 'Không có quyền truy cập' }, { status: 403 });
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json({ error: 'Khong co quyen truy cap' }, { status: 403 });
+      }
     }
 
-    // Generate HTML based on capthe.html template
     const html = generateAllergyCardPrintHTML(card);
 
-    // Return HTML with proper headers for display in browser
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
       },
     });
-
   } catch (error) {
     console.error('API error:', error);
-    return NextResponse.json({ error: 'Lỗi server' }, { status: 500 });
+    return NextResponse.json({ error: 'Loi server' }, { status: 500 });
   }
 }
-

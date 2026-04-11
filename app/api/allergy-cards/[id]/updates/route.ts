@@ -226,8 +226,6 @@ export async function POST(
             console.error('Insert card allergies error:', cardAllergiesError);
             // Log error nhưng không fail request vì đã lưu vào update_allergies
           }
-        } else {
-          console.log('Tất cả dị ứng đã tồn tại trong card_allergies, bỏ qua insert duplicate');
         }
       }
     }

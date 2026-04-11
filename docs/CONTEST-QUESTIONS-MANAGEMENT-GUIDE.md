@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Tính năng **Quản lý Câu hỏi Cuộc thi** cho phép Admin xem, tìm kiếm và xóa các câu hỏi trong ngân hàng câu hỏi cuộc thi. Ngân hàng câu hỏi này **riêng biệt hoàn toàn** với ngân hàng câu hỏi Quiz Training.
+Tính năng **Quản lý Câu hỏi Cuộc thi** cho phép Admin xem, tìm kiếm và xóa các câu hỏi trong ngân hàng câu hỏi cuộc thi. Ngân hàng này được quản lý độc lập trong bảng `contest_questions`.
 
 ## Truy cập
 

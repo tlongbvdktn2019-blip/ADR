@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const numberOfQuestions = contest.number_of_questions || 10;
 
-    // Lấy TẤT CẢ câu hỏi từ contest_questions (không dùng quiz_questions)
+    // Lấy TẤT CẢ câu hỏi từ contest_questions
     // Lấy tất cả rồi random trong JavaScript vì Supabase không hỗ trợ ORDER BY random()
     const { data: allQuestions, error: questionsError } = await supabase
       .from('contest_questions')

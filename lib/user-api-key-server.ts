@@ -80,8 +80,6 @@ export class UserAPIKeyServer {
     // Encrypt API key
     const encryptedKey = this.encryptAPIKey(keyInput.api_key)
 
-    console.log('Attempting to add API key for user:', userId)
-
     const { data, error } = await supabase
       .from('user_ai_keys')
       .insert({

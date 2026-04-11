@@ -43,8 +43,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`Found ${reportsWithoutCode.length} reports without code`);
-
     // Lấy tất cả departments để có mapping name -> code
     // @ts-ignore
     const { data: departments, error: deptError } = await (supabaseAdmin
@@ -104,8 +102,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`Prepared ${updates.length} updates`);
-
     // Cập nhật từng báo cáo
     let successCount = 0;
     let errorCount = 0;
@@ -143,4 +139,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
