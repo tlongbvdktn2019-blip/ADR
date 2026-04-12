@@ -1,12 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { UserFormData, User } from '@/types/user'
+import {
+  getUsernameValidationMessage,
+  normalizeEmail,
+  normalizeUsername,
+} from '@/lib/user-account'
 
 interface UserFormProps {
   user?: User | null
@@ -16,26 +21,27 @@ interface UserFormProps {
   title?: string
 }
 
-export default function UserForm({ 
-  user, 
-  onSubmit, 
-  onCancel, 
+export default function UserForm({
+  user,
+  onSubmit,
+  onCancel,
   loading = false,
   title = 'Tạo Người Dùng Mới'
 }: UserFormProps) {
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
+    username: '',
     email: '',
     organization: '',
     phone: '',
     role: 'user',
   })
 
-  // Pre-fill form when editing
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name,
+        username: user.username,
         email: user.email,
         organization: user.organization || '',
         phone: user.phone || '',
@@ -45,22 +51,39 @@ export default function UserForm({
   }, [user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    let value = e.target.value
+
+    if (e.target.name === 'username') {
+      value = normalizeUsername(value)
+    }
+
+    if (e.target.name === 'email') {
+      value = normalizeEmail(value)
+    }
+
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
     if (!formData.name.trim()) {
       toast.error('Vui lòng nhập tên người dùng')
       return
     }
 
-    if (!formData.email.trim()) {
+    const username = normalizeUsername(formData.username)
+    const usernameError = getUsernameValidationMessage(username)
+    if (usernameError) {
+      toast.error(usernameError)
+      return
+    }
+
+    const email = normalizeEmail(formData.email)
+    if (!email) {
       toast.error('Vui lòng nhập email')
       return
     }
@@ -70,17 +93,22 @@ export default function UserForm({
       return
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
+    if (!emailRegex.test(email)) {
       toast.error('Email không hợp lệ')
       return
     }
 
     try {
-      await onSubmit(formData)
+      await onSubmit({
+        ...formData,
+        username,
+        email,
+        organization: formData.organization.trim(),
+        phone: formData.phone?.trim() || '',
+      })
     } catch (error) {
-      // Error is handled by parent component
+      void error
     }
   }
 
@@ -108,7 +136,6 @@ export default function UserForm({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Name */}
             <div>
               <Input
                 label="Họ và tên"
@@ -121,7 +148,19 @@ export default function UserForm({
               />
             </div>
 
-            {/* Email */}
+            <div>
+              <Input
+                label="Tên đăng nhập"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Nhập tên đăng nhập"
+                helperText="Dùng để đăng nhập. Chỉ chấp nhận chữ thường, số, ., _, -"
+                required
+                disabled={loading}
+              />
+            </div>
+
             <div>
               <Input
                 label="Email"
@@ -135,7 +174,6 @@ export default function UserForm({
               />
             </div>
 
-            {/* Organization */}
             <div>
               <Input
                 label="Tổ chức"
@@ -148,7 +186,6 @@ export default function UserForm({
               />
             </div>
 
-            {/* Phone */}
             <div>
               <Input
                 label="Số điện thoại"
@@ -160,8 +197,7 @@ export default function UserForm({
               />
             </div>
 
-            {/* Role */}
-            <div className="md:col-span-2">
+            <div>
               <Select
                 label="Vai trò"
                 name="role"
@@ -218,7 +254,3 @@ export default function UserForm({
     </Card>
   )
 }
-
-
-
-

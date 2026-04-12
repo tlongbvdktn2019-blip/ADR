@@ -110,7 +110,7 @@ export default function TestNotificationsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">🔄 Real-time Test</h3>
             <div className="space-y-2 text-gray-600">
               <p>1. Open another browser tab/window with this app</p>
-              <p>2. Login as a user (user@benhvien.gov.vn / user123)</p>
+              <p>2. Login as a user (username: user / password: user123)</p>
               <p>3. Create a new ADR report</p>
               <p>4. Come back to this admin tab - notification should appear automatically</p>
             </div>

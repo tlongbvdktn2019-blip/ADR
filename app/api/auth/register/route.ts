@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
-import { Database } from '@/types/supabase'
+import {
+  getUsernameValidationMessage,
+  normalizeEmail,
+  normalizeUsername,
+} from '@/lib/user-account'
 
-// Create Supabase admin client
-const supabaseAdmin = createClient<Database>(
+const bcrypt = require('bcryptjs')
+
+const supabaseAdmin = createClient(
   config.supabase.url,
   config.supabase.serviceRoleKey
 )
@@ -12,17 +17,28 @@ const supabaseAdmin = createClient<Database>(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, organization, phone, role } = body
+    const name = body.name?.trim()
+    const username = normalizeUsername(body.username || '')
+    const email = normalizeEmail(body.email || '')
+    const organization = body.organization?.trim()
+    const phone = body.phone?.trim() || null
+    const password = String(body.password || '')
 
-    // Validate required fields
-    if (!name || !email || !organization) {
+    if (!name || !username || !email || !organization || !password) {
       return NextResponse.json(
         { error: 'Thiếu thông tin bắt buộc' },
         { status: 400 }
       )
     }
 
-    // Validate email format
+    const usernameError = getUsernameValidationMessage(username)
+    if (usernameError) {
+      return NextResponse.json(
+        { error: usernameError },
+        { status: 400 }
+      )
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -31,29 +47,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Mật khẩu phải có ít nhất 8 ký tự' },
+        { status: 400 }
+      )
+    }
+
+    const { data: existingUsername } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle()
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Tên đăng nhập đã được sử dụng' },
+        { status: 400 }
+      )
+    }
+
+    const { data: existingEmail } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Email đã được sử dụng' },
         { status: 400 }
       )
     }
 
-    // Create new user
-    const { data: newUser, error } = await (supabaseAdmin as any)
+    const passwordHash = await bcrypt.hash(password, 12)
+
+    const { data: newUser, error } = await supabaseAdmin
       .from('users')
       .insert({
         name,
+        username,
         email,
         organization,
-        phone: phone || null,
-        role: role || 'user',
+        phone,
+        role: 'user',
+        password_hash: passwordHash,
+        password_updated_at: new Date().toISOString(),
       })
       .select()
       .single()
@@ -71,12 +110,12 @@ export async function POST(request: NextRequest) {
       user: {
         id: newUser.id,
         name: newUser.name,
+        username: newUser.username,
         email: newUser.email,
         role: newUser.role,
         organization: newUser.organization,
-      }
+      },
     })
-
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(
@@ -85,5 +124,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-

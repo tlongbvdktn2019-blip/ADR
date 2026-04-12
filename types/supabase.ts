@@ -6,37 +6,70 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+type GenericTable = {
+  Row: Record<string, any>
+  Insert: Record<string, any>
+  Update: Record<string, any>
+  Relationships?: any[]
+}
+
+type GenericView = {
+  Row: Record<string, any>
+  Relationships?: any[]
+}
+
+type GenericFunction = {
+  Args: Record<string, any>
+  Returns: any
+}
+
 export interface Database {
   public: {
     Tables: {
+      [key: string]: GenericTable
       users: {
         Row: {
           id: string
+          username: string
           email: string
           name: string
           role: 'admin' | 'user'
           organization: string | null
           phone: string | null
+          password_hash: string | null
+          password_updated_at: string | null
+          reset_token: string | null
+          reset_token_expires: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
+          username: string
           email: string
           name: string
           role?: 'admin' | 'user'
           organization?: string | null
           phone?: string | null
+          password_hash?: string | null
+          password_updated_at?: string | null
+          reset_token?: string | null
+          reset_token_expires?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          username?: string
           email?: string
           name?: string
           role?: 'admin' | 'user'
           organization?: string | null
           phone?: string | null
+          password_hash?: string | null
+          password_updated_at?: string | null
+          reset_token?: string | null
+          reset_token_expires?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -45,7 +78,7 @@ export interface Database {
         Row: {
           id: string
           report_code: string
-          reporter_id: string
+          reporter_id: string | null
           organization: string
           
           // Thông tin bệnh nhân (Phần A)
@@ -57,6 +90,7 @@ export interface Database {
           
           // Thông tin ADR (Phần B)
           adr_occurrence_date: string
+          reaction_onset_time: string | null
           adr_description: string
           related_tests: string | null
           medical_history: string | null
@@ -76,6 +110,8 @@ export interface Database {
           reporter_email: string | null
           report_type: 'initial' | 'follow_up'
           report_date: string
+          severity_assessment_result: string | null
+          preventability_assessment_result: string | null
           
           // Thông tin duyệt báo cáo
           approval_status: 'pending' | 'approved' | 'rejected'
@@ -89,7 +125,7 @@ export interface Database {
         Insert: {
           id?: string
           report_code?: string
-          reporter_id: string
+          reporter_id?: string | null
           organization: string
           
           patient_name: string
@@ -99,6 +135,7 @@ export interface Database {
           patient_weight?: number | null
           
           adr_occurrence_date: string
+          reaction_onset_time?: string | null
           adr_description: string
           related_tests?: string | null
           medical_history?: string | null
@@ -116,6 +153,8 @@ export interface Database {
           reporter_email?: string | null
           report_type: 'initial' | 'follow_up'
           report_date: string
+          severity_assessment_result?: string | null
+          preventability_assessment_result?: string | null
           
           approval_status?: 'pending' | 'approved' | 'rejected'
           approved_by?: string | null
@@ -128,7 +167,7 @@ export interface Database {
         Update: {
           id?: string
           report_code?: string
-          reporter_id?: string
+          reporter_id?: string | null
           organization?: string
           
           patient_name?: string
@@ -138,6 +177,7 @@ export interface Database {
           patient_weight?: number | null
           
           adr_occurrence_date?: string
+          reaction_onset_time?: string | null
           adr_description?: string
           related_tests?: string | null
           medical_history?: string | null
@@ -155,6 +195,8 @@ export interface Database {
           reporter_email?: string | null
           report_type?: 'initial' | 'follow_up'
           report_date?: string
+          severity_assessment_result?: string | null
+          preventability_assessment_result?: string | null
           
           approval_status?: 'pending' | 'approved' | 'rejected'
           approved_by?: string | null
@@ -175,7 +217,10 @@ export interface Database {
           manufacturer: string | null
           batch_number: string | null
           dosage_and_frequency: string | null
+          dosage: string | null
+          frequency: string | null
           route_of_administration: string | null
+          treatment_drug_group: string | null
           start_date: string | null
           end_date: string | null
           indication: string | null
@@ -196,7 +241,10 @@ export interface Database {
           manufacturer?: string | null
           batch_number?: string | null
           dosage_and_frequency?: string | null
+          dosage?: string | null
+          frequency?: string | null
           route_of_administration?: string | null
+          treatment_drug_group?: string | null
           start_date?: string | null
           end_date?: string | null
           indication?: string | null
@@ -216,7 +264,10 @@ export interface Database {
           manufacturer?: string | null
           batch_number?: string | null
           dosage_and_frequency?: string | null
+          dosage?: string | null
+          frequency?: string | null
           route_of_administration?: string | null
+          treatment_drug_group?: string | null
           start_date?: string | null
           end_date?: string | null
           indication?: string | null
@@ -341,10 +392,10 @@ export interface Database {
       }
     }
     Views: {
-      [_ in never]: never
+      [key: string]: GenericView
     }
     Functions: {
-      [_ in never]: never
+      [key: string]: GenericFunction
     }
     Enums: {
       user_role: 'admin' | 'user'
@@ -358,5 +409,3 @@ export interface Database {
     }
   }
 }
-
-

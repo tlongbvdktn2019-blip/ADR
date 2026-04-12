@@ -114,6 +114,7 @@ export default function PasswordManagement({ user, onClose, onSuccess }: Passwor
 
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <h3 className="font-medium text-gray-900 mb-1">{user.name}</h3>
+          <p className="text-sm text-gray-600">@{user.username}</p>
           <p className="text-sm text-gray-600">{user.email}</p>
           <p className="text-sm text-gray-600">Vai trò: {user.role}</p>
         </div>

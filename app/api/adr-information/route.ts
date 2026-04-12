@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../lib/auth-config'
 import { createClient, createAdminClient } from '../../../lib/supabase'
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 import { 
   ADRInformation, 
   InformationQueryParams,
@@ -172,7 +173,7 @@ export async function POST(request: NextRequest) {
     const insertData = {
       title: data.title.trim(),
       summary: data.summary?.trim() || null,
-      content: data.content,
+      content: sanitizeRichText(data.content),
       type: data.type || 'news',
       priority: data.priority || 3,
       tags: data.tags || [],

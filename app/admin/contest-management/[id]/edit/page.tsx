@@ -177,7 +177,7 @@ export default function EditContestPage({ params }: { params: { id: string } }) 
                 rows={4}
                 placeholder="Các quy định, thể lệ của cuộc thi..."
               />
-              <p className="mt-1 text-sm text-gray-500">Hỗ trợ HTML nếu cần</p>
+              <p className="mt-1 text-sm text-gray-500">HTML sẽ được lọc an toàn trước khi lưu</p>
             </div>
 
             {/* Giải thưởng */}
@@ -192,7 +192,7 @@ export default function EditContestPage({ params }: { params: { id: string } }) 
                 rows={4}
                 placeholder="Mô tả các giải thưởng..."
               />
-              <p className="mt-1 text-sm text-gray-500">Hỗ trợ HTML nếu cần</p>
+              <p className="mt-1 text-sm text-gray-500">HTML sẽ được lọc an toàn trước khi lưu</p>
             </div>
 
             {/* Cấu hình */}

@@ -3,10 +3,13 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
-import { Database } from '@/types/supabase'
+import {
+  getUsernameValidationMessage,
+  normalizeEmail,
+  normalizeUsername,
+} from '@/lib/user-account'
 
-// Create Supabase admin client
-const supabaseAdmin = createClient<Database>(
+const supabaseAdmin = createClient(
   config.supabase.url,
   config.supabase.serviceRoleKey
 )
@@ -19,9 +22,10 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    void request
+
     const session = await getServerSession(authOptions)
-    
-    // Check if user is authenticated and is admin
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Không có quyền truy cập' },
@@ -31,10 +35,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const userId = params.id
 
-    // Get the user
     const { data: user, error } = await supabaseAdmin
       .from('users')
-      .select('id, email, name, role, organization, phone, created_at, updated_at')
+      .select('id, username, email, name, role, organization, phone, created_at, updated_at')
       .eq('id', userId)
       .single()
 
@@ -45,35 +48,33 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Get user statistics (optional)
-    const { data: reportStats } = await supabaseAdmin
+    const { count: totalReports = 0 } = await supabaseAdmin
       .from('adr_reports')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('reporter_id', userId)
 
-    const { data: cardStats } = await supabaseAdmin
+    const { count: totalCards = 0 } = await supabaseAdmin
       .from('allergy_cards')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('issued_by_user_id', userId)
 
-    const userData = user as any;
     return NextResponse.json({
       user: {
-        id: userData.id,
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        organization: userData.organization,
-        phone: userData.phone,
-        created_at: userData.created_at,
-        updated_at: userData.updated_at,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        organization: user.organization,
+        phone: user.phone,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
         statistics: {
-          totalReports: reportStats?.length || 0,
-          totalCards: cardStats?.length || 0
+          totalReports,
+          totalCards,
         }
       }
     })
-
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
@@ -86,8 +87,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions)
-    
-    // Check if user is authenticated and is admin
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Không có quyền truy cập' },
@@ -97,17 +97,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const userId = params.id
     const body = await request.json()
-    const { name, email, organization, phone, role } = body
+    const name = body.name?.trim()
+    const username = normalizeUsername(body.username || '')
+    const email = normalizeEmail(body.email || '')
+    const organization = body.organization?.trim()
+    const phone = body.phone?.trim() || null
+    const role = body.role
 
-    // Validate required fields
-    if (!name || !email || !organization) {
+    if (!name || !username || !email || !organization) {
       return NextResponse.json(
-        { error: 'Thiếu thông tin bắt buộc: tên, email, tổ chức' },
+        { error: 'Thiếu thông tin bắt buộc: tên, username, email, tổ chức' },
         { status: 400 }
       )
     }
 
-    // Validate email format
+    const usernameError = getUsernameValidationMessage(username)
+    if (usernameError) {
+      return NextResponse.json(
+        { error: usernameError },
+        { status: 400 }
+      )
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -116,7 +127,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Validate role
     if (!role || !['admin', 'user'].includes(role)) {
       return NextResponse.json(
         { error: 'Vai trò không hợp lệ' },
@@ -124,31 +134,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if email is already used by another user
-    const { data: existingUser } = await supabaseAdmin
+    const { data: existingUsername } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .neq('id', userId)
+      .maybeSingle()
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Tên đăng nhập đã được sử dụng bởi người dùng khác' },
+        { status: 400 }
+      )
+    }
+
+    const { data: existingEmail } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email)
       .neq('id', userId)
-      .single()
+      .maybeSingle()
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Email đã được sử dụng bởi người dùng khác' },
         { status: 400 }
       )
     }
 
-    // Update the user
-    const { data: updatedUser, error } = await (supabaseAdmin as any)
+    const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update({
         name,
+        username,
         email,
         organization,
-        phone: phone || null,
+        phone,
         role,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', userId)
       .select()
@@ -167,15 +190,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
+        username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
         organization: updatedUser.organization,
         phone: updatedUser.phone,
         created_at: updatedUser.created_at,
-        updated_at: updatedUser.updated_at
+        updated_at: updatedUser.updated_at,
       }
     })
-
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
@@ -187,9 +210,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    void request
+
     const session = await getServerSession(authOptions)
-    
-    // Check if user is authenticated and is admin
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Không có quyền truy cập' },
@@ -199,7 +223,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const userId = params.id
 
-    // Prevent admin from deleting themselves
     if (userId === session.user.id) {
       return NextResponse.json(
         { error: 'Không thể xóa chính mình' },
@@ -207,7 +230,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if user exists
     const { data: userCheck } = await supabaseAdmin
       .from('users')
       .select('id, name')
@@ -221,35 +243,35 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if user has any reports or cards (prevent deletion if has data)
-    const { data: reportsCheck } = await supabaseAdmin
+    const { count: reportsCount = 0 } = await supabaseAdmin
       .from('adr_reports')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('reporter_id', userId)
 
-    const { data: cardsCheck } = await supabaseAdmin
+    const { count: cardsCount = 0 } = await supabaseAdmin
       .from('allergy_cards')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('issued_by_user_id', userId)
 
-    const hasReports = (reportsCheck?.length || 0) > 0
-    const hasCards = (cardsCheck?.length || 0) > 0
+    const safeReportsCount = reportsCount || 0
+    const safeCardsCount = cardsCount || 0
+    const hasReports = safeReportsCount > 0
+    const hasCards = safeCardsCount > 0
 
     if (hasReports || hasCards) {
       return NextResponse.json(
-        { 
-          error: `Không thể xóa người dùng này vì đã có dữ liệu liên quan: ${hasReports ? `${reportsCheck?.length} báo cáo ADR` : ''}${hasReports && hasCards ? ', ' : ''}${hasCards ? `${cardsCheck?.length} thẻ dị ứng` : ''}`,
+        {
+          error: `Không thể xóa người dùng này vì đã có dữ liệu liên quan: ${hasReports ? `${safeReportsCount} báo cáo ADR` : ''}${hasReports && hasCards ? ', ' : ''}${hasCards ? `${safeCardsCount} thẻ dị ứng` : ''}`,
           hasData: true,
           dataCount: {
-            reports: reportsCheck?.length || 0,
-            cards: cardsCheck?.length || 0
+            reports: safeReportsCount,
+            cards: safeCardsCount,
           }
         },
         { status: 409 }
       )
     }
 
-    // Delete the user
     const { error: deleteError } = await supabaseAdmin
       .from('users')
       .delete()
@@ -264,9 +286,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({
-      message: `Đã xóa người dùng "${(userCheck as any)?.name || 'Unknown'}" thành công`
+      message: `Đã xóa người dùng "${userCheck.name || 'Unknown'}" thành công`
     })
-
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
@@ -275,6 +296,3 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     )
   }
 }
-
-
-

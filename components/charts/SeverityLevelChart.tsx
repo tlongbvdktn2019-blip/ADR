@@ -24,10 +24,8 @@ const SEVERITY_COLORS = {
   'death': '#dc2626', // red-600
   'life_threatening': '#ea580c', // orange-600
   'hospitalization': '#d97706', // amber-600
-  'prolongation': '#ca8a04', // yellow-600
-  'disability': '#65a30d', // lime-600
-  'congenital_anomaly': '#16a34a', // green-600
-  'other_important': '#059669', // emerald-600
+  'birth_defect': '#7c3aed', // violet-600
+  'permanent_disability': '#65a30d', // lime-600
   'not_serious': '#0891b2', // cyan-600
   'unknown': '#6b7280' // gray-500
 };

@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../../../lib/auth-config'
 import { createClient } from '../../../../../lib/supabase'
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
+import { buildUsernameFromEmail, normalizeEmail, normalizeUsername } from '@/lib/user-account'
 
 // GET /api/adr-information/test/user - Check and fix user record
 export async function GET(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
+    void request
+
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({
@@ -15,8 +24,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id
-    const userEmail = session.user.email
+    const userEmail = normalizeEmail(session.user.email || `user-${session.user.id}@example.com`)
     const userName = session.user.name
+    const username = normalizeUsername((session.user as any).username || '') || buildUsernameFromEmail(userEmail)
 
     const supabase = createClient()
 
@@ -34,7 +44,8 @@ export async function GET(request: NextRequest) {
       // We can't directly access auth.users from client, but we can infer from session
       authUser = {
         id: session.user.id,
-        email: session.user.email,
+        username,
+        email: userEmail,
         name: session.user.name,
         exists: true // We know it exists because we have a session
       }
@@ -51,7 +62,8 @@ export async function GET(request: NextRequest) {
         .from('users')
         .insert([{
           id: userId,
-          email: userEmail || `user-${userId}@example.com`,
+          username,
+          email: userEmail,
           name: userName || 'Admin User',
           role: 'admin', // Default to admin for testing
           organization: 'S??? Y t??? Th??nh ph???',
@@ -143,6 +155,7 @@ export async function GET(request: NextRequest) {
       message: 'User check and fix completed',
       session: {
         userId,
+        username,
         userEmail,
         userName
       },
@@ -176,6 +189,11 @@ export async function GET(request: NextRequest) {
 // POST /api/adr-information/test/user - Force create/update user
 export async function POST(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json({
@@ -188,10 +206,13 @@ export async function POST(request: NextRequest) {
     const { forceAdmin = true } = body
 
     const supabase = createClient()
+    const normalizedEmail = normalizeEmail(session.user.email || `user-${session.user.id}@example.com`)
+    const username = normalizeUsername((session.user as any).username || '') || buildUsernameFromEmail(normalizedEmail)
 
     const userData = {
       id: session.user.id,
-      email: session.user.email || `user-${session.user.id}@example.com`,
+      username,
+      email: normalizedEmail,
       name: session.user.name || 'Admin User',
       role: forceAdmin ? 'admin' : 'user',
       organization: body.organization || 'S??? Y t??? Th??nh ph???',

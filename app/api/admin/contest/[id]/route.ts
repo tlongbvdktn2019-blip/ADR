@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 
 // Type for contest update payload
 type ContestUpdatePayload = {
@@ -87,11 +88,16 @@ export async function PUT(
     }
 
     const body = await request.json() as ContestUpdatePayload;
+    const safeBody: ContestUpdatePayload = {
+      ...body,
+      rules: body.rules !== undefined ? (body.rules ? sanitizeRichText(body.rules) : '') : undefined,
+      prizes: body.prizes !== undefined ? (body.prizes ? sanitizeRichText(body.prizes) : '') : undefined,
+    }
 
     // @ts-ignore - contests table not in Database types yet
     const { data: contest, error } = await (supabaseAdmin
       .from('contests') as any)
-      .update(body)
+      .update(safeBody)
       .eq('id', params.id)
       .select()
       .single();
@@ -146,4 +152,3 @@ export async function DELETE(
     );
   }
 }
-

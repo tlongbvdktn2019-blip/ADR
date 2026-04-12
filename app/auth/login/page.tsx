@@ -4,16 +4,14 @@ import { useEffect, useState } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { toast } from 'react-hot-toast'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import SimpleLayout from '@/components/layout/SimpleLayout'
-import { DocumentTextIcon } from '@heroicons/react/24/outline'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -24,7 +22,6 @@ export default function LoginPage() {
       return
     }
 
-    // Sau đăng nhập thành công → chuyển đến /dashboard
     router.replace('/dashboard')
   }, [status, session, router])
 
@@ -34,17 +31,20 @@ export default function LoginPage() {
 
     try {
       const result = await signIn('credentials', {
-        email,
+        identifier: identifier.trim(),
         password,
         redirect: false,
       })
 
       if (result?.error) {
-        toast.error(result.error)
+        toast.error(
+          result.error === 'CredentialsSignin'
+            ? 'Thông tin đăng nhập không chính xác'
+            : result.error
+        )
         setLoading(false)
       } else if (result?.ok) {
         toast.success('Đăng nhập thành công!')
-        // Chờ một chút để session được cập nhật, sau đó redirect
         setTimeout(() => {
           window.location.href = '/dashboard'
         }, 500)
@@ -59,10 +59,8 @@ export default function LoginPage() {
   return (
     <SimpleLayout>
       <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-blue-100 to-cyan-50">
-        {/* Left side - 50% - Giới thiệu */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 py-12">
           <div className="max-w-2xl">
-            {/* Tên đơn vị */}
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold text-blue-900 uppercase">
                 Sở Y tế Thành phố Cần Thơ
@@ -72,7 +70,6 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Logo - Canh giữa */}
             <div className="flex justify-center mb-8">
               <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
                 <img
@@ -85,47 +82,59 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Tên hệ thống */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-blue-900">Hệ thống Quản lý ADR</h1>
               <p className="text-blue-700">Adverse Drug Reaction Management System</p>
             </div>
 
-            {/* Giới thiệu */}
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   Chào mừng đến với Hệ thống Quản lý Phản ứng Có hại của Thuốc
                 </h2>
                 <p className="text-lg text-gray-700 leading-relaxed">
-                  Hệ thống ADR giúp các cơ sở y tế quản lý, theo dõi và báo cáo các phản ứng có hại của thuốc một cách hiệu quả, 
-                  góp phần nâng cao chất lượng điều trị và đảm bảo an toàn cho người bệnh.
+                  Hệ thống ADR giúp các cơ sở y tế quản lý, theo dõi và báo cáo các phản ứng có
+                  hại của thuốc một cách hiệu quả, góp phần nâng cao chất lượng điều trị và đảm
+                  bảo an toàn cho người bệnh.
                 </p>
               </div>
 
-              {/* Tính năng chính */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-gray-900">Tính năng chính:</h3>
                 <div className="grid gap-4">
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">✓</div>
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">
+                      ✓
+                    </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">Báo cáo ADR trực tuyến</h4>
-                      <p className="text-gray-600">Ghi nhận và quản lý các báo cáo phản ứng có hại một cách nhanh chóng</p>
+                      <p className="text-gray-600">
+                        Ghi nhận và quản lý các báo cáo phản ứng có hại một cách nhanh chóng
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">✓</div>
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">
+                      ✓
+                    </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">Quản lý thẻ dị ứng</h4>
-                      <p className="text-gray-600">Tạo và quản lý thẻ dị ứng cho bệnh nhân với mã QR</p>
+                      <p className="text-gray-600">
+                        Tạo và quản lý thẻ dị ứng cho bệnh nhân với mã QR
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">✓</div>
+                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">
+                      ✓
+                    </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">Cơ sở dữ liệu thông tin ADR</h4>
-                      <p className="text-gray-600">Tra cứu thông tin về các phản ứng có hại của thuốc</p>
+                      <h4 className="font-semibold text-gray-900">
+                        Cơ sở dữ liệu thông tin ADR
+                      </h4>
+                      <p className="text-gray-600">
+                        Tra cứu thông tin về các phản ứng có hại của thuốc
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -134,11 +143,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right side - 50% - Form đăng nhập */}
         <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-white shadow-2xl">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
-              {/* Logo mobile */}
               <div className="flex justify-center lg:hidden mb-6">
                 <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
                   <img
@@ -150,24 +157,22 @@ export default function LoginPage() {
                   />
                 </Link>
               </div>
-              <h2 className="text-3xl font-extrabold text-gray-900">
-                Đăng nhập
-              </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Vào hệ thống quản lý ADR
-              </p>
+              <h2 className="text-3xl font-extrabold text-gray-900">Đăng nhập</h2>
+              <p className="mt-2 text-sm text-gray-600">Vào hệ thống quản lý ADR</p>
             </div>
 
             <Card>
               <form className="space-y-6" onSubmit={handleSubmit}>
                 <Input
-                  id="email"
-                  type="email"
-                  label="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="identifier"
+                  type="text"
+                  label="Tên đăng nhập hoặc email"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
-                  placeholder="admin@soyte.gov.vn"
+                  autoComplete="username"
+                  helperText="Bạn có thể dùng username hoặc email để đăng nhập."
+                  placeholder="admin hoặc admin@soyte.gov.vn"
                 />
 
                 <Input

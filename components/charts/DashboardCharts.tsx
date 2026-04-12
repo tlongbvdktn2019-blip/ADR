@@ -1,302 +1,228 @@
-// =====================================================
-// DASHBOARD CHARTS CONTAINER
-// Main component that manages all dashboard charts
-// =====================================================
+'use client'
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import toast from 'react-hot-toast';
-import AgeDistributionChart from './AgeDistributionChart';
-import SeverityLevelChart from './SeverityLevelChart';
-import MonthlyTrendsChart from './MonthlyTrendsChart';
-import DrugDistributionChart from './DrugDistributionChart';
-import OutcomeDistributionChart from './OutcomeDistributionChart';
-import Top10FacilitiesChart from './Top10FacilitiesChart';
-import TopDrugsChart from './TopDrugsChart';
-import TreatmentDrugGroupChart from './TreatmentDrugGroupChart';
-import OccupationAnalysisChart from './OccupationAnalysisChart';
-import ReportsByDateChart from './ReportsByDateChart';
-import GenderDistributionChart from './GenderDistributionChart';
-
-interface ChartData {
-  ageDistribution?: any[];
-  severityDistribution?: any[];
-  monthlyTrends?: any[];
-  drugDistribution?: any[];
-  outcomeDistribution?: any[];
-  topFacilities?: any[];
-  topDrugs?: any[];
-  treatmentDrugGroups?: any[];
-  occupationAnalysis?: any[];
-  reportsByDate?: any[];
-  genderDistribution?: any[];
-}
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import toast from 'react-hot-toast'
+import AgeDistributionChart from './AgeDistributionChart'
+import SeverityLevelChart from './SeverityLevelChart'
+import OutcomeDistributionChart from './OutcomeDistributionChart'
+import Top10FacilitiesChart from './Top10FacilitiesChart'
+import TopDrugsChart from './TopDrugsChart'
+import TreatmentDrugGroupChart from './TreatmentDrugGroupChart'
+import OccupationAnalysisChart from './OccupationAnalysisChart'
+import ReportsByDateChart from './ReportsByDateChart'
+import GenderDistributionChart from './GenderDistributionChart'
+import BreakdownBarChart from './BreakdownBarChart'
+import {
+  buildDashboardQueryParams,
+  DashboardChartData,
+  DashboardChartsResponse,
+  DashboardFilters,
+  DashboardSectionKey,
+  DEFAULT_DASHBOARD_FILTERS,
+} from '@/lib/dashboard'
 
 interface DashboardChartsProps {
-  layout?: 'grid' | 'stacked';
-  showAll?: boolean;
-  organization?: string;
-  year?: string;
+  layout?: 'grid' | 'stacked'
+  showAll?: boolean
+  organization?: string
+  year?: string
+  filters?: DashboardFilters
+  section?: 'overview' | DashboardSectionKey
 }
 
-export default function DashboardCharts({ 
-  layout = 'grid', 
-  showAll = true,
+export default function DashboardCharts({
+  layout,
+  showAll,
   organization = 'all',
-  year = 'all'
+  year = 'all',
+  filters,
+  section = 'overview',
 }: DashboardChartsProps) {
-  const { data: session } = useSession();
-  const [chartData, setChartData] = useState<ChartData>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession()
+  const [chartData, setChartData] = useState<DashboardChartData>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const normalizedFilters: DashboardFilters = filters || {
+    ...DEFAULT_DASHBOARD_FILTERS,
+    organization,
+    year,
+  }
 
   useEffect(() => {
-    if (session?.user?.id) {
-      loadChartData();
+    if (!session?.user?.id) return
+
+    const loadChartData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const params = buildDashboardQueryParams(normalizedFilters)
+        const response = await fetch(params.toString() ? `/api/dashboard/charts?${params.toString()}` : '/api/dashboard/charts')
+
+        if (!response.ok) {
+          throw new Error('Không thể tải dữ liệu biểu đồ')
+        }
+
+        const result = (await response.json()) as DashboardChartsResponse
+
+        if (!result.success) {
+          throw new Error('Không thể tải dữ liệu biểu đồ')
+        }
+
+        setChartData(result.data)
+      } catch (loadError) {
+        console.error('Dashboard chart load error:', loadError)
+        const message = loadError instanceof Error ? loadError.message : 'Có lỗi xảy ra khi tải dữ liệu biểu đồ'
+        setError(message)
+        toast.error(message)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [session?.user?.id, organization, year]);
 
-  const loadChartData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams();
-      if (organization && organization !== 'all') {
-        params.append('organization', organization);
-      }
-      if (year && year !== 'all') {
-        params.append('year', year);
-      }
-      
-      const url = params.toString()
-        ? `/api/dashboard/charts?${params.toString()}`
-        : '/api/dashboard/charts';
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Không thể tải dữ liệu biểu đồ');
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setChartData(result.data);
-      } else {
-        throw new Error(result.error || 'Có lỗi xảy ra');
-      }
-
-    } catch (error) {
-      console.error('Load chart data error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải biểu đồ';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const retryLoad = () => {
-    loadChartData();
-  };
+    loadChartData()
+  }, [
+    session?.user?.id,
+    normalizedFilters.organization,
+    normalizedFilters.year,
+    normalizedFilters.approvalStatus,
+    normalizedFilters.severity,
+    normalizedFilters.reportType,
+    normalizedFilters.profession,
+  ])
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L3.982 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Không thể tải biểu đồ
-          </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={retryLoad}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            Thử lại
-          </button>
-        </div>
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        {error}
       </div>
-    );
+    )
   }
 
-  if (layout === 'stacked') {
+  if (section === 'A') {
     return (
-      <div className="space-y-6">
-        {showAll && (
-          <>
-            {/* Xu hướng báo cáo theo tháng - Full width at top */}
-            <ReportsByDateChart 
-              data={chartData.reportsByDate || []} 
-              isLoading={isLoading} 
-            />
-            
-            {/* Top 5 Charts */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <Top10FacilitiesChart 
-                data={chartData.topFacilities || []} 
-                isLoading={isLoading} 
-              />
-              <TopDrugsChart 
-                data={chartData.topDrugs || []} 
-                isLoading={isLoading} 
-              />
-            </div>
-
-            {/* Treatment Drug Groups */}
-            <TreatmentDrugGroupChart 
-              data={chartData.treatmentDrugGroups || []} 
-              isLoading={isLoading} 
-            />
-
-            {/* Severity and Gender */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SeverityLevelChart 
-                data={chartData.severityDistribution || []} 
-                isLoading={isLoading} 
-              />
-              <GenderDistributionChart 
-                data={chartData.genderDistribution || []} 
-                isLoading={isLoading} 
-              />
-            </div>
-
-            {/* Age and Outcome */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AgeDistributionChart 
-                data={chartData.ageDistribution || []} 
-                isLoading={isLoading} 
-              />
-              <OutcomeDistributionChart 
-                data={chartData.outcomeDistribution || []} 
-                isLoading={isLoading} 
-              />
-            </div>
-
-            {/* Occupation Analysis - Full width */}
-            <OccupationAnalysisChart 
-              data={chartData.occupationAnalysis || []} 
-              isLoading={isLoading} 
-            />
-
-            {/* Monthly Trends */}
-            <MonthlyTrendsChart 
-              data={chartData.monthlyTrends || []} 
-              isLoading={isLoading} 
-            />
-            
-            {/* Drug Distribution */}
-            <DrugDistributionChart 
-              data={chartData.drugDistribution || []} 
-              isLoading={isLoading} 
-            />
-          </>
-        )}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <AgeDistributionChart data={chartData.ageDistribution || []} isLoading={isLoading} />
+        <GenderDistributionChart data={chartData.genderDistribution || []} isLoading={isLoading} />
       </div>
-    );
+    )
+  }
+
+  if (section === 'B') {
+    return (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="xl:col-span-2">
+          <ReportsByDateChart data={chartData.reportsByDate || []} isLoading={isLoading} />
+        </div>
+        <SeverityLevelChart data={chartData.severityDistribution || []} isLoading={isLoading} />
+        <OutcomeDistributionChart data={chartData.outcomeDistribution || []} isLoading={isLoading} />
+      </div>
+    )
+  }
+
+  if (section === 'C') {
+    return (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="xl:col-span-2">
+          <TopDrugsChart data={chartData.topDrugs || []} isLoading={isLoading} />
+        </div>
+        <div className="xl:col-span-2">
+          <TreatmentDrugGroupChart data={chartData.treatmentDrugGroups || []} isLoading={isLoading} />
+        </div>
+        <BreakdownBarChart
+          title="Đường dùng thuốc nghi ngờ"
+          subtitle="Giúp rà soát bối cảnh sử dụng thuốc trong phần C"
+          data={chartData.routeDistribution || []}
+          isLoading={isLoading}
+          color="#0f766e"
+        />
+        <BreakdownBarChart
+          title="Top hoạt chất nghi ngờ"
+          subtitle="Tần suất hoạt chất xuất hiện trong báo cáo ADR"
+          data={(chartData.drugDistribution || []).map((item) => ({
+            key: item.drugName,
+            label: item.drugName,
+            count: item.count,
+            percentage: item.percentage,
+          }))}
+          isLoading={isLoading}
+          color="#1d4ed8"
+        />
+      </div>
+    )
+  }
+
+  if (section === 'D') {
+    return (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <BreakdownBarChart
+          title="Đánh giá mối liên quan thuốc - ADR"
+          subtitle="Phân bố kết luận thẩm định theo phần D"
+          data={chartData.causalityDistribution || []}
+          isLoading={isLoading}
+          color="#1d4ed8"
+        />
+        <BreakdownBarChart
+          title="Thang đánh giá sử dụng"
+          subtitle="WHO-UMC hay Naranjo được dùng nhiều hơn"
+          data={chartData.assessmentScaleDistribution || []}
+          isLoading={isLoading}
+          color="#7c3aed"
+        />
+      </div>
+    )
+  }
+
+  if (section === 'E') {
+    return (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="xl:col-span-2">
+          <OccupationAnalysisChart data={chartData.occupationAnalysis || []} isLoading={isLoading} />
+        </div>
+        <Top10FacilitiesChart data={chartData.topFacilities || []} isLoading={isLoading} />
+        <BreakdownBarChart
+          title="Cấu trúc loại báo cáo"
+          subtitle="Tỷ lệ báo cáo lần đầu và báo cáo bổ sung"
+          data={chartData.reportTypeDistribution || []}
+          isLoading={isLoading}
+          color="#ea580c"
+        />
+      </div>
+    )
+  }
+
+  if (section === 'F') {
+    return (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <BreakdownBarChart
+          title="Đánh giá mức độ nặng"
+          subtitle="Phân loại mức độ theo kết quả phần F"
+          data={chartData.severityAssessmentDistribution || []}
+          isLoading={isLoading}
+          color="#dc2626"
+        />
+        <BreakdownBarChart
+          title="Khả năng phòng tránh ADR"
+          subtitle="Tổng hợp kết quả đánh giá phòng tránh"
+          data={chartData.preventabilityDistribution || []}
+          isLoading={isLoading}
+          color="#059669"
+        />
+      </div>
+    )
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-      {showAll && (
-        <>
-          {/* Xu hướng báo cáo theo tháng - Full Width */}
-          <div className="xl:col-span-2">
-            <ReportsByDateChart 
-              data={chartData.reportsByDate || []} 
-              isLoading={isLoading} 
-            />
-          </div>
-
-          {/* Top 5 cơ sở có nhiều báo cáo nhất */}
-          <Top10FacilitiesChart 
-            data={chartData.topFacilities || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Top 5 thuốc nghi ngờ */}
-          <TopDrugsChart 
-            data={chartData.topDrugs || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Top 5 Nhóm thuốc điều trị - Full Width */}
-          <div className="xl:col-span-2">
-            <TreatmentDrugGroupChart 
-              data={chartData.treatmentDrugGroups || []} 
-              isLoading={isLoading} 
-            />
-          </div>
-
-          {/* Số lượng và tỷ lệ báo cáo mức độ nghiêm trọng */}
-          <SeverityLevelChart 
-            data={chartData.severityDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Số lượng và tỷ lệ theo Giới tính */}
-          <GenderDistributionChart 
-            data={chartData.genderDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Độ tuổi được báo cáo */}
-          <AgeDistributionChart 
-            data={chartData.ageDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Outcome Distribution Chart */}
-          <OutcomeDistributionChart 
-            data={chartData.outcomeDistribution || []} 
-            isLoading={isLoading} 
-          />
-
-          {/* Tỷ lệ theo Nghề nghiệp của người báo cáo - Full Width */}
-          <div className="xl:col-span-2">
-            <OccupationAnalysisChart 
-              data={chartData.occupationAnalysis || []} 
-              isLoading={isLoading} 
-            />
-          </div>
-
-          {/* Monthly Trends - Full Width */}
-          <div className="xl:col-span-2">
-            <MonthlyTrendsChart 
-              data={chartData.monthlyTrends || []} 
-              isLoading={isLoading} 
-            />
-          </div>
-
-          {/* Drug Distribution Chart */}
-          <DrugDistributionChart 
-            data={chartData.drugDistribution || []} 
-            isLoading={isLoading} 
-          />
-        </>
-      )}
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="xl:col-span-2">
+        <ReportsByDateChart data={chartData.reportsByDate || []} isLoading={isLoading} />
+      </div>
+      <SeverityLevelChart data={chartData.severityDistribution || []} isLoading={isLoading} />
+      <OutcomeDistributionChart data={chartData.outcomeDistribution || []} isLoading={isLoading} />
+      <Top10FacilitiesChart data={chartData.topFacilities || []} isLoading={isLoading} />
+      <TopDrugsChart data={chartData.topDrugs || []} isLoading={isLoading} />
     </div>
-  );
+  )
 }
-
-// Export individual chart components for selective use
-export {
-  AgeDistributionChart,
-  SeverityLevelChart,
-  MonthlyTrendsChart,
-  DrugDistributionChart,
-  OutcomeDistributionChart,
-  Top10FacilitiesChart,
-  TopDrugsChart,
-  TreatmentDrugGroupChart,
-  OccupationAnalysisChart,
-  ReportsByDateChart,
-  GenderDistributionChart
-};
-

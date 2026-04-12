@@ -1,6 +1,7 @@
 'use client'
 
 import 'react-quill/dist/quill.snow.css'
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 
 interface RichTextDisplayProps {
   content: string
@@ -12,6 +13,8 @@ interface RichTextDisplayProps {
  * với styling phù hợp
  */
 export default function RichTextDisplay({ content, className = '' }: RichTextDisplayProps) {
+  const sanitizedContent = sanitizeRichText(content)
+
   return (
     <div className={`rich-text-display ${className}`}>
       <style jsx global>{`
@@ -231,9 +234,8 @@ export default function RichTextDisplay({ content, className = '' }: RichTextDis
       
       <div 
         className="ql-editor" 
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizedContent }}
       />
     </div>
   )
 }
-

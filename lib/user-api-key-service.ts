@@ -1,35 +1,6 @@
 import { UserAPIKey, APIKeyInput, APIKeyTestResult, APIKeyValidationResult } from '@/types/user-api-keys'
 
 export class UserAPIKeyService {
-  // Encryption key - should be stored securely in environment
-  private static readonly ENCRYPTION_KEY = process.env.NEXT_PUBLIC_API_KEY_ENCRYPTION_KEY || 'default-key-change-in-production'
-
-  /**
-   * Simple encryption for API keys (use proper encryption in production)
-   */
-  private static encryptAPIKey(apiKey: string): string {
-    try {
-      // In production, use proper encryption like crypto-js or similar
-      // This is a simple base64 encoding for demo purposes
-      return Buffer.from(apiKey).toString('base64')
-    } catch (error) {
-      console.error('Encryption error:', error)
-      throw new Error('Failed to encrypt API key')
-    }
-  }
-
-  /**
-   * Simple decryption for API keys
-   */
-  private static decryptAPIKey(encryptedKey: string): string {
-    try {
-      return Buffer.from(encryptedKey, 'base64').toString('utf-8')
-    } catch (error) {
-      console.error('Decryption error:', error)
-      throw new Error('Failed to decrypt API key')
-    }
-  }
-
   /**
    * Get all API keys for current user
    */
@@ -354,13 +325,6 @@ export class UserAPIKeyService {
     }
 
     return { isValid: true }
-  }
-
-  /**
-   * Get decrypted API key for internal use (server-side only)
-   */
-  static getDecryptedAPIKey(encryptedKey: string): string {
-    return this.decryptAPIKey(encryptedKey)
   }
 
   /**

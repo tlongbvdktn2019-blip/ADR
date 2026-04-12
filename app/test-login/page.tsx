@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function TestLoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
   return (
@@ -23,14 +23,14 @@ export default function TestLoginPage() {
           <form className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Username
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="admin@soyte.gov.vn"
+                placeholder="admin"
               />
             </div>
 
@@ -49,7 +49,7 @@ export default function TestLoginPage() {
 
             <button
               type="button"
-              onClick={() => alert(`Email: ${email}, Password: ${password}`)}
+              onClick={() => alert(`Username: ${username}, Password: ${password}`)}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
               Test Login
@@ -59,8 +59,8 @@ export default function TestLoginPage() {
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h3>
             <div className="text-xs text-blue-800 space-y-1">
-              <div><strong>Admin:</strong> admin@soyte.gov.vn / admin123</div>
-              <div><strong>User:</strong> user@benhvien.gov.vn / user123</div>
+              <div><strong>Admin:</strong> admin / admin123</div>
+              <div><strong>User:</strong> user / user123</div>
             </div>
           </div>
 

@@ -8,7 +8,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { QRDriveService } from '@/lib/qr-drive-service';
-import { QRCardService } from '@/lib/qr-card-service';
+import { ensureAllergyCardQrCode } from '@/lib/allergy-card-qr'
 import { 
   AllergyCard, 
   AllergyCardFormData, 
@@ -274,31 +274,18 @@ export async function POST(request: NextRequest) {
     // Add suspected drugs to card data
     completeCard.suspected_drugs = suspectedDrugs;
 
-    // Generate QR code for the card (always generate for every card)
-    // QR chứa URL CÔNG KHAI để bất kỳ ai quét cũng có thể xem thông tin
     let qrCodeUrl = null;
-    let qrCodeData = null;
     
     try {
-      // Generate QR code containing PUBLIC URL
-      // Ví dụ QR sẽ chứa: "https://domain.com/allergy-cards/public/AC-2024-000001"
-      // Khi quét bằng bất kỳ app QR nào, sẽ mở trang public với đầy đủ thông tin
-      qrCodeUrl = await QRCardService.generateCardQR(cardResult.card_code);
-      
-      // Store card code as QR data for reference
-      qrCodeData = cardResult.card_code;
-      
-      // Update card with QR code
-      await adminSupabase
-        .from('allergy_cards')
-        .update({ 
-          qr_code_url: qrCodeUrl,
-          qr_code_data: qrCodeData
-        })
-        .eq('id', cardResult.id);
-        
-      completeCard.qr_code_url = qrCodeUrl;
-      completeCard.qr_code_data = qrCodeData;
+      const qrState = await ensureAllergyCardQrCode(adminSupabase, {
+        id: cardResult.id,
+        qr_code_url: completeCard.qr_code_url,
+        qr_code_data: completeCard.qr_code_data
+      })
+
+      qrCodeUrl = qrState.qr_code_url
+      completeCard.qr_code_url = qrState.qr_code_url
+      completeCard.qr_code_data = qrState.qr_code_data
     } catch (error) {
       console.error('QR generation error:', error);
       // Continue without QR if generation fails

@@ -78,12 +78,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
       const cardCodeFromUrl = searchParams.get('card_code');
       
       // Nếu có card_code, dùng API public, ngược lại dùng API thông thường
-      let response;
-      if (cardCodeFromUrl) {
-        response = await fetch(`/api/allergy-cards/public/${cardCodeFromUrl}`);
-      } else {
-        response = await fetch(`/api/allergy-cards/${params.id}`);
-      }
+      const response = await fetch(`/api/allergy-cards/view/${params.id}`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -212,12 +207,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
       toast.success(`Đã bổ sung thành công! ${data.allergies_added || 0} dị ứng được thêm vào.`);
       
-      // Redirect back with updated=true param to trigger auto-refresh
-      if (card?.card_code) {
-        router.push(`/allergy-cards/public/${card.card_code}?updated=true`);
-      } else {
-        router.push(`/allergy-cards/${params.id}?updated=true`);
-      }
+      router.push(`/allergy-cards/view/${params.id}`);
 
     } catch (error) {
       console.error('Submit error:', error);
@@ -259,7 +249,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Link href={card?.card_code ? `/allergy-cards/public/${card.card_code}` : `/allergy-cards/${params.id}`}>
+            <Link href={`/allergy-cards/view/${params.id}`}>
               <Button variant="outline" className="flex items-center gap-2">
                 <ArrowLeftIcon className="w-4 h-4" />
                 Quay lại
@@ -587,7 +577,7 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
 
             {/* Submit buttons */}
             <div className="flex gap-3 justify-end">
-              <Link href={card?.card_code ? `/allergy-cards/public/${card.card_code}` : `/allergy-cards/${params.id}`}>
+              <Link href={`/allergy-cards/view/${params.id}`}>
                 <Button type="button" variant="outline">
                   Hủy bỏ
                 </Button>
@@ -616,4 +606,3 @@ export default function AddInfoToAllergyCardPage({ params }: AddInfoPageProps) {
     </div>
   );
 }
-

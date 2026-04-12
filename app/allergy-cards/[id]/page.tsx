@@ -324,7 +324,7 @@ export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageP
                 <ul className="space-y-1 text-xs">
                   <li>• Quét QR bằng camera điện thoại</li>
                   <li>• Hoặc nhập mã thẻ để tra cứu</li>
-                  <li>• QR chứa mã thẻ: <span className="font-mono font-semibold">{card.card_code}</span></li>
+                  <li>• QR mở bản xem công khai an toàn của thẻ</li>
                 </ul>
               </div>
               

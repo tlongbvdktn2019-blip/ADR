@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { toast } from 'react-hot-toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Card from '@/components/ui/Card'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { User, UserFilters } from '@/types/user'
 import { 
   PencilIcon, 
@@ -16,7 +14,6 @@ import {
   PlusIcon,
   UserCircleIcon,
   ShieldCheckIcon,
-  BuildingOfficeIcon,
   PhoneIcon,
   DocumentTextIcon,
   HeartIcon,
@@ -47,7 +44,6 @@ export default function UserList({
   totalPages
 }: UserListProps) {
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFiltersChange({
@@ -75,14 +71,13 @@ export default function UserList({
   const handleDeleteConfirm = async () => {
     if (!deleteUser) return
 
-    setDeleting(true)
     try {
       await onDelete(deleteUser)
       setDeleteUser(null)
     } catch (error) {
       // Error handling is done in parent component
+      void error
     } finally {
-      setDeleting(false)
     }
   }
 
@@ -207,7 +202,7 @@ export default function UserList({
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
               </div>
               <Input
-                placeholder="Tìm kiếm theo tên, email, tổ chức..."
+                placeholder="Tìm kiếm theo tên, username, email, tổ chức..."
                 value={filters.search || ''}
                 onChange={handleSearch}
                 className="pl-10"
@@ -283,6 +278,9 @@ export default function UserList({
                             {user.name}
                           </div>
                           <div className="text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                          <div className="text-xs text-gray-400">
                             {user.email}
                           </div>
                           {/* Show organization on mobile */}

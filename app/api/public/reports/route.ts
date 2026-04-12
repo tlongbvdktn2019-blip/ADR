@@ -196,7 +196,18 @@ export async function POST(request: NextRequest) {
       console.error('Auto email sending error (public report):', emailError);
     }
     */
-    
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: reportData.id,
+          report_code: reportData.report_code,
+          approval_status: reportData.approval_status,
+        },
+        message: 'Báo cáo đã được tiếp nhận',
+      },
+      { status: 201 }
+    );
 
   } catch (error: any) {
     console.error('API error:', error);
@@ -206,5 +217,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
 

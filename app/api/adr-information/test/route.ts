@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../../lib/auth-config'
 import { createClient } from '../../../../lib/supabase'
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
 // GET /api/adr-information/test - Test database connection and schema
 export async function GET(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     // Test 1: Auth session
     const session = await getServerSession(authOptions)
 
@@ -158,6 +164,11 @@ export async function GET(request: NextRequest) {
 // POST /api/adr-information/test - Test creation with detailed logging
 export async function POST(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 
 // GET: Lấy danh sách cuộc thi (Admin)
 export async function GET(request: NextRequest) {
@@ -95,8 +96,8 @@ export async function POST(request: NextRequest) {
       .insert({
         title,
         description,
-        rules,
-        prizes,
+        rules: rules ? sanitizeRichText(rules) : null,
+        prizes: prizes ? sanitizeRichText(prizes) : null,
         logo_url,
         number_of_questions,
         time_per_question,
@@ -126,4 +127,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

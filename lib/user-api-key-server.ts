@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { UserAPIKey, APIKeyInput, APIKeyTestResult, APIKeyValidationResult } from '@/types/user-api-keys'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
+import { UserAPIKey, StoredUserAPIKey, APIKeyInput, APIKeyTestResult, APIKeyValidationResult } from '@/types/user-api-keys'
 
 /**
  * Get Supabase admin client (bypasses RLS)
@@ -25,14 +26,68 @@ function getSupabaseAdmin() {
  * This should ONLY be used in API routes, not in client components
  */
 export class UserAPIKeyServer {
-  private static readonly ENCRYPTION_KEY = process.env.API_KEY_ENCRYPTION_SECRET || 'default-key-change-in-production'
+  private static getEncryptionKey() {
+    const secret = process.env.API_KEY_ENCRYPTION_SECRET
+
+    if (!secret) {
+      if (process.env.NODE_ENV === 'development') {
+        return createHash('sha256')
+          .update('development-only-api-key-secret')
+          .digest()
+      }
+
+      throw new Error('Missing API_KEY_ENCRYPTION_SECRET')
+    }
+
+    return createHash('sha256').update(secret).digest()
+  }
+
+  private static maskAPIKey(apiKey: string) {
+    if (!apiKey) {
+      return null
+    }
+
+    if (apiKey.length <= 8) {
+      return `${apiKey.slice(0, 2)}***`
+    }
+
+    return `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}`
+  }
+
+  private static toPublicAPIKey(record: StoredUserAPIKey): UserAPIKey {
+    const decryptedKey = this.decryptAPIKey(record.api_key_encrypted)
+
+    return {
+      id: record.id,
+      user_id: record.user_id,
+      provider: record.provider,
+      api_key_name: record.api_key_name,
+      masked_key: this.maskAPIKey(decryptedKey),
+      is_active: record.is_active,
+      is_valid: record.is_valid,
+      last_tested_at: record.last_tested_at,
+      test_result: record.test_result,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+    }
+  }
 
   /**
    * Encrypt API key
    */
   static encryptAPIKey(apiKey: string): string {
     try {
-      return Buffer.from(apiKey).toString('base64')
+      const iv = randomBytes(12)
+      const cipher = createCipheriv('aes-256-gcm', this.getEncryptionKey(), iv)
+      const encrypted = Buffer.concat([cipher.update(apiKey, 'utf8'), cipher.final()])
+      const authTag = cipher.getAuthTag()
+
+      return [
+        'v1',
+        iv.toString('base64url'),
+        authTag.toString('base64url'),
+        encrypted.toString('base64url'),
+      ].join(':')
     } catch (error) {
       console.error('Encryption error:', error)
       throw new Error('Failed to encrypt API key')
@@ -44,7 +99,30 @@ export class UserAPIKeyServer {
    */
   static decryptAPIKey(encryptedKey: string): string {
     try {
-      return Buffer.from(encryptedKey, 'base64').toString('utf-8')
+      if (encryptedKey.startsWith('v1:')) {
+        const [, ivPart, authTagPart, encryptedPart] = encryptedKey.split(':')
+
+        if (!ivPart || !authTagPart || !encryptedPart) {
+          throw new Error('Invalid encrypted API key format')
+        }
+
+        const decipher = createDecipheriv(
+          'aes-256-gcm',
+          this.getEncryptionKey(),
+          Buffer.from(ivPart, 'base64url')
+        )
+
+        decipher.setAuthTag(Buffer.from(authTagPart, 'base64url'))
+
+        const decrypted = Buffer.concat([
+          decipher.update(Buffer.from(encryptedPart, 'base64url')),
+          decipher.final(),
+        ])
+
+        return decrypted.toString('utf8')
+      }
+
+      return Buffer.from(encryptedKey, 'base64').toString('utf8')
     } catch (error) {
       console.error('Decryption error:', error)
       throw new Error('Failed to decrypt API key')
@@ -68,7 +146,7 @@ export class UserAPIKeyServer {
       throw new Error('Failed to fetch API keys')
     }
 
-    return data || []
+    return ((data || []) as StoredUserAPIKey[]).map((record) => this.toPublicAPIKey(record))
   }
 
   /**
@@ -76,6 +154,10 @@ export class UserAPIKeyServer {
    */
   static async addAPIKey(userId: string, keyInput: APIKeyInput): Promise<UserAPIKey> {
     const supabase = getSupabaseAdmin()
+
+    if (!['openai', 'gemini'].includes(keyInput.provider)) {
+      throw new Error('Unsupported provider')
+    }
     
     // Encrypt API key
     const encryptedKey = this.encryptAPIKey(keyInput.api_key)
@@ -100,7 +182,7 @@ export class UserAPIKeyServer {
       throw new Error(`Failed to add API key: ${error.message}`)
     }
 
-    return data
+    return this.toPublicAPIKey(data as StoredUserAPIKey)
   }
 
   /**
@@ -110,6 +192,10 @@ export class UserAPIKeyServer {
     const supabase = getSupabaseAdmin()
     
     const updateData: any = { ...updates }
+
+    if (updates.provider && !['openai', 'gemini'].includes(updates.provider)) {
+      throw new Error('Unsupported provider')
+    }
     
     // If updating the actual key, encrypt it
     if (updates.api_key) {
@@ -130,7 +216,7 @@ export class UserAPIKeyServer {
       throw new Error('Failed to update API key')
     }
 
-    return data
+    return this.toPublicAPIKey(data as StoredUserAPIKey)
   }
 
   /**
@@ -393,7 +479,7 @@ export class UserAPIKeyServer {
   /**
    * Get active API key for provider
    */
-  static async getActiveAPIKeyForProvider(userId: string, provider: 'openai' | 'gemini'): Promise<UserAPIKey | null> {
+  static async getActiveAPIKeyForProvider(userId: string, provider: 'openai' | 'gemini'): Promise<StoredUserAPIKey | null> {
     const supabase = getSupabaseAdmin()
     
     const { data, error } = await supabase
@@ -410,6 +496,6 @@ export class UserAPIKeyServer {
       return null
     }
 
-    return data || null
+    return (data as StoredUserAPIKey | null) || null
   }
 }

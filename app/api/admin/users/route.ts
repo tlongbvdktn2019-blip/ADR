@@ -3,10 +3,13 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
-import { Database } from '@/types/supabase'
+import {
+  getUsernameValidationMessage,
+  normalizeEmail,
+  normalizeUsername,
+} from '@/lib/user-account'
 
-// Create Supabase admin client
-const supabaseAdmin = createClient<Database>(
+const supabaseAdmin = createClient(
   config.supabase.url,
   config.supabase.serviceRoleKey
 )
@@ -14,8 +17,7 @@ const supabaseAdmin = createClient<Database>(
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
-    // Check if user is authenticated and is admin
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Không có quyền truy cập' },
@@ -30,23 +32,19 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const role = searchParams.get('role')
 
-    // Build query
     let query = supabaseAdmin
       .from('users')
-      .select('id, email, name, role, organization, phone, created_at, updated_at', { count: 'exact' })
+      .select('id, username, email, name, role, organization, phone, created_at, updated_at', { count: 'exact' })
       .order('created_at', { ascending: false })
 
-    // Apply search filter
     if (search && search.trim()) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,organization.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,username.ilike.%${search}%,email.ilike.%${search}%,organization.ilike.%${search}%`)
     }
 
-    // Apply role filter
     if (role && role !== '') {
       query = query.eq('role', role)
     }
 
-    // Apply pagination
     query = query.range(offset, offset + limit - 1)
 
     const { data: users, error, count } = await query
@@ -67,10 +65,9 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         totalPages: Math.ceil((count || 0) / limit),
         hasNext: page < Math.ceil((count || 0) / limit),
-        hasPrev: page > 1
+        hasPrev: page > 1,
       }
     })
-
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
@@ -83,8 +80,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
-    // Check if user is authenticated and is admin
+
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Không có quyền truy cập' },
@@ -93,17 +89,28 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, organization, phone, role } = body
+    const name = body.name?.trim()
+    const username = normalizeUsername(body.username || '')
+    const email = normalizeEmail(body.email || '')
+    const organization = body.organization?.trim()
+    const phone = body.phone?.trim() || null
+    const role = body.role
 
-    // Validate required fields
-    if (!name || !email || !organization) {
+    if (!name || !username || !email || !organization) {
       return NextResponse.json(
-        { error: 'Thiếu thông tin bắt buộc: tên, email, tổ chức' },
+        { error: 'Thiếu thông tin bắt buộc: tên, username, email, tổ chức' },
         { status: 400 }
       )
     }
 
-    // Validate email format
+    const usernameError = getUsernameValidationMessage(username)
+    if (usernameError) {
+      return NextResponse.json(
+        { error: usernameError },
+        { status: 400 }
+      )
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -112,7 +119,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate role
     if (!role || !['admin', 'user'].includes(role)) {
       return NextResponse.json(
         { error: 'Vai trò không hợp lệ' },
@@ -120,28 +126,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
+    const { data: existingUsername } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle()
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Tên đăng nhập đã được sử dụng' },
+        { status: 400 }
+      )
+    }
+
+    const { data: existingEmail } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Email đã được sử dụng' },
         { status: 400 }
       )
     }
 
-    // Create new user
-    const { data: newUser, error } = await (supabaseAdmin as any)
+    const { data: newUser, error } = await supabaseAdmin
       .from('users')
       .insert({
         name,
+        username,
         email,
         organization,
-        phone: phone || null,
+        phone,
         role,
       })
       .select()
@@ -160,14 +178,14 @@ export async function POST(request: NextRequest) {
       user: {
         id: newUser.id,
         name: newUser.name,
+        username: newUser.username,
         email: newUser.email,
         role: newUser.role,
         organization: newUser.organization,
         phone: newUser.phone,
-        created_at: newUser.created_at
+        created_at: newUser.created_at,
       }
     })
-
   } catch (error) {
     console.error('Create user error:', error)
     return NextResponse.json(
@@ -176,6 +194,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-
-

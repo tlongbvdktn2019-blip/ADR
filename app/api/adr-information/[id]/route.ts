@@ -2,6 +2,7 @@
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../../lib/auth-config'
 import { createClient, createAdminClient } from '../../../../lib/supabase'
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 import { 
   ADRInformation, 
   UpdateInformationData,
@@ -147,7 +148,7 @@ export async function PUT(
 
     if (data.title !== undefined) updateData.title = data.title.trim()
     if (data.summary !== undefined) updateData.summary = data.summary?.trim() || null
-    if (data.content !== undefined) updateData.content = data.content
+    if (data.content !== undefined) updateData.content = sanitizeRichText(data.content)
     if (data.type !== undefined) updateData.type = data.type
     if (data.priority !== undefined) updateData.priority = data.priority
     if (data.tags !== undefined) updateData.tags = data.tags

@@ -4,12 +4,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }
 ) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
+    void request
+
     const cardCode = params.code;
     const supabase = createAdminClient();
 

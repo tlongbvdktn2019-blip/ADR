@@ -21,11 +21,12 @@ interface OutcomeDistributionChartProps {
 }
 
 const OUTCOME_COLORS = {
-  'completely_recovered': '#10b981', // green-500
+  'recovered_without_sequelae': '#10b981', // green-500
   'recovering': '#3b82f6', // blue-500
   'not_recovered': '#f59e0b', // amber-500
   'recovered_with_sequelae': '#f97316', // orange-500
-  'death': '#ef4444', // red-500
+  'death_by_adr': '#ef4444', // red-500
+  'death_unrelated': '#f87171', // red-400
   'unknown': '#6b7280' // gray-500
 };
 
@@ -99,13 +100,15 @@ export default function OutcomeDistributionChart({ data, isLoading = false }: Ou
   };
 
   // Calculate recovery rate
-  const recoveredCount = data.find(item => item.outcomeKey === 'completely_recovered')?.count || 0;
+  const recoveredCount = data.find(item => item.outcomeKey === 'recovered_without_sequelae')?.count || 0;
   const recoveringCount = data.find(item => item.outcomeKey === 'recovering')?.count || 0;
   const totalCount = data.reduce((sum, item) => sum + item.count, 0);
   const recoveryRate = totalCount > 0 ? Math.round(((recoveredCount + recoveringCount) / totalCount) * 100) : 0;
 
   // Calculate death rate  
-  const deathCount = data.find(item => item.outcomeKey === 'death')?.count || 0;
+  const deathCount =
+    (data.find(item => item.outcomeKey === 'death_by_adr')?.count || 0) +
+    (data.find(item => item.outcomeKey === 'death_unrelated')?.count || 0);
   const deathRate = totalCount > 0 ? Math.round((deathCount / totalCount) * 100) : 0;
 
   return (

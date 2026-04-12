@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-config';
 import { createServerClient } from '@/lib/supabase';
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,6 +13,11 @@ export const runtime = 'nodejs';
  */
 export async function GET() {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     const session = await getServerSession(authOptions);
 
     if (!session) {

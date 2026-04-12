@@ -3,9 +3,15 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

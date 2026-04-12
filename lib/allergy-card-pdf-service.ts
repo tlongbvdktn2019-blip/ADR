@@ -20,7 +20,7 @@ export class AllergyCardPDFService {
     try {
       // Generate QR code data URL
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-      const qrCodeDataUrl = await QRCardService.generateCardQR(card.card_code, baseUrl);
+      const qrCodeDataUrl = await QRCardService.generateCardQR(card.id, baseUrl);
 
       // Generate simple HTML representation
       const html = `

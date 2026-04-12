@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Contest, Department, Unit } from '@/types/contest';
+import { sanitizeRichText } from '@/lib/html-sanitizer'
 
 export default function ContestLandingPage() {
   const router = useRouter();
@@ -189,7 +190,7 @@ export default function ContestLandingPage() {
               Thể lệ cuộc thi
             </h2>
             {contest.rules ? (
-              <div className="prose text-gray-600" dangerouslySetInnerHTML={{ __html: contest.rules }} />
+              <div className="prose text-gray-600" dangerouslySetInnerHTML={{ __html: sanitizeRichText(contest.rules) }} />
             ) : (
               <ul className="space-y-2 text-gray-600">
                 <li className="flex items-start">
@@ -219,7 +220,7 @@ export default function ContestLandingPage() {
               Giải thưởng
             </h2>
             {contest.prizes ? (
-              <div className="prose text-gray-600" dangerouslySetInnerHTML={{ __html: contest.prizes }} />
+              <div className="prose text-gray-600" dangerouslySetInnerHTML={{ __html: sanitizeRichText(contest.prizes) }} />
             ) : (
               <div className="space-y-3 text-gray-600">
                 <div className="flex items-center space-x-3">

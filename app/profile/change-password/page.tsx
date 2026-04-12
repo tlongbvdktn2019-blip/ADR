@@ -68,6 +68,13 @@ export default function ChangePasswordPage() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700">
+                Tên đăng nhập
+              </label>
+              <p className="mt-1 text-sm text-gray-900">@{session.user.username}</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
                 Email
               </label>
               <p className="mt-1 text-sm text-gray-900">{session.user.email}</p>

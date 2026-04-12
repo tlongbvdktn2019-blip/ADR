@@ -1,36 +1,45 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../../lib/auth-config'
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
-// Simple test endpoint to check if API is working
 export async function GET(request: NextRequest) {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
+    void request
+
     const session = await getServerSession(authOptions)
-    
+
     return NextResponse.json({
       message: 'API is working!',
       timestamp: new Date().toISOString(),
-      session: session ? {
-        userId: session.user.id,
-        userEmail: session.user.email,
-        userName: session.user.name,
-        userRole: session.user.role
-      } : null,
-      success: true
+      session: session
+        ? {
+            userId: session.user.id,
+            userEmail: session.user.email,
+            userName: session.user.name,
+            userRole: session.user.role,
+          }
+        : null,
+      success: true,
     })
-    
   } catch (error) {
     console.error('Simple test API error:', error)
-    return NextResponse.json({
-      error: 'Test API failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      success: false
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Test API failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        success: false,
+      },
+      { status: 500 }
+    )
   }
 }
-
-

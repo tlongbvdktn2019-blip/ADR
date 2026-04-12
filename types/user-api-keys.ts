@@ -5,14 +5,18 @@ export interface UserAPIKey {
   id: string
   user_id: string
   provider: 'openai' | 'gemini'
-  api_key_encrypted: string
   api_key_name?: string
+  masked_key?: string | null
   is_active: boolean
   is_valid?: boolean | null
   last_tested_at?: string
   test_result?: APIKeyTestResult
   created_at: string
   updated_at: string
+}
+
+export interface StoredUserAPIKey extends UserAPIKey {
+  api_key_encrypted: string
 }
 
 export interface APIKeyTestResult {
@@ -81,4 +85,3 @@ export interface ChatbotRequestWithUserKey {
   userAPIKeyId: string // Reference to user's API key
   chatHistory?: ChatMessage[]
 }
-

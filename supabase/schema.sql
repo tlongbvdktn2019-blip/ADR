@@ -11,6 +11,7 @@ CREATE TYPE drug_reaction_assessment AS ENUM ('yes', 'no', 'not_stopped', 'no_in
 -- Create users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) UNIQUE NOT NULL CHECK (username ~ '^[a-z0-9._-]{3,50}$'),
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     role user_role DEFAULT 'user',

@@ -3,6 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
+import { normalizeEmail, normalizeUsername } from '@/lib/user-account'
+
 const bcrypt = require('bcryptjs')
 
 // Create Supabase client with service role key for admin operations
@@ -22,52 +24,56 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        identifier: { label: 'Tên đăng nhập hoặc email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email và mật khẩu là bắt buộc')
+        const identifier = String(credentials?.identifier || '').trim()
+        const password = credentials?.password || ''
+
+        if (!identifier || !password) {
+          throw new Error('Tên đăng nhập hoặc email và mật khẩu là bắt buộc')
         }
 
-        try {
-          // Get user from Supabase
-          const { data: user, error } = await supabaseAdmin
-            .from('users')
-            .select('*')
-            .eq('email', credentials.email)
-            .single()
+        const isEmailLogin = identifier.includes('@')
+        const normalizedIdentifier = isEmailLogin
+          ? normalizeEmail(identifier)
+          : normalizeUsername(identifier)
 
-          if (error) {
-            throw new Error('Thông tin đăng nhập không chính xác')
-          }
+        const userQuery = supabaseAdmin
+          .from('users')
+          .select('*')
 
-          if (!user) {
-            throw new Error('Thông tin đăng nhập không chính xác')
-          }
+        const { data: user, error } = await (isEmailLogin
+          ? userQuery.eq('email', normalizedIdentifier).maybeSingle()
+          : userQuery.eq('username', normalizedIdentifier).maybeSingle())
 
-          // Check if user has a password set
-          if (!(user as any).password_hash) {
-            throw new Error('Tài khoản chưa được thiết lập mật khẩu. Vui lòng liên hệ admin.')
-          }
+        if (error) {
+          console.error('Auth lookup error:', error)
+          throw new Error('Không thể đăng nhập lúc này. Vui lòng thử lại sau.')
+        }
 
-          // Verify password using bcrypt
-          const isValidPassword = await bcrypt.compare(credentials.password, (user as any).password_hash)
-          
-          if (!isValidPassword) {
-            throw new Error('Mật khẩu không chính xác')
-          }
+        if (!user) {
+          return null
+        }
 
-          return {
-            id: (user as any).id,
-            email: (user as any).email,
-            name: (user as any).name,
-            role: (user as any).role,
-            organization: (user as any).organization,
-          }
-        } catch (error) {
-          console.error('Auth error:', error)
-          throw error
+        if (!(user as any).password_hash) {
+          throw new Error('Tài khoản chưa được thiết lập mật khẩu. Vui lòng liên hệ admin.')
+        }
+
+        const isValidPassword = await bcrypt.compare(password, (user as any).password_hash)
+
+        if (!isValidPassword) {
+          return null
+        }
+
+        return {
+          id: (user as any).id,
+          username: (user as any).username,
+          email: (user as any).email,
+          name: (user as any).name,
+          role: (user as any).role,
+          organization: (user as any).organization,
         }
       },
     }),
@@ -75,17 +81,21 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.username = user.username
         token.role = user.role
         token.organization = user.organization
       }
+
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!
+        session.user.username = typeof token.username === 'string' ? token.username : ''
         session.user.role = token.role as string
         session.user.organization = token.organization as string | null
       }
+
       return session
     },
   },
@@ -94,7 +104,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 24 * 60 * 60,
   },
   secret: config.nextAuth.secret,
 }

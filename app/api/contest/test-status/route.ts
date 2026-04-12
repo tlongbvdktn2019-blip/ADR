@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
+import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
 
 /**
  * Test API để kiểm tra trạng thái cuộc thi
@@ -7,6 +8,11 @@ import { createClient } from '@/lib/supabase';
  */
 export async function GET() {
   try {
+    const guard = await rejectUnlessDevelopmentAdmin()
+    if (guard) {
+      return guard
+    }
+
     const supabase = createClient();
     const now = new Date().toISOString();
 

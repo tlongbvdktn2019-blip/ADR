@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import { buildUsernameFromEmail, normalizeEmail } from './user-account'
 
-/**
- * Get Supabase admin client (bypasses RLS)
- */
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -19,31 +17,53 @@ function getSupabaseAdmin() {
   })
 }
 
-/**
- * Get user ID from email, create user if not exists
- */
+async function generateUniqueUsername(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, email: string) {
+  const baseUsername = buildUsernameFromEmail(email)
+  let candidate = baseUsername
+  let suffix = 1
+
+  while (true) {
+    const { data: existingUser, error } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('username', candidate)
+      .maybeSingle()
+
+    if (error) {
+      throw new Error('Failed to check username availability')
+    }
+
+    if (!existingUser) {
+      return candidate
+    }
+
+    candidate = `${baseUsername.slice(0, Math.max(1, 50 - String(suffix).length - 1))}-${suffix}`
+    suffix += 1
+  }
+}
+
 export async function getOrCreateUser(email: string, name?: string): Promise<string> {
   const supabaseAdmin = getSupabaseAdmin()
+  const normalizedEmail = normalizeEmail(email)
 
-  // Try to get existing user
   const { data: existingUser, error: fetchError } = await supabaseAdmin
     .from('users')
     .select('id')
-    .eq('email', email)
+    .eq('email', normalizedEmail)
     .single()
 
-  // User exists, return ID
   if (existingUser && !fetchError) {
     return existingUser.id
   }
 
-  // User doesn't exist, create new user
   if (fetchError && fetchError.code === 'PGRST116') {
+    const username = await generateUniqueUsername(supabaseAdmin, normalizedEmail)
     const { data: newUser, error: createError } = await supabaseAdmin
       .from('users')
       .insert({
-        email: email,
-        name: name || email.split('@')[0], // Use part before @ as default name
+        email: normalizedEmail,
+        username,
+        name: name || normalizedEmail.split('@')[0],
         role: 'user'
       })
       .select('id')
@@ -61,14 +81,10 @@ export async function getOrCreateUser(email: string, name?: string): Promise<str
     return newUser.id
   }
 
-  // Other errors
   console.error('Error fetching user:', fetchError)
   throw new Error('Failed to get or create user')
 }
 
-/**
- * Get user ID from session
- */
 export async function getUserIdFromSession(session: any): Promise<string | null> {
   if (!session || !session.user?.email) {
     return null

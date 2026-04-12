@@ -1,5 +1,6 @@
 export interface User {
   id: string
+  username: string
   email: string
   name: string
   role: 'admin' | 'user'
@@ -19,6 +20,7 @@ export interface User {
 
 export interface UserFormData {
   name: string
+  username: string
   email: string
   organization: string
   phone?: string
@@ -43,7 +45,6 @@ export interface UserFilters {
   page: number
   limit: number
 }
-
 
 
 
