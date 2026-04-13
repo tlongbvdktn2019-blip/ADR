@@ -65,15 +65,12 @@ export default function LoginPage() {
               <h3 className="text-xl font-bold text-blue-900 uppercase">
                 Sở Y tế Thành phố Cần Thơ
               </h3>
-              <p className="text-lg text-blue-800 mt-1">
-                Trung tâm y tế khu vực Thốt Nốt
-              </p>
             </div>
 
             <div className="flex justify-center mb-8">
               <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
                 <img
-                  src="/Logo.jpg"
+                  src="/logo-syt.png"
                   alt="Logo Hệ thống ADR"
                   width={100}
                   height={100}
@@ -149,7 +146,7 @@ export default function LoginPage() {
               <div className="flex justify-center lg:hidden mb-6">
                 <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
                   <img
-                    src="/Logo.jpg"
+                    src="/logo-syt.png"
                     alt="Logo Hệ thống ADR"
                     width={60}
                     height={60}
