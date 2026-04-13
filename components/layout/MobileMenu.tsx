@@ -118,7 +118,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 <div className="flex h-16 shrink-0 items-center border-b border-gray-200">
                   <Link href="/" onClick={onClose} className="flex items-center">
                     <img
-                      src="/Logo.jpg"
+                      src="/logo-syt.png"
                       alt="Logo Hệ thống ADR"
                       className="h-10 w-10 rounded-lg"
                     />
@@ -127,17 +127,6 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       <div className="text-xs text-blue-600">Quản lý báo cáo</div>
                     </div>
                   </Link>
-                </div>
-
-                {/* User Info */}
-                <div className="py-3 border-b border-gray-200">
-                  <div className="text-sm text-gray-500">Xin chào</div>
-                  <div className="mt-1 text-base font-semibold text-gray-900">
-                    {session?.user?.name || 'Người dùng'}
-                  </div>
-                  <div className="text-xs text-gray-500 capitalize">
-                    {role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
-                  </div>
                 </div>
 
                 {/* Navigation */}

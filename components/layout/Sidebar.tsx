@@ -72,7 +72,7 @@ export default function Sidebar() {
             <div className="flex items-center space-x-3">
               {/* Logo Hệ thống ADR */}
               <img
-                src="/Logo.jpg"
+                src="/logo-syt.png"
                 alt="Logo Hệ thống ADR"
                 width={40}
                 height={40}
@@ -84,16 +84,6 @@ export default function Sidebar() {
               </div>
             </div>
           </Link>
-        </div>
-
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="text-sm text-gray-500">Xin chào</div>
-          <div className="mt-1 text-lg font-semibold text-gray-900">
-            {session?.user?.name || 'Người dùng'}
-          </div>
-          <div className="text-xs text-gray-500 capitalize">
-            {role === 'admin' ? 'Quản trị viên' : 'Người dùng'}
-          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
