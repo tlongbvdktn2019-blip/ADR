@@ -447,9 +447,8 @@ export function getReportSectionStatus(
       (isFilled(report.reporter_phone) || isFilled(report.reporter_email)) &&
       isFilled(report.report_type) &&
       isFilled(report.report_date),
-    F:
-      isFilled(report.severity_assessment_result) &&
-      isFilled(report.preventability_assessment_result),
+    // Section F assessments are recommended, not required.
+    F: true,
   }
 }
 

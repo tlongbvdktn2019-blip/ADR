@@ -115,8 +115,6 @@ function buildMissingFieldSummary(
     { key: 'drug_start_date', label: 'Thiếu ngày bắt đầu dùng thuốc', sectionKey: 'C', missing: 0 },
     { key: 'medical_staff_comment', label: 'Thiếu bình luận chuyên môn', sectionKey: 'D', missing: 0 },
     { key: 'reporter_contact', label: 'Thiếu thông tin liên hệ người báo cáo', sectionKey: 'E', missing: 0 },
-    { key: 'severity_assessment_result', label: 'Thiếu đánh giá mức độ nặng', sectionKey: 'F', missing: 0 },
-    { key: 'preventability_assessment_result', label: 'Thiếu đánh giá phòng tránh ADR', sectionKey: 'F', missing: 0 },
   ]
 
   reports.forEach((report) => {
@@ -134,8 +132,6 @@ function buildMissingFieldSummary(
     if (!drugs.some((drug) => isFilled(drug.start_date))) definitions[7].missing++
     if (!isFilled(report.medical_staff_comment)) definitions[8].missing++
     if (!(isFilled(report.reporter_phone) || isFilled(report.reporter_email))) definitions[9].missing++
-    if (!isFilled(report.severity_assessment_result)) definitions[10].missing++
-    if (!isFilled(report.preventability_assessment_result)) definitions[11].missing++
   })
 
   return definitions
@@ -321,11 +317,6 @@ export async function GET(request: NextRequest) {
         key: 'treatment_group',
         label: 'Có nhóm thuốc điều trị',
         count: reportIds.filter((id) => (drugsByReportId.get(id) || []).some((drug) => isFilled(drug.treatment_drug_group))).length,
-      },
-      {
-        key: 'section_f_complete',
-        label: 'Hoàn thành phần F',
-        count: reportPreviews.filter((report) => report.sectionStatus.F).length,
       },
     ].map((signal) => ({
       ...signal,

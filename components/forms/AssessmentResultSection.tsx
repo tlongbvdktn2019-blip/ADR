@@ -66,7 +66,7 @@ export default function AssessmentResultSection({ data, updateData }: Assessment
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-gray-700">
-            <span className="text-red-600">*</span> Kết quả đánh giá mức độ
+            Kết quả đánh giá mức độ
             <span className="ml-2 text-xs font-normal text-blue-600">(Khuyến khích đánh giá)</span>
           </label>
           <Button
@@ -92,7 +92,7 @@ export default function AssessmentResultSection({ data, updateData }: Assessment
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-gray-700">
-            <span className="text-red-600">*</span> Kết quả đánh giá phòng tránh ADR
+            Kết quả đánh giá phòng tránh ADR
             <span className="ml-2 text-xs font-normal text-green-600">(Khuyến khích đánh giá)</span>
           </label>
           <Button
@@ -152,4 +152,3 @@ export default function AssessmentResultSection({ data, updateData }: Assessment
     </div>
   )
 }
-
