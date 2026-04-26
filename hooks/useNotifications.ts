@@ -1,185 +1,194 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Notification, NotificationStats } from '@/types/notification'
 
-export function useNotifications() {
-  const { data: session } = useSession()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [stats, setStats] = useState<NotificationStats>({ total: 0, unread: 0, read: 0 })
-  const [loading, setLoading] = useState(false)
-  const supabase = createClientComponentClient()
+interface UseNotificationsOptions {
+  autoFetch?: boolean
+  pollIntervalMs?: number
+}
 
-  // Fetch notifications
-  const fetchNotifications = async (limit = 20) => {
-    if (!session?.user?.id) return
+interface NotificationPagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+const emptyStats: NotificationStats = { total: 0, unread: 0, read: 0 }
+
+export function useNotifications(options: UseNotificationsOptions = {}) {
+  const { data: session, status } = useSession()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [stats, setStats] = useState<NotificationStats>(emptyStats)
+  const [pagination, setPagination] = useState<NotificationPagination | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchStats = useCallback(async () => {
+    if (!session?.user?.id) return null
+
+    try {
+      const response = await fetch('/api/notifications/stats', {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error('Không thể tải số lượng thông báo')
+      }
+
+      const newStats = await response.json()
+      setStats(newStats)
+      return newStats as NotificationStats
+    } catch (fetchError) {
+      console.error('Error fetching notification stats:', fetchError)
+      return null
+    }
+  }, [session?.user?.id])
+
+  const fetchNotifications = useCallback(async (limit = 20, page = 1, unreadOnly = false) => {
+    if (!session?.user?.id) return null
 
     setLoading(true)
+    setError(null)
+
     try {
-      const response = await fetch(`/api/notifications?limit=${limit}`)
-      if (response.ok) {
-        const data = await response.json()
-        setNotifications(data.notifications)
-        setStats(data.stats)
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      })
+
+      if (unreadOnly) {
+        params.set('unread_only', 'true')
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error)
+
+      const response = await fetch(`/api/notifications?${params.toString()}`, {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error('Không thể tải danh sách thông báo')
+      }
+
+      const data = await response.json()
+      setNotifications(data.notifications || [])
+      setStats(data.stats || emptyStats)
+      setPagination(data.pagination || null)
+      return data
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : 'Không thể tải thông báo'
+      console.error('Error fetching notifications:', fetchError)
+      setError(message)
+      return null
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
 
-  // Fetch stats only
-  const fetchStats = async () => {
-    if (!session?.user?.id) return
+  const markAsRead = useCallback(async (notificationIds: string[]) => {
+    if (!session?.user?.id || notificationIds.length === 0) return false
 
-    try {
-      const response = await fetch('/api/notifications/stats')
-      if (response.ok) {
-        const newStats = await response.json()
-        setStats(newStats)
-      }
-    } catch (error) {
-      console.error('Error fetching notification stats:', error)
-    }
-  }
-
-  // Mark notifications as read
-  const markAsRead = async (notificationIds: string[]) => {
     try {
       const response = await fetch('/api/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'mark_as_read',
-          notification_ids: notificationIds
-        })
+          notification_ids: notificationIds,
+        }),
       })
 
-      if (response.ok) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(notif => 
-            notificationIds.includes(notif.id)
-              ? { ...notif, read: true }
-              : notif
-          )
-        )
-        setStats(prev => ({
-          ...prev,
-          unread: Math.max(0, prev.unread - notificationIds.length),
-          read: prev.read + notificationIds.length
-        }))
-        return true
+      if (!response.ok) {
+        throw new Error('Không thể đánh dấu thông báo đã đọc')
       }
-    } catch (error) {
-      console.error('Error marking notifications as read:', error)
-    }
-    return false
-  }
 
-  // Mark all as read
-  const markAllAsRead = async () => {
+      const data = await response.json()
+      setNotifications(prev =>
+        prev.map(notification =>
+          notificationIds.includes(notification.id)
+            ? { ...notification, read: true }
+            : notification
+        )
+      )
+
+      if (data.stats) {
+        setStats(data.stats)
+      } else {
+        await fetchStats()
+      }
+
+      return true
+    } catch (markError) {
+      console.error('Error marking notifications as read:', markError)
+      return false
+    }
+  }, [fetchStats, session?.user?.id])
+
+  const markAllAsRead = useCallback(async () => {
+    if (!session?.user?.id) return false
+
     try {
       const response = await fetch('/api/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'mark_all_as_read' })
+        body: JSON.stringify({ action: 'mark_all_as_read' }),
       })
 
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, read: true }))
-        )
-        setStats(prev => ({
-          total: prev.total,
-          unread: 0,
-          read: prev.total
-        }))
-        return true
+      if (!response.ok) {
+        throw new Error('Không thể đánh dấu tất cả thông báo')
       }
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error)
-    }
-    return false
-  }
 
-  // Setup real-time subscription
+      const data = await response.json()
+      setNotifications(prev => prev.map(notification => ({ ...notification, read: true })))
+
+      if (data.stats) {
+        setStats(data.stats)
+      } else {
+        await fetchStats()
+      }
+
+      return true
+    } catch (markError) {
+      console.error('Error marking all notifications as read:', markError)
+      return false
+    }
+  }, [fetchStats, session?.user?.id])
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      setNotifications([])
+      setStats(emptyStats)
+      setPagination(null)
+      setError(null)
+    }
+  }, [status])
+
   useEffect(() => {
     if (!session?.user?.id) return
 
-    // Subscribe to new notifications for current user
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${session.user.id}`
-        },
-        (payload) => {
-          console.log('New notification received:', payload)
-          // Fetch fresh stats when new notification comes in
-          fetchStats()
-          
-          // If we have notifications loaded, add the new one
-          if (notifications.length > 0) {
-            const newNotification = payload.new as Notification
-            setNotifications(prev => [newNotification, ...prev])
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${session.user.id}`
-        },
-        (payload) => {
-          console.log('Notification updated:', payload)
-          // Update the notification in local state
-          const updatedNotification = payload.new as Notification
-          setNotifications(prev => 
-            prev.map(notif => 
-              notif.id === updatedNotification.id 
-                ? updatedNotification 
-                : notif
-            )
-          )
-        }
-      )
-      .subscribe()
+    fetchStats()
+    const interval = window.setInterval(fetchStats, options.pollIntervalMs || 30000)
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [session?.user?.id, supabase])
+    return () => window.clearInterval(interval)
+  }, [fetchStats, options.pollIntervalMs, session?.user?.id])
 
-  // Initial fetch and periodic polling
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchStats()
-      
-      // Poll for stats every 30 seconds as backup
-      const interval = setInterval(fetchStats, 30000)
-      return () => clearInterval(interval)
-    }
-  }, [session?.user?.id])
+    if (!options.autoFetch || !session?.user?.id) return
+
+    fetchNotifications()
+  }, [fetchNotifications, options.autoFetch, session?.user?.id])
 
   return {
     notifications,
     stats,
+    pagination,
     loading,
+    error,
     fetchNotifications,
     fetchStats,
     markAsRead,
     markAllAsRead,
-    refetch: fetchNotifications
+    refetch: fetchNotifications,
   }
 }

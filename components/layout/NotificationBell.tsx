@@ -1,62 +1,122 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { toast } from 'react-hot-toast'
-import { 
-  BellIcon,
-  XMarkIcon,
-  CheckIcon,
-  EyeIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  DocumentTextIcon
-} from '@heroicons/react/24/outline'
-import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid'
 import Link from 'next/link'
+import { toast } from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import type { Notification } from '@/types/notification'
+import {
+  BellIcon,
+  CheckIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
+import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid'
 import { useNotifications } from '@/hooks/useNotifications'
+
+function getSeverityColor(severity: string) {
+  switch (severity) {
+    case 'death':
+    case 'life_threatening':
+      return 'text-red-700 bg-red-50'
+    case 'hospitalization':
+    case 'birth_defect':
+    case 'permanent_disability':
+      return 'text-orange-700 bg-orange-50'
+    default:
+      return 'text-blue-700 bg-blue-50'
+  }
+}
+
+function getSeverityLabel(severity: string) {
+  const labels: Record<string, string> = {
+    death: 'Tử vong',
+    life_threatening: 'Đe dọa tính mạng',
+    hospitalization: 'Nhập viện',
+    birth_defect: 'Dị tật bẩm sinh',
+    permanent_disability: 'Tàn tật vĩnh viễn',
+    not_serious: 'Không nghiêm trọng',
+  }
+
+  return labels[severity] || severity
+}
+
+function formatNotificationTime(dateString: string) {
+  try {
+    return formatDistanceToNow(new Date(dateString), {
+      addSuffix: true,
+      locale: vi,
+    })
+  } catch {
+    return 'Vừa xong'
+  }
+}
+
+function getNotificationIcon(type: string) {
+  if (type === 'new_report') {
+    return <DocumentTextIcon className="h-4 w-4" />
+  }
+
+  if (type === 'report_updated') {
+    return <EyeIcon className="h-4 w-4" />
+  }
+
+  return <ExclamationTriangleIcon className="h-4 w-4" />
+}
+
+function getNotificationIconClass(type: string) {
+  if (type === 'new_report') {
+    return 'bg-green-100 text-green-700'
+  }
+
+  if (type === 'report_updated') {
+    return 'bg-blue-100 text-blue-700'
+  }
+
+  return 'bg-gray-100 text-gray-700'
+}
 
 export default function NotificationBell() {
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [markingAsRead, setMarkingAsRead] = useState<string[]>([])
-  
+  const [markingAllAsRead, setMarkingAllAsRead] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  
-  // Use notifications hook
-  const { 
-    notifications, 
-    stats, 
-    loading, 
-    fetchNotifications, 
-    markAsRead: markAsReadHook, 
-    markAllAsRead: markAllAsReadHook 
+
+  const {
+    notifications,
+    stats,
+    loading,
+    error,
+    fetchNotifications,
+    markAsRead: markAsReadHook,
+    markAllAsRead: markAllAsReadHook,
   } = useNotifications()
 
-  // Mark notification as read
   const markAsRead = async (notificationId: string) => {
     if (markingAsRead.includes(notificationId)) return
 
     setMarkingAsRead(prev => [...prev, notificationId])
-    
+
     try {
       const success = await markAsReadHook([notificationId])
       if (!success) {
         toast.error('Không thể đánh dấu thông báo đã đọc')
       }
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-      toast.error('Không thể đánh dấu thông báo đã đọc')
     } finally {
       setMarkingAsRead(prev => prev.filter(id => id !== notificationId))
     }
   }
 
-  // Mark all as read
   const markAllAsRead = async () => {
+    if (markingAllAsRead) return
+
+    setMarkingAllAsRead(true)
+
     try {
       const success = await markAllAsReadHook()
       if (success) {
@@ -64,53 +124,11 @@ export default function NotificationBell() {
       } else {
         toast.error('Không thể đánh dấu tất cả thông báo')
       }
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error)
-      toast.error('Không thể đánh dấu tất cả thông báo')
+    } finally {
+      setMarkingAllAsRead(false)
     }
   }
 
-  // Get severity color
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'death':
-      case 'life_threatening':
-        return 'text-red-600 bg-red-50'
-      case 'hospitalization':
-      case 'birth_defect':
-      case 'permanent_disability':
-        return 'text-orange-600 bg-orange-50'
-      default:
-        return 'text-blue-600 bg-blue-50'
-    }
-  }
-
-  // Get severity label
-  const getSeverityLabel = (severity: string) => {
-    const labels: Record<string, string> = {
-      death: 'Tử vong',
-      life_threatening: 'Đe dọa tính mạng',
-      hospitalization: 'Nhập viện',
-      birth_defect: 'Dị tật bẩm sinh',
-      permanent_disability: 'Tàn tật vĩnh viễn',
-      not_serious: 'Không nghiêm trọng'
-    }
-    return labels[severity] || severity
-  }
-
-  // Format notification time
-  const formatTime = (dateString: string) => {
-    try {
-      return formatDistanceToNow(new Date(dateString), { 
-        addSuffix: true, 
-        locale: vi 
-      })
-    } catch (error) {
-      return 'Vừa xong'
-    }
-  }
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -122,128 +140,118 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch notifications when dropdown is opened
   useEffect(() => {
     if (isOpen && session?.user?.id) {
-      fetchNotifications()
+      fetchNotifications(20)
     }
-  }, [isOpen, session?.user?.id, fetchNotifications])
+  }, [fetchNotifications, isOpen, session?.user?.id])
 
   if (!session?.user) return null
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Notification Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg transition-colors"
+        type="button"
+        aria-label="Mở thông báo"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="relative rounded-lg p-2 text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-blue-800"
       >
         {stats.unread > 0 ? (
-          <BellIconSolid className="w-6 h-6 text-primary-600" />
+          <BellIconSolid className="h-6 w-6 text-yellow-200" />
         ) : (
-          <BellIcon className="w-6 h-6" />
+          <BellIcon className="h-6 w-6" />
         )}
-        
-        {/* Unread count badge */}
+
         {stats.unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold leading-none text-white">
             {stats.unread > 99 ? '99+' : stats.unread}
           </span>
         )}
       </button>
 
-      {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg ring-1 ring-gray-200 z-50 max-h-96 overflow-hidden">
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <div className="flex items-center">
-              <BellIcon className="w-5 h-5 text-gray-400 mr-2" />
-              <h3 className="text-lg font-medium text-gray-900">Thông báo</h3>
+        <div className="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-gray-200">
+          <div className="flex items-center justify-between border-b border-gray-200 p-4">
+            <div className="flex min-w-0 items-center">
+              <BellIcon className="mr-2 h-5 w-5 flex-shrink-0 text-gray-400" />
+              <h3 className="text-base font-semibold text-gray-900">Thông báo</h3>
               {stats.unread > 0 && (
-                <span className="ml-2 bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded-full">
+                <span className="ml-2 rounded-full bg-primary-100 px-2 py-1 text-xs font-medium text-primary-800">
                   {stats.unread} mới
                 </span>
               )}
             </div>
-            <div className="flex items-center space-x-2">
+
+            <div className="flex items-center gap-2">
               {stats.unread > 0 && (
                 <button
+                  type="button"
                   onClick={markAllAsRead}
-                  className="text-sm text-primary-600 hover:text-primary-800 transition-colors"
+                  disabled={markingAllAsRead}
+                  className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-800 disabled:opacity-50"
                 >
-                  Đánh dấu tất cả đã đọc
+                  Đánh dấu tất cả
                 </button>
               )}
               <button
+                type="button"
+                aria-label="Đóng thông báo"
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+              <div className="p-6 text-center text-gray-500">
+                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-primary-600" />
                 <p className="mt-2 text-sm">Đang tải...</p>
               </div>
+            ) : error ? (
+              <div className="p-6 text-center text-sm text-red-600">{error}</div>
             ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
-                <BellIcon className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <BellIcon className="mx-auto mb-4 h-12 w-12 text-gray-300" />
                 <p className="text-sm">Chưa có thông báo nào</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {notifications.map((notification) => (
+                {notifications.map(notification => (
                   <div
                     key={notification.id}
-                    className={`p-4 hover:bg-gray-50 transition-colors ${
+                    className={`p-4 transition-colors hover:bg-gray-50 ${
                       !notification.read ? 'bg-blue-50' : ''
                     }`}
                   >
-                    <div className="flex items-start space-x-3">
-                      {/* Icon */}
-                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        notification.type === 'new_report' 
-                          ? 'bg-green-100 text-green-600'
-                          : notification.type === 'report_updated'
-                          ? 'bg-blue-100 text-blue-600' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {notification.type === 'new_report' ? (
-                          <DocumentTextIcon className="w-4 h-4" />
-                        ) : notification.type === 'report_updated' ? (
-                          <EyeIcon className="w-4 h-4" />
-                        ) : (
-                          <ExclamationTriangleIcon className="w-4 h-4" />
-                        )}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${getNotificationIconClass(notification.type)}`}
+                      >
+                        {getNotificationIcon(notification.type)}
                       </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate text-sm font-semibold text-gray-900">
                             {notification.title}
                           </p>
                           {!notification.read && (
-                            <div className="flex-shrink-0 w-2 h-2 bg-primary-600 rounded-full"></div>
+                            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-primary-600" />
                           )}
                         </div>
-                        
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+
+                        <p className="mt-1 line-clamp-2 text-sm text-gray-600">
                           {notification.message}
                         </p>
 
-                        {/* Additional info for report notifications */}
                         {notification.data?.severity_level && (
-                          <div className="mt-2 flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              getSeverityColor(notification.data.severity_level)
-                            }`}>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getSeverityColor(notification.data.severity_level)}`}
+                            >
                               {getSeverityLabel(notification.data.severity_level)}
                             </span>
                             {notification.data.report_code && (
@@ -254,32 +262,34 @@ export default function NotificationBell() {
                           </div>
                         )}
 
-                        <div className="mt-2 flex items-center justify-between">
+                        <div className="mt-3 flex items-center justify-between gap-3">
                           <div className="flex items-center text-xs text-gray-500">
-                            <ClockIcon className="w-3 h-3 mr-1" />
-                            {formatTime(notification.created_at)}
+                            <ClockIcon className="mr-1 h-3 w-3" />
+                            {formatNotificationTime(notification.created_at)}
                           </div>
-                          
-                          <div className="flex items-center space-x-2">
+
+                          <div className="flex flex-shrink-0 items-center gap-2">
                             {notification.data?.report_id && (
                               <Link
                                 href={`/reports/${notification.data.report_id}`}
                                 onClick={() => setIsOpen(false)}
-                                className="text-xs text-primary-600 hover:text-primary-800 transition-colors"
+                                className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-800"
                               >
                                 Xem báo cáo
                               </Link>
                             )}
                             {!notification.read && (
                               <button
+                                type="button"
+                                aria-label="Đánh dấu đã đọc"
                                 onClick={() => markAsRead(notification.id)}
                                 disabled={markingAsRead.includes(notification.id)}
-                                className="text-xs text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+                                className="rounded p-1 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                               >
                                 {markingAsRead.includes(notification.id) ? (
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400"></div>
+                                  <div className="h-3 w-3 animate-spin rounded-full border-b border-gray-400" />
                                 ) : (
-                                  <CheckIcon className="w-3 h-3" />
+                                  <CheckIcon className="h-3 w-3" />
                                 )}
                               </button>
                             )}
@@ -293,13 +303,12 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 border-t border-gray-200 bg-gray-50">
+            <div className="border-t border-gray-200 bg-gray-50 p-3">
               <Link
                 href="/notifications"
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-primary-600 hover:text-primary-800 transition-colors block text-center"
+                className="block text-center text-sm font-medium text-primary-600 transition-colors hover:text-primary-800"
               >
                 Xem tất cả thông báo
               </Link>

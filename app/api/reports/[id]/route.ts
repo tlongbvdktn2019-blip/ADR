@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@supabase/supabase-js'
 import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
+import { notifyAllUsersAboutReportUpdate } from '@/lib/notification-service'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -258,6 +259,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
     }
+
+    await notifyAllUsersAboutReportUpdate(reportData, session.user.id)
 
     return NextResponse.json({
       message: 'Báo cáo ADR đã được cập nhật thành công',

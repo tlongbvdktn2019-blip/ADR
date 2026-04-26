@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendAutoReportEmail } from '@/lib/auto-email-service';
 import { ADRReport } from '@/types/report';
+import { notifyAllUsersAboutNewReport } from '@/lib/notification-service';
 
 /**
  * POST /api/public/reports
@@ -160,6 +161,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await notifyAllUsersAboutNewReport(reportData, null);
+
     // =====================================================
     // AUTO-SEND EMAIL NOTIFICATION - DISABLED
     // =====================================================
@@ -217,4 +220,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

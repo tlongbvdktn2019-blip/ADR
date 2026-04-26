@@ -6,6 +6,7 @@ import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { sendAutoReportEmail } from '@/lib/auto-email-service'
 import { ADRReport } from '@/types/report'
+import { notifyAllUsersAboutNewReport } from '@/lib/notification-service'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -173,6 +174,8 @@ export async function POST(request: NextRequest) {
         // as they are optional additional information
       }
     }
+
+    await notifyAllUsersAboutNewReport(reportData, session.user.id)
 
     // =====================================================
     // AUTO-SEND EMAIL NOTIFICATION - DISABLED
@@ -345,6 +348,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
 
 

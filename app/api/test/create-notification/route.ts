@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth-config'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { rejectUnlessDevelopmentAdmin } from '@/lib/debug-route'
+import { createNotificationForUsers } from '@/lib/notification-service'
+import type { NotificationType } from '@/types/notification'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
     const body = await request.json()
     
     const { type = 'system', title, message, data } = body
@@ -27,36 +26,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and message are required' }, { status: 400 })
     }
 
-    // Create test notification for current user
-    const testNotification = {
-      recipient_id: session.user.id,
-      sender_id: null,
-      type,
+    const allowedTypes: NotificationType[] = ['new_report', 'report_updated', 'system']
+    const notificationType: NotificationType = allowedTypes.includes(type) ? type : 'system'
+
+    const result = await createNotificationForUsers({
+      recipientIds: [session.user.id],
+      senderId: null,
+      type: notificationType,
       title,
       message,
       data: {
         ...data,
         test: true,
         created_by: 'test-api',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
-      read: false
-    }
+    })
 
-    const { data: notification, error } = await supabase
-      .from('notifications')
-      .insert([testNotification])
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating test notification:', error)
+    if (!result.success) {
       return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      notification,
+      inserted: result.inserted,
       message: 'Test notification created successfully'
     })
 
