@@ -41,7 +41,7 @@ export default function PublicHeader() {
           {/* Logo & Title */}
           <Link href="/" className="flex items-center space-x-3">
             <img
-              src="/Logo.jpg"
+              src="/logo-syt.png"
               alt="Logo Hệ thống ADR"
               width={40}
               height={40}
@@ -93,4 +93,3 @@ export default function PublicHeader() {
     </header>
   );
 }
-
