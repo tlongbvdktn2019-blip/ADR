@@ -17,6 +17,17 @@ interface SuspectedDrugsSectionProps {
   updateConcurrentDrugs?: (drugs: ConcurrentDrugFormData[]) => void
 }
 
+const REQUIRED_TREATMENT_DRUG_GROUPS = ['Thuốc cản quang']
+
+function mergeRequiredTreatmentDrugs(drugs: { id: string; name: string }[]) {
+  const existingNames = new Set(drugs.map((drug) => drug.name))
+  const missingDrugs = REQUIRED_TREATMENT_DRUG_GROUPS
+    .filter((name) => !existingNames.has(name))
+    .map((name, index) => ({ id: `required-treatment-drug-${index}`, name }))
+
+  return [...drugs, ...missingDrugs]
+}
+
 export default function SuspectedDrugsSection({ 
   drugs, 
   updateDrugs, 
@@ -70,14 +81,15 @@ export default function SuspectedDrugsSection({
           }
           
           const data = await response.json()
+          const mergedTreatmentDrugs = mergeRequiredTreatmentDrugs(data.treatmentDrugs || [])
           console.log('✅ Successfully fetched treatment drugs:', data.count || data.treatmentDrugs?.length || 0)
           
-          if (!data.treatmentDrugs || data.treatmentDrugs.length === 0) {
+          if (mergedTreatmentDrugs.length === 0) {
             console.warn('⚠️ No treatment drugs found in database')
             setTreatmentDrugsError('Chưa có dữ liệu nhóm thuốc điều trị. Vui lòng liên hệ quản trị viên.')
           }
           
-          setTreatmentDrugs(data.treatmentDrugs || [])
+          setTreatmentDrugs(mergedTreatmentDrugs)
         } else {
           const errorData = await response.json().catch(() => ({}))
           console.error('❌ Failed to fetch treatment drugs:', response.status, errorData)
@@ -444,5 +456,3 @@ export default function SuspectedDrugsSection({
     </div>
   )
 }
-
-
