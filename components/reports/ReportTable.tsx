@@ -12,7 +12,6 @@ import { toast } from 'react-hot-toast'
 import {
   EyeIcon,
   PencilIcon,
-  DocumentArrowDownIcon,
   PrinterIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -499,14 +498,6 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
                                   </Button>
                                 </Link>
                               )}
-
-                              {/* Export PDF */}
-                              <Link href={`/api/reports/${report.id}/export-pdf`} target="_blank">
-                                <Button variant="outline" size="sm">
-                                  <DocumentArrowDownIcon className="w-4 h-4 mr-1" />
-                                  <span className="hidden lg:inline">PDF</span>
-                                </Button>
-                              </Link>
 
                               {/* Delete - Admin Only */}
                               {session?.user?.role === 'admin' && (

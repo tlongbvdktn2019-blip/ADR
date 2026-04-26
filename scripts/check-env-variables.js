@@ -1,9 +1,9 @@
 /**
- * Script to check environment variables for Vercel PDF deployment
+ * Script to check environment variables for Vercel deployment
  * Run: node scripts/check-env-variables.js
  */
 
-console.log('🔍 Checking Environment Variables for PDF Generation...\n')
+console.log('🔍 Checking Environment Variables...\n')
 
 // Required for authentication
 const requiredAuth = [
@@ -16,12 +16,6 @@ const requiredSupabase = [
   'NEXT_PUBLIC_SUPABASE_URL', 
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY'
-]
-
-// Optional for PDF generation
-const optionalPDF = [
-  'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD',
-  'SPARTICUZ_FUNCTION_NAME'
 ]
 
 // Environment detection
@@ -54,19 +48,12 @@ function checkEnvVars(vars, category, required = true) {
 // Check all categories
 const authOK = checkEnvVars(requiredAuth, 'Authentication (Required)', true)
 const supabaseOK = checkEnvVars(requiredSupabase, 'Supabase (Required)', true)
-const pdfOK = checkEnvVars(optionalPDF, 'PDF Generation (Optional)', false) 
 const envOK = checkEnvVars(environmentVars, 'Environment Detection', false)
 
 console.log('📊 Summary:')
 console.log(`   Authentication: ${authOK ? '✅ OK' : '❌ Missing required vars'}`)
 console.log(`   Supabase: ${supabaseOK ? '✅ OK' : '❌ Missing required vars'}`)
-console.log(`   PDF Generation: ${pdfOK ? '✅ All set' : '⚠️ Some optional vars missing'}`)
 console.log(`   Environment: ${envOK ? '✅ All detected' : '⚠️ Some vars not set'}`)
-
-console.log('\n🎯 Vercel Environment Variables Recommendations:')
-console.log('   ✅ KEEP: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1')
-console.log('   🆕 OPTIONAL: SPARTICUZ_FUNCTION_NAME=pdf-generator')
-console.log('   ❌ REMOVE: PUPPETEER_EXECUTABLE_PATH (if set)')
 
 if (!authOK || !supabaseOK) {
   console.log('\n❌ Some required environment variables are missing!')

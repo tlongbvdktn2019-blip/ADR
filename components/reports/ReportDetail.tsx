@@ -43,7 +43,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
   const { data: session } = useSession()
   const [report, setReport] = useState(initialReport)
   const [activeTab, setActiveTab] = useState('overview')
-  const [exportingPDF, setExportingPDF] = useState(false)
   const [openingPrintView, setOpeningPrintView] = useState(false)
   const [approvingReport, setApprovingReport] = useState(false)
   
@@ -104,47 +103,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
       case 'pending':
       default:
         return <ClockIcon className="w-5 h-5" />
-    }
-  }
-
-  const handleExportPDF = async (reportId: string) => {
-    setExportingPDF(true)
-    
-    try {
-      const response = await fetch(`/api/reports/${reportId}/export-pdf`, {
-        method: 'GET'
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Không thể xuất PDF')
-      }
-
-      // Get the PDF blob
-      const blob = await response.blob()
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.style.display = 'none'
-      a.href = url
-      a.download = `ADR_Report_${report.report_code}.pdf`
-      
-      // Trigger download
-      document.body.appendChild(a)
-      a.click()
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
-      toast.success('Xuất PDF thành công!')
-
-    } catch (error) {
-      console.error('PDF export error:', error)
-      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi xuất PDF')
-    } finally {
-      setExportingPDF(false)
     }
   }
 
@@ -306,13 +264,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
           >
             <PrinterIcon className="w-4 h-4 mr-2" />
             {openingPrintView ? 'Đang mở...' : 'In báo cáo'}
-          </Button>
-          <Button 
-            onClick={() => handleExportPDF(report.id)}
-            disabled={exportingPDF}
-          >
-            <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-            {exportingPDF ? 'Đang xuất...' : 'Xuất PDF'}
           </Button>
         </div>
       </div>

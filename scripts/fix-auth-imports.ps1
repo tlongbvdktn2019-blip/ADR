@@ -7,7 +7,6 @@ $files = @(
     "app/api/dashboard/charts/route.ts",
     "app/api/dashboard/stats/route.ts",
     "app/api/reports/route.ts",
-    "app/api/reports/[id]/export-pdf/route.ts",
     "app/api/reports/[id]/send-email/route.ts",
     "app/dashboard/page.tsx",
     "app/reports/[id]/page.tsx"
