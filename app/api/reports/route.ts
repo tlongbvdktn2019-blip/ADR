@@ -7,6 +7,10 @@ import { Database } from '@/types/supabase'
 import { sendAutoReportEmail } from '@/lib/auto-email-service'
 import { ADRReport } from '@/types/report'
 import { notifyAllUsersAboutNewReport } from '@/lib/notification-service'
+import {
+  createReportWithUniqueCode,
+  ReportCodeError,
+} from '@/lib/report-code'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -30,7 +34,6 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     const requiredFields = [
       'organization',
-      'report_code',
       'patient_name',
       'patient_birth_date',
       'patient_age',
@@ -63,55 +66,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create the main ADR report
-    const { data: reportData, error: reportError } = await (supabaseAdmin as any)
-      .from('adr_reports')
-      .insert({
-        reporter_id: session.user.id,
+    // Create the main ADR report. The server assigns the final report code.
+    const { data: reportData, error: reportError } =
+      await createReportWithUniqueCode(supabaseAdmin as any, {
         organization: body.organization,
-        report_code: body.report_code,
-        
-        // Patient info
-        patient_name: body.patient_name,
-        patient_birth_date: body.patient_birth_date,
-        patient_age: body.patient_age,
-        patient_gender: body.patient_gender,
-        patient_weight: body.patient_weight || null,
-        
-        // ADR info
-        adr_occurrence_date: body.adr_occurrence_date,
-        reaction_onset_time: body.reaction_onset_time || null,
-        adr_description: body.adr_description,
-        related_tests: body.related_tests || null,
-        medical_history: body.medical_history || null,
-        treatment_response: body.treatment_response || null,
-        severity_level: body.severity_level,
-        outcome_after_treatment: body.outcome_after_treatment,
-        
-        // Assessment
-        causality_assessment: body.causality_assessment,
-        assessment_scale: body.assessment_scale,
-        medical_staff_comment: body.medical_staff_comment || null,
-        
-        // Reporter info
-        reporter_name: body.reporter_name,
-        reporter_profession: body.reporter_profession,
-        reporter_phone: body.reporter_phone || null,
-        reporter_email: body.reporter_email || null,
-        report_type: body.report_type,
-        report_date: body.report_date,
-        
-        // Assessment results
-        severity_assessment_result: body.severity_assessment_result || null,
-        preventability_assessment_result: body.preventability_assessment_result || null,
-      })
-      .select()
-      .single()
+        values: {
+          reporter_id: session.user.id,
 
-    if (reportError) {
+          // Patient info
+          patient_name: body.patient_name,
+          patient_birth_date: body.patient_birth_date,
+          patient_age: body.patient_age,
+          patient_gender: body.patient_gender,
+          patient_weight: body.patient_weight || null,
+
+          // ADR info
+          adr_occurrence_date: body.adr_occurrence_date,
+          reaction_onset_time: body.reaction_onset_time || null,
+          adr_description: body.adr_description,
+          related_tests: body.related_tests || null,
+          medical_history: body.medical_history || null,
+          treatment_response: body.treatment_response || null,
+          severity_level: body.severity_level,
+          outcome_after_treatment: body.outcome_after_treatment,
+
+          // Assessment
+          causality_assessment: body.causality_assessment,
+          assessment_scale: body.assessment_scale,
+          medical_staff_comment: body.medical_staff_comment || null,
+
+          // Reporter info
+          reporter_name: body.reporter_name,
+          reporter_profession: body.reporter_profession,
+          reporter_phone: body.reporter_phone || null,
+          reporter_email: body.reporter_email || null,
+          report_type: body.report_type,
+          report_date: body.report_date,
+
+          // Assessment results
+          severity_assessment_result:
+            body.severity_assessment_result || null,
+          preventability_assessment_result:
+            body.preventability_assessment_result || null,
+        },
+      })
+
+    if (reportError || !reportData) {
       console.error('Report creation error:', reportError)
       return NextResponse.json(
-        { error: 'Kh??ng th??? t???o b??o c??o: ' + reportError.message },
+        {
+          error:
+            reportError?.message ||
+            'Không thể tạo báo cáo. Vui lòng thử lại.',
+        },
         { status: 500 }
       )
     }
@@ -175,7 +182,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await notifyAllUsersAboutNewReport(reportData, session.user.id)
+    try {
+      await notifyAllUsersAboutNewReport(reportData, session.user.id)
+    } catch (notificationError) {
+      console.error('Notification error for report:', notificationError)
+    }
 
     // =====================================================
     // AUTO-SEND EMAIL NOTIFICATION - DISABLED
@@ -230,8 +241,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'L???i m??y ch??? n???i b???' },
-      { status: 500 }
+      {
+        error:
+          error instanceof ReportCodeError
+            ? error.message
+            : 'Lỗi máy chủ nội bộ',
+      },
+      { status: error instanceof ReportCodeError ? error.status : 500 }
     )
   }
 }
@@ -348,5 +364,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
-

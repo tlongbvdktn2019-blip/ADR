@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ConcurrentDrugFormData, createEmptyConcurrentDrug } from '@/types/concurrent-drug'
@@ -87,6 +87,7 @@ export default function NewReportPage() {
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [showGuideModal, setShowGuideModal] = useState(false)
+  const submittingRef = useRef(false)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Thông tin báo cáo
@@ -184,6 +185,10 @@ export default function NewReportPage() {
   }
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return
+
+    submittingRef.current = true
+    let submittedSuccessfully = false
     setLoading(true)
     
     try {
@@ -199,16 +204,20 @@ export default function NewReportPage() {
       })
 
       if (response.ok) {
+        submittedSuccessfully = true
         toast.success('Báo cáo ADR đã được tạo thành công!')
         router.push('/reports')
       } else {
         const error = await response.json()
-        toast.error(error.message || 'Có lỗi xảy ra khi tạo báo cáo')
+        toast.error(error.error || error.message || 'Có lỗi xảy ra khi tạo báo cáo')
       }
     } catch (error) {
       console.error('Submit error:', error)
       toast.error('Có lỗi xảy ra khi tạo báo cáo')
     } finally {
+      if (!submittedSuccessfully) {
+        submittingRef.current = false
+      }
       setLoading(false)
     }
   }
@@ -400,5 +409,4 @@ export default function NewReportPage() {
     </MainLayout>
   )
 }
-
 

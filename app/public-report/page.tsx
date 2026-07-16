@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ConcurrentDrugFormData, createEmptyConcurrentDrug } from '@/types/concurrent-drug'
@@ -86,6 +86,7 @@ export default function PublicReportPage() {
   const [showBanner, setShowBanner] = useState(true)
   const [showGuideModal, setShowGuideModal] = useState(false)
   const [dontShowAgain, setDontShowAgain] = useState(false)
+  const submittingRef = useRef(false)
 
   const [formData, setFormData] = useState<ADRFormData>({
     // Thông tin báo cáo
@@ -204,6 +205,11 @@ export default function PublicReportPage() {
   }
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return
+
+    submittingRef.current = true
+    let submittedSuccessfully = false
+
     try {
       setLoading(true)
 
@@ -219,15 +225,22 @@ export default function PublicReportPage() {
         throw new Error(data.error || 'Có lỗi xảy ra')
       }
 
+      submittedSuccessfully = true
+      const reportCode =
+        data.data?.report_code || data.report?.report_code || formData.report_code
+
       toast.success('Báo cáo đã được gửi thành công!')
       
       // Hiển thị thông báo và chuyển về trang chủ
-      alert(`✅ Báo cáo đã được gửi thành công!\n\nMã báo cáo: ${data.report.report_code}\n\nCảm ơn bạn đã đóng góp thông tin.`)
+      alert(`✅ Báo cáo đã được gửi thành công!\n\nMã báo cáo: ${reportCode}\n\nCảm ơn bạn đã đóng góp thông tin.`)
       router.push('/')
     } catch (error: any) {
       console.error('Submit error:', error)
       toast.error(error.message || 'Có lỗi xảy ra khi gửi báo cáo')
     } finally {
+      if (!submittedSuccessfully) {
+        submittingRef.current = false
+      }
       setLoading(false)
     }
   }
@@ -399,6 +412,5 @@ export default function PublicReportPage() {
     </div>
   )
 }
-
 
 
