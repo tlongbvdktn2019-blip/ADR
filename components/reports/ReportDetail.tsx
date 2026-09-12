@@ -34,6 +34,7 @@ import {
   DRUG_REACTION_LABELS,
   APPROVAL_STATUS_LABELS
 } from '@/types/report'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 interface ReportDetailProps {
   report: ADRReport
@@ -376,7 +377,7 @@ function OverviewTab({ report, formatDate, formatDateTime, getSeverityColor }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <dt className="text-sm font-medium text-gray-500">Tuổi</dt>
-              <dd className="mt-1 text-sm text-gray-900">{report.patient_age} tuổi</dd>
+              <dd className="mt-1 text-sm text-gray-900">{getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Giới tính</dt>
@@ -446,7 +447,7 @@ function PatientTab({ report, formatDate }: { report: ADRReport, formatDate: (da
           
           <div>
             <dt className="text-sm font-medium text-gray-500">Tuổi</dt>
-            <dd className="mt-1 text-sm text-gray-900">{report.patient_age} tuổi</dd>
+            <dd className="mt-1 text-sm text-gray-900">{getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)}</dd>
           </div>
         </div>
 

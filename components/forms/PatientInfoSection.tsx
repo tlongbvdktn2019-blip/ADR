@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { ADRFormData } from '@/app/reports/new/page'
+import {
+  PatientAgeError,
+  calculateValidatedPatientAge,
+  formatPatientAge,
+} from '@/lib/patient-age'
 
 interface PatientInfoSectionProps {
   data: ADRFormData
@@ -83,24 +88,18 @@ export default function PatientInfoSection({ data, updateData }: PatientInfoSect
       report_code: '' // Reset code để trigger auto-generate
     })
   }
-  // Auto-calculate age from birth date
-  useEffect(() => {
-    if (data.patient_birth_date) {
-      const birthDate = new Date(data.patient_birth_date)
-      const today = new Date()
-      let calculatedAge = today.getFullYear() - birthDate.getFullYear()
-      const monthDiff = today.getMonth() - birthDate.getMonth()
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        calculatedAge = calculatedAge - 1
-      }
-      
-      // Only update if calculated age is different from current age
-      if (data.patient_age !== calculatedAge) {
-        updateData({ patient_age: calculatedAge })
-      }
+  let ageLabel = ''
+  let ageError: string | undefined
+
+  if (data.patient_birth_date && data.adr_occurrence_date) {
+    try {
+      ageLabel = formatPatientAge(
+        calculateValidatedPatientAge(data.patient_birth_date, data.adr_occurrence_date)
+      )
+    } catch (error) {
+      ageError = error instanceof PatientAgeError ? error.message : 'Không thể tính tuổi bệnh nhân.'
     }
-  }, [data.patient_birth_date])
+  }
 
   const genderOptions = [
     { value: 'male', label: 'Nam' },
@@ -178,12 +177,11 @@ export default function PatientInfoSection({ data, updateData }: PatientInfoSect
 
         <Input
           label="Tuổi"
-          type="number"
-          value={data.patient_age || ''}
-          onChange={(e) => updateData({ patient_age: parseInt(e.target.value) || 0 })}
-          min="0"
-          max="150"
-          helperText="Sẽ được tự động tính từ ngày sinh"
+          type="text"
+          value={ageLabel}
+          placeholder={data.adr_occurrence_date ? 'Không thể tính tuổi' : 'Chờ ngày xảy ra ADR'}
+          helperText="Tuổi được tính từ ngày sinh tại ngày xảy ra ADR ở Phần B"
+          error={ageError}
           readOnly
         />
 
@@ -216,5 +214,4 @@ export default function PatientInfoSection({ data, updateData }: PatientInfoSect
     </div>
   )
 }
-
 

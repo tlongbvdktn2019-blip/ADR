@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import { ADRReport, SEVERITY_LABELS, APPROVAL_STATUS_LABELS } from '@/types/report'
 import { toast } from 'react-hot-toast'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 import {
   EyeIcon,
   PencilIcon,
@@ -384,7 +385,7 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
                               {report.patient_name}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {report.patient_age} tuổi • {report.patient_gender === 'male' ? 'Nam' : 'Nữ'}
+                              {getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)} • {report.patient_gender === 'male' ? 'Nam' : 'Nữ'}
                             </div>
                           </td>
 

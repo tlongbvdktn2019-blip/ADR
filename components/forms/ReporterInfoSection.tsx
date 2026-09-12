@@ -4,6 +4,7 @@ import { useEffect, useState, type ChangeEvent } from 'react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { ADRFormData } from '@/app/reports/new/page'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 interface ReporterInfoSectionProps {
   data: ADRFormData
@@ -24,6 +25,11 @@ const PROFESSION_OPTIONS = [
 ]
 
 export default function ReporterInfoSection({ data, updateData }: ReporterInfoSectionProps) {
+  const patientAgeLabel =
+    data.patient_birth_date && data.adr_occurrence_date
+      ? getPatientAgeLabel(data.patient_birth_date, data.adr_occurrence_date)
+      : 'Chưa đủ dữ liệu'
+
   const reportTypeOptions = [
     { value: 'initial', label: 'Lần đầu' },
     { value: 'follow_up', label: 'Bổ sung' },
@@ -136,7 +142,7 @@ export default function ReporterInfoSection({ data, updateData }: ReporterInfoSe
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <p><strong>Bệnh nhân:</strong> {data.patient_name || 'Chưa nhập'}</p>
-            <p><strong>Tuổi/Giới tính:</strong> {data.patient_age || 'N/A'} tuổi, {data.patient_gender === 'male' ? 'Nam' : 'Nữ'}</p>
+            <p><strong>Tuổi/Giới tính:</strong> {patientAgeLabel}, {data.patient_gender === 'male' ? 'Nam' : 'Nữ'}</p>
             <p><strong>Ngày xảy ra ADR:</strong> {data.adr_occurrence_date || 'Chưa nhập'}</p>
           </div>
           <div>

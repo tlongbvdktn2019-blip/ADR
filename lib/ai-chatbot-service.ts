@@ -1,4 +1,5 @@
 import { ADRFormData } from '@/app/reports/new/page'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 // Types for AI Chatbot
 export interface ChatMessage {
@@ -27,7 +28,7 @@ export interface ChatSession {
 
 export interface ADRChatContext {
   patientInfo: {
-    age?: number
+    age?: string
     gender?: string
     weight?: number
     medicalHistory?: string
@@ -611,7 +612,10 @@ LƯU Ý QUAN TRỌNG:
   static buildContextFromFormData(formData: ADRFormData): ADRChatContext {
     return {
       patientInfo: {
-        age: formData.patient_age,
+        age:
+          formData.patient_birth_date && formData.adr_occurrence_date
+            ? getPatientAgeLabel(formData.patient_birth_date, formData.adr_occurrence_date)
+            : undefined,
         gender: formData.patient_gender === 'male' ? 'Nam' : 'Nữ',
         weight: formData.patient_weight,
         medicalHistory: formData.medical_history || undefined
@@ -719,7 +723,6 @@ LƯU Ý QUAN TRỌNG:
     void session
   }
 }
-
 
 
 

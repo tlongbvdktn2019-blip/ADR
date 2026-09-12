@@ -17,6 +17,7 @@ import {
 import { ADRReport, SEVERITY_LABELS, GENDER_LABELS } from '@/types/report'
 import { useSession } from 'next-auth/react'
 import { toast } from 'react-hot-toast'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 interface ReportCardProps {
   report: ADRReport
@@ -147,7 +148,7 @@ export default function ReportCard({ report, onReportDeleted }: ReportCardProps)
             <UserIcon className="w-4 h-4 mr-2 text-gray-400" />
             <span className="font-medium">BN:</span>
             <span className="ml-1">{report.patient_name}</span>
-            <span className="ml-2">({report.patient_age} tuổi, {GENDER_LABELS[report.patient_gender]})</span>
+            <span className="ml-2">({getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)}, {GENDER_LABELS[report.patient_gender]})</span>
           </div>
           
           <div className="flex items-center text-sm text-gray-700">
@@ -194,5 +195,4 @@ export default function ReportCard({ report, onReportDeleted }: ReportCardProps)
     </Card>
   )
 }
-
 

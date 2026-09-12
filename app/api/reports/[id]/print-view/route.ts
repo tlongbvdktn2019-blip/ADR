@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase'
 import { ADRReport } from '@/types/report'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 // Force Node.js runtime (not Edge)
 export const runtime = 'nodejs'
@@ -63,6 +64,7 @@ function formatDate(dateString: string): string {
 }
 
 function generatePrintHTML(report: ADRReport): string {
+  const patientAgeLabel = getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)
   // Generate suspected drugs rows exactly like template (i, ii, iii, iv)
   const suspectedDrugsRows = ['i', 'ii', 'iii', 'iv'].map((roman, index) => {
     const drug = report.suspected_drugs?.[index]
@@ -348,7 +350,7 @@ function generatePrintHTML(report: ADRReport): string {
         <table>
             <tr>
                 <td style="width: 40%;">1. Họ và tên: <input type="text" style="width: 80%;" value="${report.patient_name}"></td>
-                <td style="width: 25%;">2. Ngày sinh: <input type="text" style="width: 70%;" value="${formatDate(report.patient_birth_date)}"><br>Hoặc tuổi: <input type="text" style="width: 70%;" value="${report.patient_age}"></td>
+                <td style="width: 25%;">2. Ngày sinh: <input type="text" style="width: 70%;" value="${formatDate(report.patient_birth_date)}"><br>Hoặc tuổi: <input type="text" style="width: 70%;" value="${patientAgeLabel}"></td>
                 <td style="width: 20%;">3. Giới tính <br> <input type="checkbox"${report.patient_gender === 'male' ? ' checked' : ''}> Nam <input type="checkbox"${report.patient_gender === 'female' ? ' checked' : ''}> Nữ</td>
                 <td style="width: 15%;">4. Cân nặng <br> <input type="text" style="width: 50%;" value="${report.patient_weight || ''}"> kg</td>
             </tr>

@@ -11,6 +11,7 @@ import {
   createReportWithUniqueCode,
   ReportCodeError,
 } from '@/lib/report-code'
+import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -36,7 +37,6 @@ export async function POST(request: NextRequest) {
       'organization',
       'patient_name',
       'patient_birth_date',
-      'patient_age',
       'patient_gender',
       'adr_occurrence_date',
       'adr_description',
@@ -59,6 +59,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let calculatedPatientAge: number
+    try {
+      calculatedPatientAge = calculateReportPatientAgeYears(body)
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof PatientAgeError ? error.message : 'Không thể tính tuổi bệnh nhân.' },
+        { status: 400 }
+      )
+    }
+
     if (!body.suspected_drugs || body.suspected_drugs.length === 0) {
       return NextResponse.json(
         { error: 'Ph???i c?? ??t nh???t m???t thu???c nghi ng???' },
@@ -76,7 +86,7 @@ export async function POST(request: NextRequest) {
           // Patient info
           patient_name: body.patient_name,
           patient_birth_date: body.patient_birth_date,
-          patient_age: body.patient_age,
+          patient_age: calculatedPatientAge,
           patient_gender: body.patient_gender,
           patient_weight: body.patient_weight || null,
 

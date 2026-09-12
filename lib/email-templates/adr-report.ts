@@ -1,8 +1,10 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { ADRReport, SEVERITY_LABELS, GENDER_LABELS, OUTCOME_LABELS, CAUSALITY_LABELS, REPORT_TYPE_LABELS } from '@/types/report'
+import { getPatientAgeLabel } from '@/lib/patient-age'
 
 export function generateADRReportEmailHTML(report: ADRReport): string {
+  const patientAgeLabel = getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'dd/MM/yyyy', { locale: vi })
@@ -204,7 +206,7 @@ export function generateADRReportEmailHTML(report: ADRReport): string {
                 </div>
                 <div class="info-item">
                     <div class="info-label">Tuổi / Giới tính</div>
-                    <div class="info-value">${report.patient_age} tuổi / ${GENDER_LABELS[report.patient_gender]}</div>
+                    <div class="info-value">${patientAgeLabel} / ${GENDER_LABELS[report.patient_gender]}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Ngày sinh</div>
@@ -407,6 +409,7 @@ export function generateADRReportEmailSubject(report: ADRReport): string {
 }
 
 export function generateADRReportEmailText(report: ADRReport): string {
+  const patientAgeLabel = getPatientAgeLabel(report.patient_birth_date, report.adr_occurrence_date)
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'dd/MM/yyyy', { locale: vi })
@@ -423,7 +426,7 @@ Mức độ nghiêm trọng: ${SEVERITY_LABELS[report.severity_level]}
 
 === THÔNG TIN BỆNH NHÂN ===
 Họ tên: ${report.patient_name}
-Tuổi: ${report.patient_age} (${GENDER_LABELS[report.patient_gender]})
+Tuổi: ${patientAgeLabel} (${GENDER_LABELS[report.patient_gender]})
 Ngày sinh: ${formatDate(report.patient_birth_date)}
 ${report.patient_weight ? `Cân nặng: ${report.patient_weight} kg` : ''}
 

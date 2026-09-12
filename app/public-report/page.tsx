@@ -12,6 +12,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
+import { PatientAgeError, calculateValidatedPatientAge } from '@/lib/patient-age'
 import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, XMarkIcon, TrophyIcon, BookOpenIcon } from '@heroicons/react/24/outline'
@@ -207,6 +208,18 @@ export default function PublicReportPage() {
   const handleSubmit = async () => {
     if (submittingRef.current) return
 
+    let calculatedPatientAge: number
+    try {
+      calculatedPatientAge = calculateValidatedPatientAge(
+        formData.patient_birth_date,
+        formData.adr_occurrence_date
+      ).years
+    } catch (error) {
+      toast.error(error instanceof PatientAgeError ? error.message : 'Không thể tính tuổi bệnh nhân.')
+      setCurrentStep(1)
+      return
+    }
+
     submittingRef.current = true
     let submittedSuccessfully = false
 
@@ -216,7 +229,7 @@ export default function PublicReportPage() {
       const response = await fetch('/api/public/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, patient_age: calculatedPatientAge })
       })
 
       const data = await response.json()
@@ -412,5 +425,4 @@ export default function PublicReportPage() {
     </div>
   )
 }
-
 

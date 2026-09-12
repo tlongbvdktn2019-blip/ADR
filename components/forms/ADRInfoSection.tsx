@@ -4,6 +4,12 @@ import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/Textarea'
 import Select from '@/components/ui/Select'
 import { ADRFormData } from '@/app/reports/new/page'
+import {
+  PatientAgeError,
+  calculateValidatedPatientAge,
+  formatPatientAge,
+  getDateInTimeZone,
+} from '@/lib/patient-age'
 
 interface ADRInfoSectionProps {
   data: ADRFormData
@@ -11,6 +17,19 @@ interface ADRInfoSectionProps {
 }
 
 export default function ADRInfoSection({ data, updateData }: ADRInfoSectionProps) {
+  let ageLabel: string | undefined
+  let adrDateError: string | undefined
+
+  if (data.patient_birth_date && data.adr_occurrence_date) {
+    try {
+      ageLabel = formatPatientAge(
+        calculateValidatedPatientAge(data.patient_birth_date, data.adr_occurrence_date)
+      )
+    } catch (error) {
+      adrDateError = error instanceof PatientAgeError ? error.message : 'Không thể tính tuổi bệnh nhân.'
+    }
+  }
+
   const severityOptions = [
     { value: 'death', label: 'Tử vong' },
     { value: 'life_threatening', label: 'Đe dọa tính mạng' },
@@ -47,6 +66,9 @@ export default function ADRInfoSection({ data, updateData }: ADRInfoSectionProps
           type="date"
           value={data.adr_occurrence_date}
           onChange={(e) => updateData({ adr_occurrence_date: e.target.value })}
+          max={getDateInTimeZone()}
+          error={adrDateError}
+          helperText={ageLabel ? `Tuổi bệnh nhân tại ngày này: ${ageLabel}` : undefined}
           required
         />
 
@@ -125,5 +147,4 @@ export default function ADRInfoSection({ data, updateData }: ADRInfoSectionProps
     </div>
   )
 }
-
 

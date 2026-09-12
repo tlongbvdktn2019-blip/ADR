@@ -14,6 +14,7 @@ import ADRInfoSection from '@/components/forms/ADRInfoSection'
 import SuspectedDrugsSection from '@/components/forms/SuspectedDrugsSection'
 import AssessmentSection from '@/components/forms/AssessmentSection'
 import ReporterInfoSection from '@/components/forms/ReporterInfoSection'
+import { PatientAgeError, calculateValidatedPatientAge } from '@/lib/patient-age'
 import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
@@ -294,6 +295,18 @@ export default function EditReportPage({ params }: EditReportPageProps) {
   }
 
   const handleSubmit = async () => {
+    let calculatedPatientAge: number
+    try {
+      calculatedPatientAge = calculateValidatedPatientAge(
+        formData.patient_birth_date,
+        formData.adr_occurrence_date
+      ).years
+    } catch (error) {
+      toast.error(error instanceof PatientAgeError ? error.message : 'Không thể tính tuổi bệnh nhân.')
+      setCurrentStep(1)
+      return
+    }
+
     setLoading(true)
     
     try {
@@ -302,7 +315,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, patient_age: calculatedPatientAge }),
       })
 
       if (response.ok) {
