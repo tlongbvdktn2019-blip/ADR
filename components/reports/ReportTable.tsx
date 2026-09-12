@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -10,6 +10,10 @@ import Card from '@/components/ui/Card'
 import { ADRReport, SEVERITY_LABELS, APPROVAL_STATUS_LABELS } from '@/types/report'
 import { toast } from 'react-hot-toast'
 import { getPatientAgeLabel } from '@/lib/patient-age'
+import {
+  getSelectablePendingReportIds,
+  getSelectAllState,
+} from '@/lib/bulk-report-approval'
 import {
   EyeIcon,
   PencilIcon,
@@ -30,17 +34,41 @@ interface ReportTableProps {
   reports: ADRReport[]
   loading?: boolean
   onReportsUpdate?: () => void
+  selectedReportIds?: ReadonlySet<string>
+  onReportSelectionChange?: (reportId: string, selected: boolean) => void
+  onSelectAllChange?: (selected: boolean) => void
+  bulkSelectionDisabled?: boolean
+  selectionLimitReached?: boolean
 }
 
 interface GroupedReports {
   [organization: string]: ADRReport[]
 }
 
-export default function ReportTable({ reports, loading = false, onReportsUpdate }: ReportTableProps) {
+export default function ReportTable({
+  reports,
+  loading = false,
+  onReportsUpdate,
+  selectedReportIds = new Set<string>(),
+  onReportSelectionChange,
+  onSelectAllChange,
+  bulkSelectionDisabled = false,
+  selectionLimitReached = false,
+}: ReportTableProps) {
   const { data: session } = useSession()
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [approvingReportId, setApprovingReportId] = useState<string | null>(null)
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null)
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null)
+  const canBulkSelect = session?.user?.role === 'admin' && Boolean(onReportSelectionChange && onSelectAllChange)
+  const selectableReportIds = getSelectablePendingReportIds(reports)
+  const selectAllState = getSelectAllState(selectableReportIds, selectedReportIds)
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = selectAllState.indeterminate
+    }
+  }, [selectAllState.indeterminate])
 
   // Group reports by organization
   const groupedReports: GroupedReports = reports.reduce((groups, report) => {
@@ -293,6 +321,19 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  {canBulkSelect && (
+                    <th className="w-12 px-4 py-3 text-center">
+                      <input
+                        ref={selectAllCheckboxRef}
+                        type="checkbox"
+                        checked={selectAllState.checked}
+                        onChange={(event) => onSelectAllChange?.(event.target.checked)}
+                        disabled={bulkSelectionDisabled || selectableReportIds.length === 0}
+                        aria-label="Chọn tất cả báo cáo chưa duyệt trên trang hiện tại"
+                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:cursor-not-allowed"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mã báo cáo
                   </th>
@@ -324,7 +365,7 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
                       className="bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors"
                       onClick={() => toggleGroup(organization)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap" colSpan={7}>
+                      <td className="px-6 py-4 whitespace-nowrap" colSpan={canBulkSelect ? 8 : 7}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
@@ -361,6 +402,23 @@ export default function ReportTable({ reports, loading = false, onReportsUpdate 
                             animationDelay: `${index * 50}ms`
                           }}
                         >
+                          {canBulkSelect && (
+                            <td className="w-12 px-4 py-4 text-center">
+                              {report.approval_status === 'pending' && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedReportIds.has(report.id)}
+                                  onChange={(event) => onReportSelectionChange?.(report.id, event.target.checked)}
+                                  disabled={
+                                    bulkSelectionDisabled ||
+                                    (!selectedReportIds.has(report.id) && selectionLimitReached)
+                                  }
+                                  aria-label={`Chọn báo cáo ${report.report_code}`}
+                                  className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:cursor-not-allowed"
+                                />
+                              )}
+                            </td>
+                          )}
                           {/* Report Code */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">

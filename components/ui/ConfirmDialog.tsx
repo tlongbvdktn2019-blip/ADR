@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, ReactNode } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import Button from './Button'
@@ -10,10 +10,12 @@ interface ConfirmDialogProps {
   onClose: () => void
   onConfirm: () => void
   title: string
-  message: string
+  message: ReactNode
   confirmText?: string
   cancelText?: string
   type?: 'danger' | 'warning' | 'info'
+  loading?: boolean
+  closeOnConfirm?: boolean
 }
 
 export default function ConfirmDialog({
@@ -24,7 +26,9 @@ export default function ConfirmDialog({
   message,
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
-  type = 'warning'
+  type = 'warning',
+  loading = false,
+  closeOnConfirm = true,
 }: ConfirmDialogProps) {
   const getTypeStyles = () => {
     switch (type) {
@@ -53,7 +57,13 @@ export default function ConfirmDialog({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog
+        as="div"
+        className="relative z-50"
+        onClose={() => {
+          if (!loading) onClose()
+        }}
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -86,10 +96,8 @@ export default function ConfirmDialog({
                     <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
                       {title}
                     </Dialog.Title>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        {message}
-                      </p>
+                    <div className="mt-2 text-sm text-gray-500">
+                      {message}
                     </div>
                   </div>
                 </div>
@@ -98,15 +106,17 @@ export default function ConfirmDialog({
                   <Button
                     variant="outline"
                     onClick={onClose}
+                    disabled={loading}
                   >
                     {cancelText}
                   </Button>
                   <Button
                     onClick={() => {
                       onConfirm()
-                      onClose()
+                      if (closeOnConfirm) onClose()
                     }}
                     className={styles.buttonColor}
+                    loading={loading}
                   >
                     {confirmText}
                   </Button>

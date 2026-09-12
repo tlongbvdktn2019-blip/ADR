@@ -9,14 +9,22 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { ADRReport, ReportListResponse, SEVERITY_LABELS } from '@/types/report'
+import {
+  BulkApprovalResult,
+  MAX_BULK_APPROVAL_REPORTS,
+  getSelectablePendingReportIds,
+} from '@/lib/bulk-report-approval'
 import { 
   MagnifyingGlassIcon, 
   FunnelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   TableCellsIcon,
-  Squares2X2Icon
+  Squares2X2Icon,
+  CheckCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 interface ReportListProps {
@@ -39,6 +47,16 @@ export default function ReportList({ initialData }: ReportListProps) {
   const [severityFilter, setSeverityFilter] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set())
+  const [showBulkApprovalDialog, setShowBulkApprovalDialog] = useState(false)
+  const [bulkApproving, setBulkApproving] = useState(false)
+
+  const canBulkApprove = session?.user?.role === 'admin'
+  const selectionLimitReached = selectedReportIds.size >= MAX_BULK_APPROVAL_REPORTS
+  const bulkControlsDisabled = bulkApproving || loading
+  const selectableReportIds = getSelectablePendingReportIds(reports)
+  const selectedReports = reports.filter((report) => selectedReportIds.has(report.id))
+  const confirmationReports = selectedReports.slice(0, 10)
 
   const fetchReports = async (page = 1, search = searchTerm, severity = severityFilter) => {
     setLoading(true)
@@ -60,6 +78,7 @@ export default function ReportList({ initialData }: ReportListProps) {
       const data: ReportListResponse = await response.json()
       setReports(data.reports)
       setPagination(data.pagination)
+      setSelectedReportIds(new Set())
     } catch (error) {
       console.error('Error fetching reports:', error)
       toast.error('Không thể tải danh sách báo cáo')
@@ -95,6 +114,80 @@ export default function ReportList({ initialData }: ReportListProps) {
     }, 100)
   }
 
+  const handleReportSelectionChange = (reportId: string, selected: boolean) => {
+    if (!canBulkApprove || bulkControlsDisabled) return
+
+    const report = reports.find((item) => item.id === reportId)
+    if (!report || report.approval_status !== 'pending') return
+
+    setSelectedReportIds((current) => {
+      const next = new Set(current)
+
+      if (selected) {
+        if (next.size >= MAX_BULK_APPROVAL_REPORTS) return current
+        next.add(reportId)
+      } else {
+        next.delete(reportId)
+      }
+
+      return next
+    })
+  }
+
+  const handleSelectAllChange = (selected: boolean) => {
+    if (!canBulkApprove || bulkControlsDisabled) return
+    setSelectedReportIds(selected ? new Set(selectableReportIds) : new Set())
+  }
+
+  const handleBulkApprove = async () => {
+    if (!canBulkApprove || bulkControlsDisabled || selectedReportIds.size === 0) return
+
+    const reportIds = Array.from(selectedReportIds)
+    setBulkApproving(true)
+
+    try {
+      const response = await fetch('/api/reports/bulk-approve', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ report_ids: reportIds }),
+      })
+
+      const data = await response.json().catch(() => ({})) as Partial<BulkApprovalResult> & { error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Không thể duyệt các báo cáo đã chọn')
+      }
+
+      const requestedCount = data.requested_count ?? reportIds.length
+      const approvedCount = data.approved_count ?? 0
+      const skippedCount = data.skipped_count ?? Math.max(0, requestedCount - approvedCount)
+
+      if (approvedCount === requestedCount) {
+        toast.success(`Đã duyệt ${approvedCount} báo cáo`)
+      } else if (approvedCount === 0) {
+        toast('Không có báo cáo nào được duyệt; danh sách có thể đã thay đổi', {
+          icon: 'ℹ️',
+        })
+      } else {
+        toast(`Đã duyệt ${approvedCount}/${requestedCount} báo cáo; bỏ qua ${skippedCount} báo cáo`, {
+          icon: '⚠️',
+        })
+      }
+
+      setShowBulkApprovalDialog(false)
+      setSelectedReportIds(new Set())
+      await fetchReports(pagination.page, searchTerm, severityFilter)
+    } catch (error) {
+      console.error('Bulk approve error:', error)
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi duyệt báo cáo')
+      setShowBulkApprovalDialog(false)
+    } finally {
+      setBulkApproving(false)
+    }
+  }
+
   const severityOptions = [
     { value: '', label: 'Tất cả mức độ' },
     ...Object.entries(SEVERITY_LABELS).map(([value, label]) => ({ value, label }))
@@ -109,7 +202,7 @@ export default function ReportList({ initialData }: ReportListProps) {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className={`space-y-4 sm:space-y-6 ${selectedReportIds.size > 0 ? 'pb-24 md:pb-0' : ''}`}>
       {/* Search and Filters */}
       <div className="space-y-3 sm:space-y-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -195,12 +288,57 @@ export default function ReportList({ initialData }: ReportListProps) {
         </span>
       </div>
 
+      {canBulkApprove && selectedReportIds.size > 0 && (
+        <div className="fixed inset-x-3 bottom-3 z-40 rounded-xl border border-primary-200 bg-white p-3 shadow-xl md:static md:inset-auto md:flex md:items-center md:justify-between md:p-4 md:shadow-sm">
+          <div>
+            <p className="text-sm font-semibold text-gray-900" role="status" aria-live="polite">
+              Đã chọn {selectedReportIds.size} báo cáo
+            </p>
+            {selectionLimitReached && (
+              <p className="mt-1 text-xs text-amber-700">
+                Chỉ có thể duyệt tối đa {MAX_BULK_APPROVAL_REPORTS} báo cáo mỗi lần
+              </p>
+            )}
+          </div>
+          <div className="mt-3 flex items-center gap-2 md:mt-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedReportIds(new Set())}
+              disabled={bulkControlsDisabled}
+              className="flex-1 md:flex-none"
+            >
+              <XMarkIcon className="mr-1 h-4 w-4" />
+              Bỏ chọn tất cả
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowBulkApprovalDialog(true)}
+              disabled={bulkControlsDisabled}
+              className="flex-1 md:flex-none"
+            >
+              <CheckCircleIcon className="mr-1 h-4 w-4" />
+              Duyệt {selectedReportIds.size} báo cáo
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Reports Content */}
       {/* Desktop: Show based on view mode, Mobile: Always cards */}
       <div className="hidden md:block">
         {viewMode === 'table' ? (
           <div className="table-container">
-            <ReportTable reports={reports} loading={loading && reports.length === 0} onReportsUpdate={() => fetchReports(pagination.page)} />
+            <ReportTable
+              reports={reports}
+              loading={loading && reports.length === 0}
+              onReportsUpdate={() => fetchReports(pagination.page)}
+              selectedReportIds={selectedReportIds}
+              onReportSelectionChange={handleReportSelectionChange}
+              onSelectAllChange={handleSelectAllChange}
+              bulkSelectionDisabled={bulkControlsDisabled}
+              selectionLimitReached={selectionLimitReached}
+            />
           </div>
         ) : (
           <>
@@ -228,6 +366,10 @@ export default function ReportList({ initialData }: ReportListProps) {
                     key={report.id} 
                     report={report} 
                     onReportDeleted={() => fetchReports(pagination.page)}
+                    selected={selectedReportIds.has(report.id)}
+                    onSelectionChange={handleReportSelectionChange}
+                    selectionDisabled={bulkControlsDisabled}
+                    selectionLimitReached={selectionLimitReached}
                   />
                 ))}
               </div>
@@ -262,6 +404,10 @@ export default function ReportList({ initialData }: ReportListProps) {
                 key={report.id} 
                 report={report} 
                 onReportDeleted={() => fetchReports(pagination.page)}
+                selected={selectedReportIds.has(report.id)}
+                onSelectionChange={handleReportSelectionChange}
+                selectionDisabled={bulkControlsDisabled}
+                selectionLimitReached={selectionLimitReached}
               />
             ))}
           </div>
@@ -318,8 +464,37 @@ export default function ReportList({ initialData }: ReportListProps) {
           <LoadingSpinner />
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={showBulkApprovalDialog}
+        onClose={() => setShowBulkApprovalDialog(false)}
+        onConfirm={handleBulkApprove}
+        title={`Duyệt ${selectedReportIds.size} báo cáo?`}
+        message={
+          <div className="space-y-3">
+            <p>
+              Hệ thống chỉ duyệt các báo cáo vẫn còn ở trạng thái Chưa duyệt tại thời điểm xử lý.
+            </p>
+            <div>
+              <p className="font-medium text-gray-700">Mã báo cáo:</p>
+              <ul className="mt-1 max-h-40 list-disc space-y-1 overflow-y-auto pl-5">
+                {confirmationReports.map((report) => (
+                  <li key={report.id}>{report.report_code}</li>
+                ))}
+              </ul>
+              {selectedReports.length > confirmationReports.length && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Và {selectedReports.length - confirmationReports.length} báo cáo khác
+                </p>
+              )}
+            </div>
+          </div>
+        }
+        confirmText={bulkApproving ? 'Đang duyệt…' : `Duyệt ${selectedReportIds.size} báo cáo`}
+        type="info"
+        loading={bulkApproving}
+        closeOnConfirm={false}
+      />
     </div>
   )
 }
-
-
