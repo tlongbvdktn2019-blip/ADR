@@ -4,10 +4,7 @@
  * POST /api/reports/auto-email
  * Body: { reportId: string, includeReporter?: boolean, includeOrganization?: boolean }
  * 
- * Endpoint này có thể được gọi:
- * - Tự động sau khi tạo báo cáo
- * - Manual từ admin panel
- * - Từ scheduled jobs
+ * Endpoint yêu cầu phiên đăng nhập và áp dụng quyền truy cập theo đơn vị.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,6 +15,7 @@ import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { sendAutoReportEmail } from '@/lib/auto-email-service'
 import { ADRReport } from '@/types/report'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -29,9 +27,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    // Allow both authenticated users and system calls
-    // For system calls, you might want to add an API key check here
-    if (!session && !request.headers.get('x-api-key')) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -53,15 +49,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // Get the report with all related data
-    const { data: report, error: reportError } = await supabaseAdmin
+    let reportQuery = supabaseAdmin
       .from('adr_reports')
       .select(`
         *,
         suspected_drugs(*)
       `)
       .eq('id', reportId)
-      .single()
+
+    const scopedReportQuery = applyReportAccessScope(reportQuery, accessContext)
+    if (!scopedReportQuery) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    const { data: report, error: reportError } = await scopedReportQuery.single()
 
     if (reportError || !report) {
       console.error('Report fetch error:', reportError)
@@ -132,12 +139,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // Get report info
-    const { data: report, error: reportError } = await supabaseAdmin
+    let reportQuery = supabaseAdmin
       .from('adr_reports')
-      .select('id, report_code, organization, reporter_email')
+      .select('id, report_code, organization, organization_id, reporter_email')
       .eq('id', reportId)
-      .single()
+
+    const scopedReportQuery = applyReportAccessScope(reportQuery, accessContext)
+    if (!scopedReportQuery) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    const { data: report, error: reportError } = await scopedReportQuery.single()
 
     if (reportError || !report) {
       return NextResponse.json(

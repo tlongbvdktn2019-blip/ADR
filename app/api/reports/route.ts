@@ -13,6 +13,7 @@ import {
 } from '@/lib/report-code'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
 import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -298,21 +299,14 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const severity = searchParams.get('severity')
 
-    // Check user role first to apply proper filtering
-    const { data: userData } = await supabaseAdmin
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single<{ role: string }>()
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
 
-    if (!userData) {
+    if (!accessContext) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
-
-    const isAdmin = userData.role === 'admin'
 
     // Base query to get ALL reports (for grouping by organization)
     let allReportsQuery = supabaseAdmin
@@ -322,6 +316,24 @@ export async function GET(request: NextRequest) {
         suspected_drugs(*)
       `)
       .order('created_at', { ascending: false })
+
+    const scopedReportsQuery = applyReportAccessScope(allReportsQuery, accessContext)
+
+    if (!scopedReportsQuery) {
+      return NextResponse.json({
+        reports: [],
+        pagination: {
+          page,
+          limit: organizationsPerPage,
+          total: 0,
+          totalPages: 0,
+          totalOrganizations: 0,
+          organizationsOnPage: 0,
+        },
+      })
+    }
+
+    allReportsQuery = scopedReportsQuery
 
     // Apply search filter
     if (search && search.trim()) {

@@ -7,6 +7,7 @@ import { Database } from '@/types/supabase'
 import MainLayout from '@/components/layout/MainLayout'
 import ReportDetail from '@/components/reports/ReportDetail'
 import { ADRReport } from '@/types/report'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 
 interface ReportPageProps {
   params: {
@@ -20,8 +21,13 @@ const supabaseAdmin = createClient<Database>(
   config.supabase.serviceRoleKey
 )
 
-async function getReport(id: string, userId?: string, userRole?: string): Promise<ADRReport | null> {
+async function getReport(id: string, userId: string): Promise<ADRReport | null> {
   try {
+    const accessContext = await getReportAccessContext(userId, supabaseAdmin)
+    if (!accessContext) {
+      return null
+    }
+
     let query = supabaseAdmin
       .from('adr_reports')
       .select(`
@@ -29,15 +35,18 @@ async function getReport(id: string, userId?: string, userRole?: string): Promis
         suspected_drugs(*)
       `)
       .eq('id', id)
-      .single()
 
-    const { data: report, error } = await query
+    const scopedQuery = applyReportAccessScope(query, accessContext)
+    if (!scopedQuery) {
+      return null
+    }
+
+    const { data: report, error } = await scopedQuery.single()
 
     if (error || !report) {
       return null
     }
 
-    // All authenticated users can view all reports
     return report as ADRReport
   } catch (error) {
     console.error('Error fetching report:', error)
@@ -52,7 +61,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
     redirect('/auth/login')
   }
 
-  const report = await getReport(params.id, session.user.id, session.user.role)
+  const report = await getReport(params.id, session.user.id)
 
   if (!report) {
     notFound()
@@ -75,7 +84,7 @@ export async function generateMetadata({ params }: ReportPageProps) {
     }
   }
 
-  const report = await getReport(params.id, session.user.id, session.user.role)
+  const report = await getReport(params.id, session.user.id)
 
   if (!report) {
     return {
@@ -88,5 +97,4 @@ export async function generateMetadata({ params }: ReportPageProps) {
     description: `Chi tiết báo cáo ADR cho bệnh nhân ${report.patient_name}`,
   }
 }
-
 

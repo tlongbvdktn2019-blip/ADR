@@ -7,6 +7,7 @@ import { Database } from '@/types/supabase'
 import { sendEmail } from '@/lib/email-service'
 import { generateADRReportEmailHTML, generateADRReportEmailSubject, generateADRReportEmailText } from '@/lib/email-templates/adr-report'
 import { ADRReport } from '@/types/report'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const reportId = params.id
 
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // Get the report with suspected drugs
     let query = supabaseAdmin
       .from('adr_reports')
@@ -41,9 +47,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         suspected_drugs(*)
       `)
       .eq('id', reportId)
-      .single()
 
-    const { data: report, error } = await query
+    const scopedQuery = applyReportAccessScope(query, accessContext)
+    if (!scopedQuery) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    const { data: report, error } = await scopedQuery.single()
 
     if (error || !report) {
       return NextResponse.json(
@@ -51,8 +61,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 404 }
       )
     }
-
-    // All authenticated users can send email for all reports
 
     // Get custom email from request body (optional)
     const body = await request.json()
@@ -114,28 +122,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const reportId = params.id
 
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // Check if report exists and user has permission
     let query = supabaseAdmin
       .from('adr_reports')
-      .select('id, reporter_id, report_code')
+      .select('id, reporter_id, report_code, organization_id')
       .eq('id', reportId)
-      .single()
 
-    const { data: report, error } = await query
+    const scopedQuery = applyReportAccessScope(query, accessContext)
+    if (!scopedQuery) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    const { data: report, error } = await scopedQuery.single()
 
     if (error || !report) {
       return NextResponse.json(
         { error: 'Không tìm thấy báo cáo' },
         { status: 404 }
-      )
-    }
-
-    const canSendEmail = session.user.role === 'admin' || (report as any)?.reporter_id === session.user.id
-
-    if (!canSendEmail) {
-      return NextResponse.json(
-        { error: 'Không có quyền gửi email báo cáo này' },
-        { status: 403 }
       )
     }
 
@@ -155,4 +163,3 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     )
   }
 }
-

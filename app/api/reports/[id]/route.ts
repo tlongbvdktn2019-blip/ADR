@@ -6,6 +6,7 @@ import { config } from '@/lib/config'
 import { Database } from '@/types/supabase'
 import { notifyAllUsersAboutReportUpdate } from '@/lib/notification-service'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const reportId = params.id
 
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // Get the report with suspected drugs and concurrent drugs
     let query = supabaseAdmin
       .from('adr_reports')
@@ -41,9 +47,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         concurrent_drugs(*)
       `)
       .eq('id', reportId)
-      .single()
 
-    const { data: report, error } = await query
+    const scopedQuery = applyReportAccessScope(query, accessContext)
+    if (!scopedQuery) {
+      return NextResponse.json(
+        { error: 'KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o' },
+        { status: 404 }
+      )
+    }
+
+    const { data: report, error } = await scopedQuery.single()
 
     if (error || !report) {
       return NextResponse.json(
@@ -52,7 +65,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // All authenticated users can view all reports
     return NextResponse.json({ report })
 
   } catch (error) {
@@ -76,14 +88,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const reportId = params.id
+
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const body = await request.json()
 
     // First, check if report exists and user has permission
-    const { data: existingReport, error: fetchError } = await supabaseAdmin
+    let existingReportQuery = supabaseAdmin
       .from('adr_reports')
-      .select('id, reporter_id')
+      .select('id, reporter_id, organization_id')
       .eq('id', reportId)
-      .single()
+
+    const scopedExistingReportQuery = applyReportAccessScope(existingReportQuery, accessContext)
+    if (!scopedExistingReportQuery) {
+      return NextResponse.json(
+        { error: 'KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o' },
+        { status: 404 }
+      )
+    }
+
+    const { data: existingReport, error: fetchError } = await scopedExistingReportQuery.single()
 
     if (fetchError || !existingReport) {
       return NextResponse.json(
@@ -92,8 +119,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // All authenticated users can edit all reports
-    
     // Validate required fields
     const requiredFields = [
       'patient_name',
@@ -138,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Start transaction by updating the main report
-    const { data: reportData, error: reportError } = await (supabaseAdmin as any)
+    let updateQuery = (supabaseAdmin as any)
       .from('adr_reports')
       .update({
         // Patient info
@@ -179,6 +204,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         updated_at: new Date().toISOString()
       })
       .eq('id', reportId)
+
+    const scopedUpdateQuery = applyReportAccessScope(updateQuery, accessContext)
+    if (!scopedUpdateQuery) {
+      return NextResponse.json(
+        { error: 'KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o' },
+        { status: 404 }
+      )
+    }
+
+    const { data: reportData, error: reportError } = await scopedUpdateQuery
       .select()
       .single()
 
@@ -300,8 +335,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Only admin can delete reports
-    if (session.user.role !== 'admin') {
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Only the current database role can authorize report deletion.
+    if (accessContext.role !== 'admin') {
       return NextResponse.json(
         { error: 'Chỉ admin mới có quyền xóa báo cáo' },
         { status: 403 }

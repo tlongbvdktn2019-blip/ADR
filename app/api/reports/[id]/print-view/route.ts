@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createAdminClient } from '@/lib/supabase'
+import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
 import { ADRReport } from '@/types/report'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -556,7 +557,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get the report with suspected and concurrent drugs
     const supabase = createAdminClient()
-    const { data: reportData, error } = await supabase
+    const accessContext = await getReportAccessContext(session.user.id, supabase)
+    if (!accessContext) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    let reportQuery = supabase
       .from('adr_reports')
       .select(`
         *,
@@ -564,7 +570,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         concurrent_drugs(*)
       `)
       .eq('id', reportId)
-      .single()
+
+    const scopedReportQuery = applyReportAccessScope(reportQuery, accessContext)
+    if (!scopedReportQuery) {
+      return NextResponse.json(
+        { error: 'KhÃ´ng tÃ¬m tháº¥y bÃ¡o cÃ¡o' },
+        { status: 404 }
+      )
+    }
+
+    const { data: reportData, error } = await scopedReportQuery.single()
 
     if (error || !reportData) {
       console.error('Report not found:', error)

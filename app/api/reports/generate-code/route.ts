@@ -6,6 +6,7 @@ import {
   generateNextReportCode,
   ReportCodeError,
 } from '@/lib/report-code'
+import { canAccessReportOrganization, getReportAccessContext } from '@/lib/report-access'
 
 /**
  * POST /api/reports/generate-code
@@ -30,6 +31,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Thiếu department_id' },
         { status: 400 }
+      )
+    }
+
+    const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+    if (!accessContext) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    if (!canAccessReportOrganization(accessContext, department_id)) {
+      return NextResponse.json(
+        { success: false, error: 'Không tìm thấy đơn vị' },
+        { status: 404 }
       )
     }
 
