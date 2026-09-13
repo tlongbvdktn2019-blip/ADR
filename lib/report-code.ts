@@ -127,6 +127,7 @@ export async function generateNextReportCode(
   return {
     reportCode: `${department.code}-${sequenceNumber}-${year}`,
     organization: department.name,
+    organizationId: department.id,
     departmentCode: department.code,
     sequenceNumber,
     year,
@@ -171,6 +172,7 @@ export async function createReportWithUniqueCode(
       .insert({
         ...options.values,
         organization: generated.organization,
+        organization_id: generated.organizationId,
         report_code: generated.reportCode,
       })
       .select()

@@ -1,709 +1,136 @@
-// =====================================================
-// ALLERGY CARD DETAIL PAGE
-// Page for viewing detailed allergy card information
-// =====================================================
+'use client'
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import toast from 'react-hot-toast';
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import {
-  ClipboardDocumentListIcon,
   ArrowLeftIcon,
-  PencilIcon,
-  DocumentArrowDownIcon,
-  PrinterIcon,
-  ShareIcon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ClipboardDocumentIcon,
   ExclamationTriangleIcon,
-  UserIcon,
-  BuildingOffice2Icon,
-  InformationCircleIcon,
-  PlusCircleIcon,
-  ClockIcon,
-  CheckCircleIcon
-} from '@heroicons/react/24/outline';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { AllergyCard, SeverityLevel, AllergyCardUpdate } from '@/types/allergy-card';
+  PencilIcon,
+  PrinterIcon,
+  QrCodeIcon,
+  ShareIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline'
+import Button from '@/components/ui/Button'
+import Card from '@/components/ui/Card'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import type { AllergyCard } from '@/types/allergy-card'
 
-interface AllergyCardDetailPageProps {
-  params: {
-    id: string;
-  };
+type UpdateItem = {
+  id: string; item_type: string; target_allergy_id?: string; allergen_name?: string;
+  certainty_level?: string; clinical_manifestation?: string; severity_level?: string;
+  reaction_type?: string; note?: string; review_status: string; review_note?: string; created_at: string
+}
+type Submission = {
+  id: string; updated_by_name: string; updated_by_organization: string; updated_by_role: string;
+  facility_name: string; reason_for_update: string; submission_notes?: string; review_status: string;
+  created_at: string; items: UpdateItem[]
 }
 
-export default function AllergyCardDetailPage({ params }: AllergyCardDetailPageProps) {
-  const { data: session } = useSession();
-  const [card, setCard] = useState<AllergyCard | null>(null);
-  const [updates, setUpdates] = useState<AllergyCardUpdate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingUpdates, setIsLoadingUpdates] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function message(payload: any, fallback: string) { return payload?.error?.message || payload?.message || fallback }
+function date(value?: string) { return value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value.length === 10 ? `${value}T00:00:00` : value)) : '—' }
+const severity: Record<string, string> = { mild: 'Nhẹ', moderate: 'Trung bình', severe: 'Nghiêm trọng', life_threatening: 'Đe dọa tính mạng' }
+const itemType: Record<string, string> = { new_allergy: 'Dị nguyên mới', modify_allergy: 'Đính chính dị nguyên', additional_note: 'Ghi chú bổ sung' }
 
-  useEffect(() => {
-    loadCard();
-    loadUpdates();
-  }, [params.id]);
+export default function AllergyCardDetailPage({ params }: { params: { id: string } }) {
+  const [card, setCard] = useState<AllergyCard | null>(null)
+  const [updates, setUpdates] = useState<Submission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reviewing, setReviewing] = useState('')
 
-  const loadCard = async () => {
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
     try {
-      setIsLoading(true);
-      setError(null);
+      const [cardResponse, updateResponse] = await Promise.all([
+        fetch(`/api/allergy-cards/${params.id}`, { cache: 'no-store' }),
+        fetch(`/api/allergy-cards/${params.id}/updates`, { cache: 'no-store' }),
+      ])
+      const cardPayload = await cardResponse.json()
+      if (!cardResponse.ok) throw new Error(message(cardPayload, 'Không thể tải thẻ'))
+      setCard(cardPayload.card)
+      if (updateResponse.ok) setUpdates((await updateResponse.json()).updates || [])
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Không thể tải thẻ') }
+    finally { setLoading(false) }
+  }, [params.id])
 
-      const response = await fetch(`/api/allergy-cards/${params.id}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Không thể tải thông tin thẻ');
-      }
+  useEffect(() => { void load() }, [load])
 
-      const data = await response.json();
-      setCard(data.card);
-
-    } catch (error) {
-      console.error('Load card error:', error);
-      setError(error instanceof Error ? error.message : 'Có lỗi xảy ra');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadUpdates = async () => {
+  async function share() {
+    if (!card?.public_url) return
     try {
-      setIsLoadingUpdates(true);
-
-      const response = await fetch(`/api/allergy-cards/${params.id}/updates`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUpdates(data.updates || []);
-      }
-    } catch (error) {
-      console.error('Load updates error:', error);
-    } finally {
-      setIsLoadingUpdates(false);
-    }
-  };
-
-  const handleShare = async () => {
-    if (!card) return;
-
-    const shareData = {
-      title: `Thẻ dị ứng - ${card.patient_name}`,
-      text: `Xem thông tin thẻ dị ứng của ${card.patient_name}`,
-      url: window.location.href
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback - copy to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Đã sao chép link vào clipboard');
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      toast.error('Không thể chia sẻ');
-    }
-  };
-
-  const handlePrint = () => {
-    if (!card) return;
-    
-    // Open print preview in new window
-    const printUrl = `/api/allergy-cards/${card.id}/print-view`;
-    window.open(printUrl, '_blank');
-  };
-
-  const getSeverityBadgeColor = (severity?: SeverityLevel) => {
-    switch (severity) {
-      case 'life_threatening':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'severe':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'moderate':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'mild':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getSeverityText = (severity?: SeverityLevel) => {
-    switch (severity) {
-      case 'life_threatening':
-        return 'Nguy hiểm tính mạng';
-      case 'severe':
-        return 'Nghiêm trọng';
-      case 'moderate':
-        return 'Vừa';
-      case 'mild':
-        return 'Nhẹ';
-      default:
-        return 'Chưa xác định';
-    }
-  };
-
-  const getUpdateTypeText = (type: string) => {
-    switch (type) {
-      case 'new_allergy': return 'Phát hiện dị ứng mới';
-      case 'medical_facility': return 'Cập nhật cơ sở y tế';
-      case 'additional_info': return 'Thông tin bổ sung';
-      case 'severity_update': return 'Cập nhật mức độ nghiêm trọng';
-      default: return type;
-    }
-  };
-
-  const getUpdateTypeColor = (type: string) => {
-    switch (type) {
-      case 'new_allergy': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medical_facility': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'additional_info': return 'bg-green-100 text-green-800 border-green-200';
-      case 'severity_update': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const isAdmin = (session?.user as any)?.role === 'admin';
-  const canEdit = card && (isAdmin || card.issued_by_user_id === session?.user?.id);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+      if (navigator.share) await navigator.share({ title: `Thẻ dị ứng ${card.card_code}`, url: card.public_url })
+      else { await navigator.clipboard.writeText(card.public_url); toast.success('Đã sao chép liên kết công khai') }
+    } catch { /* User can cancel the native share sheet. */ }
   }
 
-  if (error || !card) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="p-8 max-w-md mx-auto">
-          <div className="text-center">
-            <ExclamationTriangleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Không tìm thấy thẻ dị ứng</h3>
-            <p className="text-gray-600 mb-4">{error || 'Thẻ không tồn tại hoặc bạn không có quyền xem'}</p>
-            <Link href="/allergy-cards">
-              <Button>Quay lại danh sách</Button>
-            </Link>
-          </div>
-        </Card>
-      </div>
-    );
+  async function rotateToken() {
+    if (!confirm('QR cũ sẽ ngừng hoạt động ngay. Bạn có chắc muốn tạo liên kết công khai mới?')) return
+    try {
+      const response = await fetch(`/api/allergy-cards/${params.id}/rotate-public-token`, { method: 'POST' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(message(payload, 'Không thể đổi mã QR'))
+      toast.success('Đã tạo QR mới; QR cũ không còn hiệu lực')
+      await load()
+    } catch (caught) { toast.error(caught instanceof Error ? caught.message : 'Không thể đổi mã QR') }
   }
 
-  // Check for severe allergies for warning
-  const hasSevereAllergy = card.allergies?.some(a => 
-    a.severity_level === 'severe' || a.severity_level === 'life_threatening'
-  );
+  async function review(submissionId: string, item: UpdateItem, decision: 'approved' | 'rejected') {
+    const note = decision === 'rejected' ? prompt('Nhập lý do từ chối (ít nhất 3 ký tự):') : prompt('Ghi chú duyệt (không bắt buộc):', '')
+    if (note === null || (decision === 'rejected' && note.trim().length < 3)) return
+    setReviewing(item.id)
+    try {
+      const matchingAllergy = decision === 'approved' && item.item_type === 'new_allergy'
+        ? card?.allergies?.find((allergy) => allergy.allergen_name.trim().toLocaleLowerCase('vi-VN') === item.allergen_name?.trim().toLocaleLowerCase('vi-VN'))
+        : undefined
+      const response = await fetch(`/api/allergy-cards/${params.id}/updates/${submissionId}/items/${item.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision, review_note: note, merge_target_allergy_id: matchingAllergy?.id }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(message(payload, 'Không thể duyệt nội dung'))
+      toast.success(decision === 'approved' ? 'Đã duyệt và áp dụng vào thẻ' : 'Đã từ chối nội dung')
+      await load()
+    } catch (caught) { toast.error(caught instanceof Error ? caught.message : 'Không thể duyệt nội dung') }
+    finally { setReviewing('') }
+  }
+
+  if (loading) return <main className="min-h-screen bg-slate-50 grid place-items-center"><LoadingSpinner size="lg" /></main>
+  if (!card) return <main className="min-h-screen bg-slate-50 grid place-items-center p-4"><Card className="max-w-md p-8 text-center"><ExclamationTriangleIcon className="mx-auto h-14 w-14 text-red-600" /><h1 className="mt-3 text-xl font-bold">Không thể mở thẻ</h1><p className="mt-2 text-slate-600">{error}</p><Link href="/allergy-cards"><Button className="mt-5">Về danh sách</Button></Link></Card></main>
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Link href="/allergy-cards">
-              <Button variant="outline" className="flex items-center gap-2">
-                <ArrowLeftIcon className="w-4 h-4" />
-                Quay lại
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ClipboardDocumentListIcon className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Chi tiết thẻ dị ứng
-                </h1>
-                <p className="text-gray-600">
-                  Mã thẻ: <span className="font-mono">{card.card_code}</span>
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <Link href={`/allergy-cards/${card.id}/add-info`}>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  <PlusCircleIcon className="w-4 h-4" />
-                  Bổ sung thông tin
-                </Button>
-              </Link>
+    <main className="min-h-screen bg-slate-50 py-6 sm:py-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3"><Link href="/allergy-cards" className="rounded-lg p-2 text-slate-600 hover:bg-white"><ArrowLeftIcon className="h-5 w-5" /></Link><div><h1 className="text-2xl font-bold text-slate-900">Thẻ {card.card_code}</h1><p className="mt-1 text-slate-600">{card.patient_name} · {card.organization}</p></div></div>
+          <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => window.open(`/api/allergy-cards/${card.id}/print-view`, '_blank')}><PrinterIcon className="mr-2 h-4 w-4" />In thẻ</Button><Button variant="outline" onClick={() => void share()}><ShareIcon className="mr-2 h-4 w-4" />Chia sẻ</Button><Link href={`/allergy-cards/${card.id}/edit`}><Button><PencilIcon className="mr-2 h-4 w-4" />Chỉnh sửa</Button></Link></div>
+        </header>
 
-              <Button
-                variant="outline"
-                onClick={handlePrint}
-                className="flex items-center gap-2"
-              >
-                <PrinterIcon className="w-4 h-4" />
-                In thẻ
-              </Button>
+        {card.source_changed && <div className="mb-5 flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900"><ExclamationTriangleIcon className="h-6 w-6 shrink-0" /><div><strong>Báo cáo nguồn đã được thay đổi sau khi cấp thẻ.</strong><p className="text-sm">Thẻ vẫn giữ nguyên bản chụp lúc cấp. Hãy đối chiếu báo cáo ADR trước khi quyết định chỉnh sửa.</p></div></div>}
 
-              <Button
-                variant="outline"
-                onClick={handleShare}
-                className="flex items-center gap-2"
-              >
-                <ShareIcon className="w-4 h-4" />
-                Chia sẻ
-              </Button>
-              
-              {canEdit && (
-                <Link href={`/allergy-cards/${card.id}/edit`}>
-                  <Button className="flex items-center gap-2">
-                    <PencilIcon className="w-4 h-4" />
-                    Chỉnh sửa
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
+        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="space-y-5">
+            <Card className="p-5 text-center"><h2 className="font-semibold text-slate-900">Mã QR công khai</h2><img src={`/api/allergy-cards/${card.id}/qr`} alt={`QR ${card.card_code}`} className="mx-auto mt-4 h-52 w-52 rounded-lg border p-2" /><p className="mt-3 break-all text-xs text-slate-500">{card.public_url}</p><div className="mt-4 grid gap-2"><a href={`/api/allergy-cards/${card.id}/qr`} download={`QR-${card.card_code}.png`}><Button variant="outline" fullWidth><QrCodeIcon className="mr-2 h-4 w-4" />Tải QR</Button></a><Button variant="ghost" onClick={() => void rotateToken()}><ArrowPathIcon className="mr-2 h-4 w-4" />Đổi QR</Button></div></Card>
+            <Card className="p-5"><h2 className="font-semibold">Thông tin phát hành</h2><dl className="mt-3 space-y-3 text-sm"><Info label="Trạng thái" value={card.status === 'active' ? 'Đang hiệu lực' : card.status === 'expired' ? 'Đã hết hạn' : 'Đã vô hiệu'} /><Info label="Ngày cấp" value={date(card.issued_date)} /><Info label="Ngày hết hạn" value={card.expiry_date ? date(card.expiry_date) : 'Không thời hạn'} /><Info label="Mã báo cáo" value={card.report_code || '—'} /></dl></Card>
+          </aside>
 
-        {/* Emergency Warning */}
-        {hasSevereAllergy && (
-          <Card className="p-6 mb-6 border-red-200 bg-red-50">
-            <div className="flex items-start gap-3">
-              <ExclamationTriangleIcon className="w-8 h-8 text-red-600 flex-shrink-0" />
-              <div>
-                <h2 className="text-xl font-bold text-red-900 mb-2">
-                  ⚠️ CẢNH BÁO DỊ ỨNG NGHIÊM TRỌNG
-                </h2>
-                <p className="text-red-800">
-                  Bệnh nhân có dị ứng nghiêm trọng hoặc nguy hiểm tính mạng. 
-                  Cần đặc biệt cẩn thận khi sử dụng thuốc và các dị nguyên liên quan.
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
+          <div className="space-y-5">
+            <Card className="p-5 sm:p-6" title="Thông tin bệnh nhân"><dl className="grid gap-4 text-sm sm:grid-cols-2"><Info label="Họ tên" value={card.patient_name} /><Info label="Tuổi / giới tính" value={`${card.patient_age} tuổi · ${card.patient_gender === 'male' ? 'Nam' : card.patient_gender === 'female' ? 'Nữ' : 'Khác'}`} /><Info label="CCCD/Hộ chiếu" value={card.patient_id_number || 'Chưa nhập'} /><Info label="Đơn vị" value={card.hospital_name} /><Info label="Khoa/phòng" value={card.department || 'Chưa nhập'} /><Info label="Bác sĩ xác nhận" value={`${card.doctor_name}${card.doctor_phone ? ` · ${card.doctor_phone}` : ''}`} /></dl></Card>
+            <Card className="p-5 sm:p-6" title={`Danh sách dị ứng (${card.allergies?.length || 0})`}><div className="space-y-3">{(card.allergies || []).map((allergy) => <article key={allergy.id} className="rounded-xl border border-red-200 bg-red-50 p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-bold text-red-950">{allergy.allergen_name}</h3><div className="flex gap-2"><span className="rounded-full bg-white px-2 py-1 text-xs text-red-800">{allergy.certainty_level === 'confirmed' ? 'Đã xác định' : 'Nghi ngờ'}</span>{allergy.severity_level && <span className="rounded-full bg-red-700 px-2 py-1 text-xs text-white">{severity[allergy.severity_level]}</span>}</div></div>{allergy.clinical_manifestation && <p className="mt-2 text-sm"><strong>Biểu hiện:</strong> {allergy.clinical_manifestation}</p>}</article>)}</div></Card>
+            {card.notes && <Card className="p-5" title="Ghi chú nội bộ"><p className="whitespace-pre-wrap text-sm text-slate-700">{card.notes}</p></Card>}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* QR Code Section - ALWAYS SHOW */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 text-center">
-              <h2 className="text-xl font-semibold mb-4 text-blue-900">Mã QR thẻ dị ứng</h2>
-              
-              {/* QR Code Display */}
-              {card.qr_code_url ? (
-                <div className="mb-4">
-                  <img 
-                    src={card.qr_code_url} 
-                    alt={`QR Code - ${card.card_code}`}
-                    className="mx-auto w-48 h-48 border-2 border-blue-200 rounded-lg shadow-sm"
-                  />
-                </div>
-              ) : (
-                <div className="mb-4 w-48 h-48 mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-400 text-sm px-4 text-center">
-                    QR code đang được tạo...
-                  </p>
-                </div>
-              )}
-              
-              {/* Card Code */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Mã thẻ:</p>
-                <p className="text-xl font-mono font-bold text-blue-900">{card.card_code}</p>
-              </div>
-              
-              <div className="text-sm text-gray-600 mb-4 text-left bg-gray-50 p-3 rounded-lg">
-                <p className="font-medium mb-2">📱 Cách sử dụng QR:</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Quét QR bằng camera điện thoại</li>
-                  <li>• Hoặc nhập mã thẻ để tra cứu</li>
-                  <li>• QR mở bản xem công khai an toàn của thẻ</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <Link href="/allergy-cards/scan" className="block">
-                  <Button variant="outline" className="w-full">
-                    🔍 Quét QR tra cứu
-                  </Button>
-                </Link>
-                
-                {(card as any).google_drive_url && (
-                  <a 
-                    href={(card as any).google_drive_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full"
-                  >
-                    <Button variant="outline" className="w-full">
-                      📁 Mở file Drive
-                    </Button>
-                  </a>
-                )}
-                
-                {card.qr_code_url && (
-                  <a 
-                    href={card.qr_code_url}
-                    download={`QR-${card.card_code}.png`}
-                    className="block w-full"
-                  >
-                    <Button variant="outline" className="w-full">
-                      💾 Tải QR Code
-                    </Button>
-                  </a>
-                )}
-              </div>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Patient Information */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <UserIcon className="w-6 h-6 text-blue-600" />
-                Thông tin bệnh nhân
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Họ và tên</label>
-                  <p className="text-lg font-semibold">{card.patient_name}</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Tuổi</label>
-                  <p className="text-lg">{card.patient_age} tuổi</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Giới tính</label>
-                  <p className="text-lg">
-                    {card.patient_gender === 'male' ? 'Nam' : 
-                     card.patient_gender === 'female' ? 'Nữ' : 'Khác'}
-                  </p>
-                </div>
-                
-                {card.patient_id_number && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">CMND/CCCD</label>
-                    <p className="text-lg font-mono">{card.patient_id_number}</p>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Medical Facility */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <BuildingOffice2Icon className="w-6 h-6 text-green-600" />
-                Cơ sở y tế
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Bệnh viện</label>
-                  <p className="text-lg font-semibold">{card.hospital_name}</p>
-                </div>
-                
-                {card.department && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Khoa/Trung tâm</label>
-                    <p className="text-lg">{card.department}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Bác sĩ điều trị</label>
-                  <p className="text-lg font-semibold">{card.doctor_name}</p>
-                </div>
-                
-                {card.doctor_phone && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Số điện thoại</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-lg font-mono">{card.doctor_phone}</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`tel:${card.doctor_phone}`)}
-                      >
-                        Gọi
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Allergies */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <ClipboardDocumentListIcon className="w-6 h-6 text-orange-600" />
-                Thông tin dị ứng ({card.allergies?.length || 0})
-              </h2>
-              
-              {card.allergies && card.allergies.length > 0 ? (
-                <div className="space-y-4">
-                  {card.allergies.map((allergy, index) => (
-                    <div 
-                      key={allergy.id}
-                      className={`p-4 rounded-lg border ${
-                        allergy.severity_level === 'severe' || allergy.severity_level === 'life_threatening' 
-                          ? 'border-red-200 bg-red-50' 
-                          : 'border-gray-200 bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-semibold">{allergy.allergen_name}</h3>
-                        <div className="flex gap-2">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            allergy.certainty_level === 'confirmed' 
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                          }`}>
-                            {allergy.certainty_level === 'confirmed' ? 'Chắc chắn' : 'Nghi ngờ'}
-                          </span>
-                          
-                          {allergy.severity_level && (
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSeverityBadgeColor(allergy.severity_level)}`}>
-                              {getSeverityText(allergy.severity_level)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {allergy.reaction_type && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          <span className="font-medium">Loại phản ứng:</span> {allergy.reaction_type}
-                        </p>
-                      )}
-                      
-                      {allergy.clinical_manifestation && (
-                        <p className="text-gray-700">
-                          <span className="font-medium">Biểu hiện lâm sàng:</span> {allergy.clinical_manifestation}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">
-                  Chưa có thông tin dị ứng
-                </p>
-              )}
-            </Card>
-
-            {/* Card Information */}
-            <Card className="p-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <InformationCircleIcon className="w-6 h-6 text-purple-600" />
-                Thông tin thẻ
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Ngày cấp thẻ</label>
-                  <p className="text-lg">{new Date(card.issued_date).toLocaleDateString('vi-VN')}</p>
-                </div>
-                
-                {card.expiry_date && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Ngày hết hạn</label>
-                    <p className="text-lg">{new Date(card.expiry_date).toLocaleDateString('vi-VN')}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Trạng thái</label>
-                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                    card.status === 'active' ? 'bg-green-100 text-green-800' :
-                    card.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {card.status === 'active' ? 'Hoạt động' :
-                     card.status === 'inactive' ? 'Vô hiệu' : 'Hết hạn'}
-                  </span>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Tổ chức cấp</label>
-                  <p className="text-lg">{card.organization}</p>
-                </div>
-              </div>
-              
-              {card.notes && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <label className="text-sm font-medium text-gray-500">Ghi chú</label>
-                  <p className="text-gray-700 mt-1">{card.notes}</p>
-                </div>
-              )}
-            </Card>
-
-            {/* Lịch sử bổ sung */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <ClockIcon className="w-6 h-6 text-purple-600" />
-                  Lịch sử bổ sung ({updates.length})
-                </h2>
-                <Link href={`/allergy-cards/${card.id}/add-info`}>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <PlusCircleIcon className="w-4 h-4" />
-                    Bổ sung mới
-                  </Button>
-                </Link>
-              </div>
-              
-              {isLoadingUpdates ? (
-                <div className="flex justify-center py-8">
-                  <LoadingSpinner size="md" />
-                </div>
-              ) : updates.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <ClockIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="font-medium">Chưa có lịch sử bổ sung</p>
-                  <p className="text-sm mt-1">
-                    Khi có cơ sở y tế khác bổ sung thông tin, lịch sử sẽ hiển thị ở đây
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {updates.map((update, index) => (
-                    <div key={update.id} className="relative">
-                      {/* Timeline line */}
-                      {index < updates.length - 1 && (
-                        <div className="absolute left-4 top-12 bottom-0 w-0.5 bg-gray-200" />
-                      )}
-                      
-                      <div className="flex gap-4">
-                        {/* Timeline dot */}
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center relative z-10">
-                          <CheckCircleIcon className="w-5 h-5 text-blue-600" />
-                        </div>
-                        
-                        {/* Update content */}
-                        <div className="flex-1 pb-6">
-                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-3">
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className={`px-2 py-1 text-xs font-medium rounded border ${getUpdateTypeColor(update.update_type)}`}>
-                                    {getUpdateTypeText(update.update_type)}
-                                  </span>
-                                  {update.is_verified && (
-                                    <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 border border-green-200">
-                                      ✓ Đã xác minh
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-600">
-                                  {new Date(update.created_at).toLocaleString('vi-VN')}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Người bổ sung */}
-                            <div className="mb-3">
-                              <p className="font-semibold text-gray-900">{update.updated_by_name}</p>
-                              <p className="text-sm text-gray-600">
-                                {update.updated_by_role && `${update.updated_by_role} • `}
-                                {update.updated_by_organization}
-                              </p>
-                              {update.updated_by_phone && (
-                                <p className="text-sm text-gray-600">
-                                  📞 {update.updated_by_phone}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Cơ sở y tế */}
-                            <div className="mb-3 p-2 bg-white rounded border border-gray-100">
-                              <p className="text-sm font-medium text-gray-700">
-                                🏥 {update.facility_name}
-                              </p>
-                              {update.facility_department && (
-                                <p className="text-sm text-gray-600">
-                                  {update.facility_department}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Lý do và ghi chú */}
-                            {update.reason_for_update && (
-                              <div className="mb-2">
-                                <p className="text-sm">
-                                  <span className="font-medium">Lý do:</span> {update.reason_for_update}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {update.update_notes && (
-                              <div className="mb-3">
-                                <p className="text-sm">
-                                  <span className="font-medium">Ghi chú:</span> {update.update_notes}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Allergies added */}
-                            {update.allergies_added && update.allergies_added.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <p className="text-sm font-medium text-gray-700 mb-2">
-                                  🔴 Dị ứng được bổ sung ({update.allergies_added.length}):
-                                </p>
-                                <div className="space-y-2">
-                                  {update.allergies_added.map((allergy: any) => (
-                                    <div key={allergy.id} className="bg-white p-2 rounded border border-gray-200">
-                                      <div className="flex items-start justify-between">
-                                        <p className="font-medium">{allergy.allergen_name}</p>
-                                        <div className="flex gap-1">
-                                          {allergy.certainty_level === 'confirmed' ? (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-800">
-                                              Chắc chắn
-                                            </span>
-                                          ) : (
-                                            <span className="px-2 py-0.5 text-xs rounded bg-yellow-100 text-yellow-800">
-                                              Nghi ngờ
-                                            </span>
-                                          )}
-                                          {allergy.severity_level && (
-                                            <span className={`px-2 py-0.5 text-xs rounded ${getSeverityBadgeColor(allergy.severity_level)}`}>
-                                              {getSeverityText(allergy.severity_level)}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      {allergy.clinical_manifestation && (
-                                        <p className="text-sm text-gray-600 mt-1">
-                                          {allergy.clinical_manifestation}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <Card className="p-5 sm:p-6" title={`Đề nghị cập nhật (${updates.length})`} subtitle="Duyệt từng nội dung. Chỉ nội dung được duyệt mới được áp dụng vào thẻ.">
+              {updates.length === 0 ? <p className="py-6 text-center text-sm text-slate-500">Chưa có đề nghị cập nhật.</p> : <div className="space-y-5">{updates.map((submission) => <article key={submission.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap justify-between gap-2"><div><h3 className="font-semibold">{submission.updated_by_name} · {submission.updated_by_role}</h3><p className="text-xs text-slate-500">{submission.updated_by_organization} · {submission.facility_name} · {date(submission.created_at)}</p></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs">{submission.review_status === 'pending' ? 'Chờ duyệt' : submission.review_status === 'approved' ? 'Đã duyệt' : submission.review_status === 'rejected' ? 'Đã từ chối' : 'Đã duyệt một phần'}</span></div><p className="mt-3 text-sm"><strong>Lý do:</strong> {submission.reason_for_update}</p><div className="mt-3 space-y-3">{submission.items.map((item) => <div key={item.id} className="rounded-lg bg-slate-50 p-3 text-sm"><div className="flex flex-wrap items-start justify-between gap-2"><div><strong>{itemType[item.item_type] || item.item_type}</strong><p className="mt-1">{item.allergen_name || item.note || item.clinical_manifestation || 'Không có mô tả'}</p>{item.review_note && <p className="mt-1 text-xs text-slate-500">Ghi chú duyệt: {item.review_note}</p>}</div>{item.review_status === 'pending' ? <div className="flex gap-2"><Button size="sm" loading={reviewing === item.id} onClick={() => void review(submission.id, item, 'approved')}><CheckCircleIcon className="mr-1 h-4 w-4" />Duyệt</Button><Button size="sm" variant="danger" disabled={reviewing === item.id} onClick={() => void review(submission.id, item, 'rejected')}><XCircleIcon className="mr-1 h-4 w-4" />Từ chối</Button></div> : <span className={`rounded-full px-2 py-1 text-xs ${item.review_status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{item.review_status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}</span>}</div></div>)}</div></article>)}</div>}
             </Card>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </main>
+  )
 }
+
+function Info({ label, value }: { label: string; value: string }) { return <div><dt className="text-slate-500">{label}</dt><dd className="mt-1 font-medium text-slate-900">{value}</dd></div> }

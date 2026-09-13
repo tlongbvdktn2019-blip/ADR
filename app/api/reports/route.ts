@@ -31,10 +31,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+
+    const { data: reportCreator } = await (supabaseAdmin
+      .from('users')
+      .select('role, organization')
+      .eq('id', session.user.id)
+      .maybeSingle() as any)
+    if (!reportCreator) {
+      return NextResponse.json({ error: 'Không tìm thấy tài khoản' }, { status: 404 })
+    }
+    const reportOrganization = reportCreator.role === 'admin'
+      ? String(body.organization || '').trim()
+      : String(reportCreator.organization || '').trim()
     
     // Validate required fields
     const requiredFields = [
-      'organization',
       'patient_name',
       'patient_birth_date',
       'patient_gender',
@@ -49,6 +60,10 @@ export async function POST(request: NextRequest) {
       'report_type',
       'report_date'
     ]
+
+    if (!reportOrganization) {
+      return NextResponse.json({ error: 'Tài khoản chưa được gắn đơn vị' }, { status: 400 })
+    }
 
     for (const field of requiredFields) {
       if (!body[field]) {
@@ -79,7 +94,7 @@ export async function POST(request: NextRequest) {
     // Create the main ADR report. The server assigns the final report code.
     const { data: reportData, error: reportError } =
       await createReportWithUniqueCode(supabaseAdmin as any, {
-        organization: body.organization,
+        organization: reportOrganization,
         values: {
           reporter_id: session.user.id,
 

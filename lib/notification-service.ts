@@ -126,3 +126,34 @@ export async function notifyAllUsersAboutReportUpdate(
     data: buildReportPayload(report, 'report_updated'),
   })
 }
+
+export async function notifyOrganizationAboutAllergyUpdate(input: {
+  organizationId: string
+  cardId: string
+  cardCode: string
+  patientName: string
+  submissionId: string
+}) {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('organization_id', input.organizationId)
+
+  if (error) {
+    console.error('Cannot resolve allergy update recipients:', error)
+    return { success: false, inserted: 0, error: error.message }
+  }
+
+  return createNotificationForUsers({
+    recipientIds: (data || []).map((user) => user.id),
+    type: 'allergy_update_submitted',
+    title: 'Có đề nghị bổ sung thẻ dị ứng',
+    message: `Thẻ ${input.cardCode} của ${input.patientName} có thông tin mới chờ duyệt.`,
+    data: {
+      event: 'allergy_update_submitted',
+      allergy_card_id: input.cardId,
+      allergy_card_code: input.cardCode,
+      allergy_update_submission_id: input.submissionId,
+    },
+  })
+}

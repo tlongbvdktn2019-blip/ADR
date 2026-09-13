@@ -34,6 +34,10 @@ export interface CardAllergy {
   clinical_manifestation?: string;
   severity_level?: SeverityLevel;
   reaction_type?: string;
+  normalized_name?: string;
+  source_type?: 'report' | 'manual_missing' | 'public_update';
+  source_report_drug_id?: string;
+  source_update_item_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +52,11 @@ export interface AllergyCard {
   
   // Link to ADR report (optional)
   report_id?: string;
+  report_code?: string;
+  source_report_updated_at?: string;
+  report_updated_at?: string;
+  source_changed?: boolean;
+  pending_updates_count?: number;
   
   // Patient Information
   patient_name: string;
@@ -65,10 +74,14 @@ export interface AllergyCard {
   issued_date: string;
   issued_by_user_id: string;
   organization: string;
+  organization_id: string;
+  doctor_source?: 'reporter' | 'manual';
+  public_url?: string;
   
   // QR Code data
-  qr_code_data: string; // JSON string
+  qr_code_data?: string | null; // Legacy field; public QR now contains only the URL
   qr_code_url?: string; // URL to QR code image
+  public_token?: string;
   
   // Card status
   status: AllergyCardStatus;
@@ -163,6 +176,120 @@ export interface AllergyCardFormData {
   
   // Optional link to existing ADR report
   report_id?: string;
+}
+
+export interface EligibleReportSummary {
+  id: string;
+  report_code: string;
+  patient_name: string;
+  patient_age: number;
+  patient_gender: PatientGender;
+  organization: string;
+  organization_id: string;
+  report_date: string;
+  approval_status: 'pending' | 'approved' | 'rejected';
+  suspected_drug_names: string[];
+  missing_fields: string[];
+}
+
+export interface EligibleReportDetail extends EligibleReportSummary {
+  adr_description: string;
+  severity_level: string;
+  causality_assessment: string;
+  reporter_name: string;
+  reporter_profession: string;
+  reporter_phone?: string;
+  updated_at: string;
+  suspected_drugs: Array<{ id: string; drug_name: string | null }>;
+}
+
+export interface AllergyCardSupplementAllergy {
+  source_report_drug_id?: string;
+  allergen_name: string;
+  certainty_level?: CertaintyLevel;
+  clinical_manifestation?: string;
+  severity_level?: SeverityLevel;
+  reaction_type?: string;
+}
+
+export interface AllergyCardCreateInput {
+  report_id: string;
+  report_updated_at: string;
+  supplements?: {
+    patient_id_number?: string;
+    department?: string;
+    doctor_name?: string;
+    doctor_phone?: string;
+    expiry_date?: string;
+    notes?: string;
+    missing_drugs?: AllergyCardSupplementAllergy[];
+    manual_allergies?: AllergyCardSupplementAllergy[];
+  };
+}
+
+export interface AllergyCardDraftAllergy {
+  allergen_name: string;
+  normalized_name: string;
+  certainty_level: CertaintyLevel;
+  clinical_manifestation?: string;
+  severity_level?: SeverityLevel;
+  reaction_type?: string;
+  source_type: 'report' | 'manual_missing' | 'public_update';
+  source_report_drug_id?: string;
+}
+
+export interface AllergyCardDraft {
+  report_id: string;
+  report_code: string;
+  source_report_updated_at: string;
+  organization_id: string;
+  patient_name: string;
+  patient_gender: PatientGender;
+  patient_age: number;
+  patient_id_number?: string;
+  hospital_name: string;
+  department?: string;
+  doctor_name: string;
+  doctor_phone?: string;
+  doctor_source: 'reporter' | 'manual';
+  issued_date: string;
+  expiry_date?: string;
+  notes?: string;
+  allergies: AllergyCardDraftAllergy[];
+}
+
+export type AllergyCardUpdateReviewStatus =
+  | 'pending'
+  | 'partially_approved'
+  | 'approved'
+  | 'rejected';
+
+export type AllergyCardUpdateItemType = 'new_allergy' | 'modify_allergy' | 'additional_note';
+
+export interface PublicAllergyCardUpdateItemInput {
+  item_type: AllergyCardUpdateItemType;
+  target_allergy_id?: string;
+  allergen_name?: string;
+  certainty_level?: CertaintyLevel;
+  clinical_manifestation?: string;
+  severity_level?: SeverityLevel;
+  reaction_type?: string;
+  discovered_date?: string;
+  note?: string;
+}
+
+export interface PublicAllergyCardUpdateInput {
+  updated_by_name: string;
+  updated_by_organization: string;
+  updated_by_role: string;
+  updated_by_phone?: string;
+  updated_by_email?: string;
+  facility_name: string;
+  facility_department?: string;
+  reason_for_update: string;
+  submission_notes?: string;
+  items: PublicAllergyCardUpdateItemInput[];
+  turnstile_token: string;
 }
 
 /**
@@ -442,4 +569,3 @@ export interface AllergyCardWithHistory extends AllergyCard {
   updates: AllergyCardUpdate[];
   total_updates: number;
 }
-

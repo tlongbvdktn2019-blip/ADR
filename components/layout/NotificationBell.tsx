@@ -65,6 +65,10 @@ function getNotificationIcon(type: string) {
     return <EyeIcon className="h-4 w-4" />
   }
 
+  if (type === 'allergy_update_submitted') {
+    return <ExclamationTriangleIcon className="h-4 w-4" />
+  }
+
   return <ExclamationTriangleIcon className="h-4 w-4" />
 }
 
@@ -75,6 +79,10 @@ function getNotificationIconClass(type: string) {
 
   if (type === 'report_updated') {
     return 'bg-blue-100 text-blue-700'
+  }
+
+  if (type === 'allergy_update_submitted') {
+    return 'bg-amber-100 text-amber-800'
   }
 
   return 'bg-gray-100 text-gray-700'
@@ -276,6 +284,15 @@ export default function NotificationBell() {
                                 className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-800"
                               >
                                 Xem báo cáo
+                              </Link>
+                            )}
+                            {notification.data?.allergy_card_id && (
+                              <Link
+                                href={`/allergy-cards/${notification.data.allergy_card_id}`}
+                                onClick={() => setIsOpen(false)}
+                                className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-800"
+                              >
+                                Duyệt cập nhật
                               </Link>
                             )}
                             {!notification.read && (

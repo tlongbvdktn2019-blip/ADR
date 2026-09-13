@@ -1,24 +1,15 @@
-// =====================================================
-// NEW ALLERGY CARD PAGE
-// Page for creating new allergy cards
-// =====================================================
+'use client'
 
-'use client';
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import AllergyCardIssuanceForm from '@/components/forms/AllergyCardIssuanceForm'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
-import { useSearchParams } from 'next/navigation';
-import { AllergyCardForm } from '@/components/forms/AllergyCardForm';
-
-export default function NewAllergyCardPage() {
-  const searchParams = useSearchParams();
-  const reportId = searchParams.get('reportId') || undefined;
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <AllergyCardForm 
-        mode="create"
-        reportId={reportId}
-      />
-    </div>
-  );
+function NewAllergyCardContent() {
+  const searchParams = useSearchParams()
+  return <AllergyCardIssuanceForm initialReportId={searchParams.get('reportId') || undefined} />
 }
 
+export default function NewAllergyCardPage() {
+  return <Suspense fallback={<div className="min-h-screen grid place-items-center"><LoadingSpinner size="lg" /></div>}><NewAllergyCardContent /></Suspense>
+}

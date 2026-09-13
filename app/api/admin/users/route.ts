@@ -126,6 +126,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { data: department } = await supabaseAdmin
+      .from('departments')
+      .select('id, name')
+      .eq('name', organization)
+      .maybeSingle()
+    if (role === 'user' && !department) {
+      return NextResponse.json({ error: 'Đơn vị không hợp lệ' }, { status: 400 })
+    }
+
     const { data: existingUsername } = await supabaseAdmin
       .from('users')
       .select('id')
@@ -158,7 +167,8 @@ export async function POST(request: NextRequest) {
         name,
         username,
         email,
-        organization,
+        organization: department?.name || organization,
+        organization_id: department?.id || null,
         phone,
         role,
       })

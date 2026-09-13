@@ -1,4 +1,9 @@
-export type NotificationType = 'new_report' | 'report_updated' | 'system'
+export type NotificationType =
+  | 'new_report'
+  | 'report_updated'
+  | 'allergy_update_submitted'
+  | 'allergy_update_reviewed'
+  | 'system'
 
 export interface NotificationPayload {
   report_id?: string
@@ -6,7 +11,10 @@ export interface NotificationPayload {
   patient_name?: string
   organization?: string
   severity_level?: string
-  event?: 'new_report' | 'report_updated' | 'system'
+  event?: 'new_report' | 'report_updated' | 'allergy_update_submitted' | 'allergy_update_reviewed' | 'system'
+  allergy_card_id?: string
+  allergy_card_code?: string
+  allergy_update_submission_id?: string
   [key: string]: unknown
 }
 

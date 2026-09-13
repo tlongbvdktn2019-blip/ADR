@@ -2,290 +2,170 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createAdminClient } from '@/lib/supabase'
-import { ensureAllergyCardQrCode } from '@/lib/allergy-card-qr'
-import { AllergyCardFormData } from '@/types/allergy-card'
+import { canAccessOrganization, getAllergyCardAccessContext } from '@/lib/allergy-card-access'
+import {
+  allergyCardError,
+  mapDatabaseWorkflowError,
+  parseJsonBody,
+  UUID_PATTERN,
+} from '@/lib/allergy-card-api'
+import { getEffectiveCardStatus } from '@/lib/allergy-card-workflow'
 
-function isAdminSession(session: any) {
-  return session?.user?.role === 'admin'
+export const dynamic = 'force-dynamic'
+
+async function getContextAndCard(userId: string, cardId: string) {
+  const context = await getAllergyCardAccessContext(userId)
+  if (!context) return { error: allergyCardError('USER_NOT_FOUND', 'Không tìm thấy tài khoản', 404) }
+
+  const supabase = createAdminClient()
+  const { data: card, error } = await supabase
+    .from('allergy_cards')
+    .select('*, card_allergies(*)')
+    .eq('id', cardId)
+    .maybeSingle()
+  if (error || !card) return { error: allergyCardError('NOT_FOUND', 'Không tìm thấy thẻ dị ứng', 404) }
+  if (!canAccessOrganization(context, (card as any).organization_id)) {
+    return { error: allergyCardError('FORBIDDEN', 'Bạn không có quyền truy cập thẻ này', 403) }
+  }
+  return { context, card, supabase }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    void request
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return allergyCardError('UNAUTHORIZED', 'Vui lòng đăng nhập', 401)
+  if (!UUID_PATTERN.test(params.id)) return allergyCardError('VALIDATION_ERROR', 'ID thẻ không hợp lệ', 400)
 
-    const session = await getServerSession(authOptions)
+  const result = await getContextAndCard(session.user.id, params.id)
+  if (result.error) return result.error
+  const { card, supabase } = result
+  const { data: report } = card.report_id
+    ? await supabase.from('adr_reports').select('report_code, updated_at').eq('id', card.report_id).maybeSingle()
+    : { data: null }
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, '')
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return NextResponse.json({
+    card: {
+      ...card,
+      allergies: (card as any).card_allergies || [],
+      card_allergies: undefined,
+      status: getEffectiveCardStatus(card.status as any, card.expiry_date),
+      report_code: report?.report_code,
+      report_updated_at: report?.updated_at,
+      source_changed: Boolean(report?.updated_at && (card as any).source_report_updated_at && report.updated_at !== (card as any).source_report_updated_at),
+      public_url: (card as any).public_token ? `${baseUrl}/allergy-cards/view/${(card as any).public_token}` : undefined,
+    },
+  })
+}
+
+interface CardSpecificUpdateInput {
+  patient_id_number?: string
+  department?: string
+  doctor_name?: string
+  doctor_phone?: string
+  expiry_date?: string
+  notes?: string
+  status?: 'active' | 'inactive'
+}
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return allergyCardError('UNAUTHORIZED', 'Vui lòng đăng nhập', 401)
+  if (!UUID_PATTERN.test(params.id)) return allergyCardError('VALIDATION_ERROR', 'ID thẻ không hợp lệ', 400)
+  const body = await parseJsonBody<CardSpecificUpdateInput>(request)
+  if (!body) return allergyCardError('VALIDATION_ERROR', 'Dữ liệu cập nhật không hợp lệ', 400)
+
+  const result = await getContextAndCard(session.user.id, params.id)
+  if (result.error) return result.error
+  const { context, card, supabase } = result
+  const expiryDate = body.expiry_date?.trim() || null
+  if (expiryDate && expiryDate < card.issued_date) {
+    return allergyCardError('VALIDATION_ERROR', 'Ngày hết hạn không được trước ngày cấp', 400, {
+      expiry_date: 'Ngày hết hạn không được trước ngày cấp',
+    })
+  }
+
+  const update: Record<string, string | null> = {
+    patient_id_number: body.patient_id_number?.trim() || null,
+    department: body.department?.trim() || null,
+    expiry_date: expiryDate,
+    notes: body.notes?.trim() || null,
+    status: body.status === 'inactive' ? 'inactive' : 'active',
+    updated_at: new Date().toISOString(),
+  }
+  if (body.status) {
+    if (!['active', 'inactive'].includes(body.status)) {
+      return allergyCardError('VALIDATION_ERROR', 'Trạng thái thẻ không hợp lệ', 400)
     }
-
-    const adminSupabase = createAdminClient()
-    const cardId = params.id
-
-    const { data: card, error } = await adminSupabase
-      .from('allergy_cards_with_details')
-      .select('*')
-      .eq('id', cardId)
-      .single()
-
-    if (error || !card) {
-      console.error('Database error:', error)
-      return NextResponse.json({ error: 'Allergy card not found' }, { status: 404 })
-    }
-
-    if (!isAdminSession(session) && card.issued_by_user_id !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    if (card.report_id) {
-      const { data: drugs } = await adminSupabase
-        .from('suspected_drugs')
-        .select('*')
-        .eq('report_id', card.report_id)
-
-      card.suspected_drugs = drugs || []
-    }
-
-    try {
-      const qrState = await ensureAllergyCardQrCode(adminSupabase, {
-        id: card.id,
-        qr_code_url: card.qr_code_url,
-        qr_code_data: card.qr_code_data,
+    update.status = body.status
+  }
+  if ((card as any).doctor_source === 'manual') {
+    if (!body.doctor_name?.trim()) {
+      return allergyCardError('VALIDATION_ERROR', 'Vui lòng nhập bác sĩ xác nhận', 400, {
+        doctor_name: 'Vui lòng nhập bác sĩ xác nhận',
       })
-
-      card.qr_code_url = qrState.qr_code_url
-      card.qr_code_data = qrState.qr_code_data
-    } catch (qrError) {
-      console.error('QR regeneration error:', qrError)
     }
-
-    return NextResponse.json({ card })
-  } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    update.doctor_name = body.doctor_name.trim()
+    update.doctor_phone = body.doctor_phone?.trim() || null
   }
+
+  const { data: updated, error } = await supabase
+    .from('allergy_cards')
+    .update(update)
+    .eq('id', params.id)
+    .select('*, card_allergies(*)')
+    .single()
+  if (error || !updated) {
+    console.error('Allergy-card update failed:', error)
+    return allergyCardError('DATABASE_ERROR', 'Không thể cập nhật thẻ', 500)
+  }
+
+  await supabase.from('allergy_card_audit_logs').insert({
+    card_id: card.id,
+    card_code: card.card_code,
+    organization_id: (card as any).organization_id,
+    action: 'updated',
+    actor_user_id: context.userId,
+    old_values: {
+      patient_id_number: card.patient_id_number,
+      department: card.department,
+      doctor_name: card.doctor_name,
+      doctor_phone: card.doctor_phone,
+      expiry_date: card.expiry_date,
+      notes: card.notes,
+      status: card.status,
+    },
+    new_values: update,
+  })
+
+  return NextResponse.json({
+    success: true,
+    card: { ...updated, allergies: (updated as any).card_allergies || [], card_allergies: undefined },
+  })
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions)
+interface DeleteInput { card_code?: string; reason?: string }
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const cardId = params.id
-    const formData: AllergyCardFormData = await request.json()
-
-    const { data: existingCard, error: fetchError } = await adminSupabase
-      .from('allergy_cards')
-      .select('*')
-      .eq('id', cardId)
-      .single()
-
-    if (fetchError || !existingCard) {
-      return NextResponse.json({ error: 'Allergy card not found' }, { status: 404 })
-    }
-
-    if (!isAdminSession(session) && existingCard.issued_by_user_id !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    if (!formData.patient_name || !formData.hospital_name || !formData.doctor_name) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    const cardUpdateData = {
-      patient_name: formData.patient_name,
-      patient_gender: formData.patient_gender,
-      patient_age: formData.patient_age,
-      patient_id_number: formData.patient_id_number,
-      hospital_name: formData.hospital_name,
-      department: formData.department,
-      doctor_name: formData.doctor_name,
-      doctor_phone: formData.doctor_phone,
-      expiry_date: formData.expiry_date && formData.expiry_date.trim() !== '' ? formData.expiry_date : null,
-      notes: formData.notes,
-      google_drive_url: formData.google_drive_url,
-      updated_at: new Date().toISOString(),
-    }
-
-    const { error: updateError } = await adminSupabase
-      .from('allergy_cards')
-      .update(cardUpdateData)
-      .eq('id', cardId)
-
-    if (updateError) {
-      console.error('Card update error:', updateError)
-      return NextResponse.json({ error: 'Failed to update card' }, { status: 500 })
-    }
-
-    const { error: deleteError } = await adminSupabase
-      .from('card_allergies')
-      .delete()
-      .eq('card_id', cardId)
-
-    if (deleteError) {
-      console.error('Allergies delete error:', deleteError)
-      return NextResponse.json({ error: 'Failed to update allergies' }, { status: 500 })
-    }
-
-    if (formData.allergies && formData.allergies.length > 0) {
-      const allergiesData = formData.allergies.map((allergy) => ({
-        card_id: cardId,
-        allergen_name: allergy.allergen_name,
-        certainty_level: allergy.certainty_level,
-        clinical_manifestation: allergy.clinical_manifestation,
-        severity_level: allergy.severity_level,
-        reaction_type: allergy.reaction_type,
-      }))
-
-      const { error: allergiesError } = await adminSupabase
-        .from('card_allergies')
-        .insert(allergiesData)
-
-      if (allergiesError) {
-        console.error('Allergies insert error:', allergiesError)
-        return NextResponse.json({ error: 'Failed to update allergies' }, { status: 500 })
-      }
-    }
-
-    const { data: updatedCard } = await adminSupabase
-      .from('allergy_cards_with_details')
-      .select('*')
-      .eq('id', cardId)
-      .single()
-
-    if (updatedCard?.report_id) {
-      const { data: drugs } = await adminSupabase
-        .from('suspected_drugs')
-        .select('*')
-        .eq('report_id', updatedCard.report_id)
-
-      updatedCard.suspected_drugs = drugs || []
-    }
-
-    if (updatedCard) {
-      try {
-        const qrState = await ensureAllergyCardQrCode(adminSupabase, {
-          id: updatedCard.id,
-          qr_code_url: updatedCard.qr_code_url,
-          qr_code_data: updatedCard.qr_code_data,
-        })
-
-        updatedCard.qr_code_url = qrState.qr_code_url
-        updatedCard.qr_code_data = qrState.qr_code_data
-      } catch (qrError) {
-        console.error('QR regeneration error:', qrError)
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      card: updatedCard,
-    })
-  } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return allergyCardError('UNAUTHORIZED', 'Vui lòng đăng nhập', 401)
+  if (!UUID_PATTERN.test(params.id)) return allergyCardError('VALIDATION_ERROR', 'ID thẻ không hợp lệ', 400)
+  const body = await parseJsonBody<DeleteInput>(request)
+  if (!body?.card_code || !body.reason) {
+    return allergyCardError('VALIDATION_ERROR', 'Vui lòng nhập mã thẻ và lý do xóa', 400)
   }
-}
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    void request
-
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const adminSupabase = createAdminClient()
-    const cardId = params.id
-
-    const { data: existingCard, error: fetchError } = await adminSupabase
-      .from('allergy_cards')
-      .select('*')
-      .eq('id', cardId)
-      .single()
-
-    if (fetchError || !existingCard) {
-      console.error('Card fetch error:', fetchError)
-      return NextResponse.json({ error: 'Allergy card not found' }, { status: 404 })
-    }
-
-    if (!isAdminSession(session) && existingCard.issued_by_user_id !== session.user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const { error: allergiesDeleteError } = await adminSupabase
-      .from('card_allergies')
-      .delete()
-      .eq('card_id', cardId)
-
-    if (allergiesDeleteError) {
-      console.error('Allergies delete error:', allergiesDeleteError)
-      return NextResponse.json({ error: 'Failed to delete allergies' }, { status: 500 })
-    }
-
-    const { data: updateRows } = await adminSupabase
-      .from('allergy_card_updates')
-      .select('id')
-      .eq('card_id', cardId)
-
-    const updateIds = (updateRows || []).map((row) => row.id)
-
-    if (updateIds.length > 0) {
-      const { error: updateAllergiesDeleteError } = await adminSupabase
-        .from('update_allergies')
-        .delete()
-        .in('update_id', updateIds)
-
-      if (updateAllergiesDeleteError) {
-        console.error('Update allergies delete error:', updateAllergiesDeleteError)
-        return NextResponse.json({ error: 'Failed to delete update allergies' }, { status: 500 })
-      }
-    }
-
-    const { error: updatesDeleteError } = await adminSupabase
-      .from('allergy_card_updates')
-      .delete()
-      .eq('card_id', cardId)
-
-    if (updatesDeleteError) {
-      console.error('Updates delete error:', updatesDeleteError)
-      return NextResponse.json({ error: 'Failed to delete card updates' }, { status: 500 })
-    }
-
-    const { error: cardDeleteError } = await adminSupabase
-      .from('allergy_cards')
-      .delete()
-      .eq('id', cardId)
-
-    if (cardDeleteError) {
-      console.error('Card delete error:', cardDeleteError)
-      return NextResponse.json({ error: 'Failed to delete card' }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Allergy card deleted',
-    })
-  } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  const context = await getAllergyCardAccessContext(session.user.id)
+  if (!context) return allergyCardError('USER_NOT_FOUND', 'Không tìm thấy tài khoản', 404)
+  const supabase = createAdminClient()
+  const { error } = await (supabase.rpc as any)('delete_allergy_card', {
+    p_card_id: params.id,
+    p_actor_user_id: context.userId,
+    p_expected_card_code: body.card_code,
+    p_reason: body.reason,
+  })
+  if (error) {
+    const mapped = mapDatabaseWorkflowError(error.message)
+    return allergyCardError(mapped.code, mapped.message, mapped.status)
   }
+  return NextResponse.json({ success: true, message: 'Đã xóa thẻ; báo cáo có thể được cấp lại.' })
 }

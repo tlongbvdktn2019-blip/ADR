@@ -2,217 +2,61 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
 import { createAdminClient } from '@/lib/supabase'
-import {
-  AllergyCardUpdateFormData,
-  AllergyCardUpdateResponse,
-} from '@/types/allergy-card'
+import { canAccessOrganization, getAllergyCardAccessContext } from '@/lib/allergy-card-access'
+import { allergyCardError, UUID_PATTERN } from '@/lib/allergy-card-api'
 
-function isAdminSession(session: any) {
-  return session?.user?.role === 'admin'
+export const dynamic = 'force-dynamic'
+
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return allergyCardError('UNAUTHORIZED', 'Vui lòng đăng nhập', 401)
+  if (!UUID_PATTERN.test(params.id)) return allergyCardError('VALIDATION_ERROR', 'ID thẻ không hợp lệ', 400)
+
+  const context = await getAllergyCardAccessContext(session.user.id)
+  if (!context) return allergyCardError('USER_NOT_FOUND', 'Không tìm thấy tài khoản', 404)
+
+  const supabase = createAdminClient()
+  const { data: card, error: cardError } = await supabase
+    .from('allergy_cards')
+    .select('id, card_code, patient_name, organization_id')
+    .eq('id', params.id)
+    .maybeSingle()
+  if (cardError || !card) return allergyCardError('NOT_FOUND', 'Không tìm thấy thẻ dị ứng', 404)
+  if (!canAccessOrganization(context, card.organization_id)) return allergyCardError('FORBIDDEN', 'Bạn không có quyền xem lịch sử của thẻ này', 403)
+
+  const { data: submissions, error } = await supabase
+    .from('allergy_card_update_submissions')
+    .select('*, allergy_card_update_items(*)')
+    .eq('card_id', params.id)
+    .order('created_at', { ascending: false })
+  if (error) {
+    console.error('Load allergy-card updates failed:', error)
+    return allergyCardError('DATABASE_ERROR', 'Không thể tải các đề nghị cập nhật', 500)
+  }
+
+  const updates = (submissions || []).map((submission: any) => ({
+    ...submission,
+    items: (submission.allergy_card_update_items || []).sort((a: any, b: any) => a.created_at.localeCompare(b.created_at)),
+    allergy_card_update_items: undefined,
+  }))
+  const pendingItems = updates.reduce(
+    (total: number, submission: any) => total + submission.items.filter((item: any) => item.review_status === 'pending').length,
+    0
+  )
+
+  return NextResponse.json({
+    success: true,
+    card: { id: card.id, card_code: card.card_code, patient_name: card.patient_name },
+    updates,
+    total_updates: updates.length,
+    pending_items: pendingItems,
+  })
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    void request
-
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const supabase = createAdminClient()
-    const cardId = params.id
-
-    const { data: card, error: cardError } = await supabase
-      .from('allergy_cards')
-      .select('id, card_code, patient_name, issued_by_user_id')
-      .eq('id', cardId)
-      .single()
-
-    if (cardError || !card) {
-      return NextResponse.json(
-        { error: 'Allergy card not found' },
-        { status: 404 }
-      )
-    }
-
-    if (!isAdminSession(session) && card.issued_by_user_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
-    }
-
-    const { data: updates, error: updatesError } = await supabase
-      .from('allergy_card_updates_with_details')
-      .select('*')
-      .eq('card_id', cardId)
-      .order('created_at', { ascending: false })
-
-    if (updatesError) {
-      console.error('Get updates error:', updatesError)
-      return NextResponse.json(
-        { error: 'Failed to load update history' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      card: {
-        id: card.id,
-        card_code: card.card_code,
-        patient_name: card.patient_name,
-      },
-      updates: updates || [],
-      total_updates: updates?.length || 0,
-    })
-  } catch (error) {
-    console.error('Get updates error:', error)
-    return NextResponse.json(
-      { error: 'Failed to load update history' },
-      { status: 500 }
-    )
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const supabase = createAdminClient()
-    const cardId = params.id
-    const body: AllergyCardUpdateFormData = await request.json()
-
-    if (!body.updated_by_name || !body.updated_by_organization || !body.facility_name) {
-      return NextResponse.json(
-        { error: 'Missing required updater and facility information' },
-        { status: 400 }
-      )
-    }
-
-    if (!body.update_type) {
-      return NextResponse.json(
-        { error: 'Missing update type' },
-        { status: 400 }
-      )
-    }
-
-    const { data: card, error: cardError } = await supabase
-      .from('allergy_cards')
-      .select('id, card_code, patient_name, status')
-      .eq('id', cardId)
-      .single()
-
-    if (cardError || !card) {
-      return NextResponse.json(
-        { error: 'Allergy card not found' },
-        { status: 404 }
-      )
-    }
-
-    if (body.card_code !== card.card_code) {
-      return NextResponse.json(
-        { error: 'Invalid card code' },
-        { status: 403 }
-      )
-    }
-
-    if (card.status === 'expired') {
-      return NextResponse.json(
-        { error: 'Card has expired and cannot be updated' },
-        { status: 400 }
-      )
-    }
-
-    const { data: updateRecord, error: updateError } = await supabase
-      .from('allergy_card_updates')
-      .insert({
-        card_id: cardId,
-        updated_by_name: body.updated_by_name,
-        updated_by_organization: body.updated_by_organization,
-        updated_by_role: body.updated_by_role,
-        updated_by_phone: body.updated_by_phone,
-        updated_by_email: body.updated_by_email,
-        facility_name: body.facility_name,
-        facility_department: body.facility_department,
-        update_type: body.update_type,
-        update_notes: body.update_notes,
-        reason_for_update: body.reason_for_update,
-        is_verified: false,
-      })
-      .select()
-      .single()
-
-    if (updateError || !updateRecord) {
-      console.error('Insert update error:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to create update record' },
-        { status: 500 }
-      )
-    }
-
-    let allergiesAdded = 0
-
-    if (body.allergies && body.allergies.length > 0) {
-      const allergiesToInsert = body.allergies.map((allergy) => ({
-        update_id: updateRecord.id,
-        allergen_name: allergy.allergen_name,
-        certainty_level: allergy.certainty_level,
-        clinical_manifestation: allergy.clinical_manifestation,
-        severity_level: allergy.severity_level,
-        reaction_type: allergy.reaction_type,
-        discovered_date: allergy.discovered_date,
-        is_approved: false,
-        approved_at: null,
-      }))
-
-      const { data: insertedAllergies, error: allergiesError } = await supabase
-        .from('update_allergies')
-        .insert(allergiesToInsert)
-        .select()
-
-      if (allergiesError) {
-        console.error('Insert allergies error:', allergiesError)
-      } else {
-        allergiesAdded = insertedAllergies?.length || 0
-      }
-    }
-
-    await supabase
-      .from('allergy_cards')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', cardId)
-
-    const { data: finalUpdate } = await supabase
-      .from('allergy_card_updates_with_details')
-      .select('*')
-      .eq('id', updateRecord.id)
-      .single()
-
-    const response: AllergyCardUpdateResponse = {
-      success: true,
-      update: finalUpdate || updateRecord,
-      allergies_added: allergiesAdded,
-    }
-
-    return NextResponse.json(response, { status: 201 })
-  } catch (error) {
-    console.error('Add update error:', error)
-    return NextResponse.json(
-      { error: 'Failed to submit update' },
-      { status: 500 }
-    )
-  }
+export async function POST() {
+  return allergyCardError(
+    'PUBLIC_WORKFLOW_REQUIRED',
+    'Vui lòng dùng liên kết công khai trên mã QR để gửi đề nghị bổ sung',
+    405
+  )
 }
