@@ -36,7 +36,6 @@ const REPORT_SELECT = [
   'assessment_scale',
   'severity_assessment_result',
   'preventability_assessment_result',
-  'approval_status',
 ].join(', ')
 
 function applyReportFilters(query: any, filters: DashboardFilters) {
@@ -51,10 +50,6 @@ function applyReportFilters(query: any, filters: DashboardFilters) {
     if (!Number.isNaN(year)) {
       nextQuery = nextQuery.gte('report_date', `${year}-01-01`).lte('report_date', `${year}-12-31`)
     }
-  }
-
-  if (filters.approvalStatus !== 'all') {
-    nextQuery = nextQuery.eq('approval_status', filters.approvalStatus)
   }
 
   if (filters.severity !== 'all') {

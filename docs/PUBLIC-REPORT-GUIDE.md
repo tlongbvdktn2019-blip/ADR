@@ -84,13 +84,13 @@ Hệ thống ADR hiện đã hỗ trợ **báo cáo KHÔNG CẦN ĐĂNG NHẬP**
 - `reporter_id`: `null`
 - `organization`: Từ dropdown "Nơi báo cáo" ở Phần A
 - `report_code`: Tự động tạo theo đơn vị
-- `approval_status`: `pending` (chờ admin duyệt)
+- Báo cáo hợp lệ và có thể sử dụng ngay sau khi nộp; không cần admin duyệt
 
 ### **Báo cáo Authenticated:**
 - `reporter_id`: ID của user đăng nhập
 - `organization`: Vẫn lấy từ dropdown "Nơi báo cáo"
 - `report_code`: Tự động tạo
-- `approval_status`: `pending`
+- Báo cáo hợp lệ và có thể sử dụng ngay sau khi nộp; không cần admin duyệt
 
 ## 🗄️ Database
 

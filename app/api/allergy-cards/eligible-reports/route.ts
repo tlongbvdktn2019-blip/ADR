@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       patient_name, patient_age, patient_gender,
       adr_description, severity_level, causality_assessment,
       reporter_name, reporter_profession, reporter_phone,
-      report_date, approval_status, updated_at,
+      report_date, updated_at,
       suspected_drugs(id, drug_name)
     `, { count: 'exact' })
 
@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
       organization: row.organization,
       organization_id: row.organization_id,
       report_date: row.report_date,
-      approval_status: row.approval_status,
       suspected_drug_names: (row.suspected_drugs || []).map((drug: any) => drug.drug_name).filter(Boolean),
       missing_fields: getMissingIssuanceFields(typed),
     }
@@ -91,4 +90,3 @@ export async function GET(request: NextRequest) {
     },
   })
 }
-

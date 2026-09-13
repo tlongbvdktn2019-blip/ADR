@@ -22,26 +22,14 @@ import { getPatientAgeLabel } from '@/lib/patient-age'
 interface ReportCardProps {
   report: ADRReport
   onReportDeleted?: () => void
-  selected?: boolean
-  onSelectionChange?: (reportId: string, selected: boolean) => void
-  selectionDisabled?: boolean
-  selectionLimitReached?: boolean
 }
 
 export default function ReportCard({
   report,
   onReportDeleted,
-  selected = false,
-  onSelectionChange,
-  selectionDisabled = false,
-  selectionLimitReached = false,
 }: ReportCardProps) {
   const { data: session } = useSession()
   const [deleting, setDeleting] = useState(false)
-  const canBulkSelect =
-    session?.user?.role === 'admin' &&
-    report.approval_status === 'pending' &&
-    Boolean(onSelectionChange)
   // All authenticated users can edit all reports
   const canEdit = true
 
@@ -114,21 +102,11 @@ export default function ReportCard({
   }
 
   return (
-    <Card className={`hover:shadow-md transition-shadow ${selected ? 'ring-2 ring-primary-500' : ''}`}>
+    <Card className="hover:shadow-md transition-shadow">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
-            {canBulkSelect && (
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={(event) => onSelectionChange?.(report.id, event.target.checked)}
-                disabled={selectionDisabled || (!selected && selectionLimitReached)}
-                aria-label={`Chọn báo cáo ${report.report_code}`}
-                className="mt-1 h-5 w-5 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:cursor-not-allowed"
-              />
-            )}
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-semibold text-gray-900">

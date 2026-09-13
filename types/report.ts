@@ -38,12 +38,6 @@ export interface ADRReport {
   severity_assessment_result: string | null
   preventability_assessment_result: string | null
   
-  // Approval info
-  approval_status: 'pending' | 'approved' | 'rejected'
-  approved_by: string | null
-  approved_at: string | null
-  approval_note: string | null
-  
   // Timestamps
   created_at: string
   updated_at: string
@@ -147,11 +141,3 @@ export const DRUG_REACTION_LABELS = {
   'not_rechallenged': 'Không tái sử dụng',
   'no_information': 'Không có thông tin',
 } as const
-
-export const APPROVAL_STATUS_LABELS = {
-  'pending': 'Chưa duyệt',
-  'approved': 'Đã duyệt',
-  'rejected': 'Từ chối',
-} as const
-
-

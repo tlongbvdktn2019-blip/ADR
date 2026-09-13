@@ -25,7 +25,6 @@ export default function DashboardDetailTable({ reports }: DashboardDetailTablePr
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Bệnh nhân</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Đơn vị</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Mức độ</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Duyệt</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">A-F</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Chi tiết</th>
               </tr>
@@ -52,11 +51,6 @@ export default function DashboardDetailTable({ reports }: DashboardDetailTablePr
                   <td className="px-4 py-3 align-top">
                     <span className="inline-flex rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 ring-1 ring-rose-200">
                       {report.severityLabel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
-                      {report.approvalLabel}
                     </span>
                   </td>
                   <td className="px-4 py-3 align-top">

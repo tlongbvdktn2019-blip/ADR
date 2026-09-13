@@ -87,7 +87,6 @@ export default function DashboardCharts({
     session?.user?.id,
     normalizedFilters.organization,
     normalizedFilters.year,
-    normalizedFilters.approvalStatus,
     normalizedFilters.severity,
     normalizedFilters.reportType,
     normalizedFilters.profession,

@@ -12,6 +12,7 @@ import {
   ReportCodeError,
 } from '@/lib/report-code'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
+import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest) {
             body.severity_assessment_result || null,
           preventability_assessment_result:
             body.preventability_assessment_result || null,
+
+          // A submitted report is valid immediately; there is no admin approval step.
+          approval_status: REPORT_SUBMISSION_STATUS,
         },
       })
 

@@ -4,7 +4,7 @@ import Card from '@/components/ui/Card'
 import { DashboardKpis } from '@/lib/dashboard'
 import {
   CheckBadgeIcon,
-  ClipboardDocumentCheckIcon,
+  DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
   ShieldCheckIcon,
@@ -40,10 +40,10 @@ const KPI_ITEMS: KpiItem[] = [
     color: 'from-rose-500 to-red-600',
   },
   {
-    key: 'pendingReports',
-    label: 'Chưa duyệt',
-    helper: 'Ưu tiên xử lý',
-    icon: ClipboardDocumentCheckIcon,
+    key: 'incompleteReports',
+    label: 'Thiếu thông tin',
+    helper: 'Cần bổ sung dữ liệu A-F',
+    icon: DocumentMagnifyingGlassIcon,
     color: 'from-amber-500 to-orange-500',
   },
   {

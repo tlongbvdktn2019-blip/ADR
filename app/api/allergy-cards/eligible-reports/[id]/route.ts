@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       patient_name, patient_age, patient_gender,
       adr_description, severity_level, causality_assessment,
       reporter_name, reporter_profession, reporter_phone,
-      report_date, approval_status, updated_at,
+      report_date, updated_at,
       suspected_drugs(id, drug_name)
     `).eq('id', params.id).maybeSingle(),
     supabase.from('allergy_cards').select('id').eq('report_id', params.id).maybeSingle(),
@@ -43,4 +43,3 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     },
   })
 }
-

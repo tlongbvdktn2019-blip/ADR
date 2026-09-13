@@ -8,7 +8,6 @@ interface DashboardFiltersProps {
   years: DashboardFilterOption[]
   organizations: DashboardFilterOption[]
   professions: DashboardFilterOption[]
-  approvalOptions: DashboardFilterOption[]
   severityOptions: DashboardFilterOption[]
   reportTypeOptions: DashboardFilterOption[]
   onChange: (key: keyof DashboardFiltersType, value: string) => void
@@ -48,7 +47,6 @@ export default function DashboardFilters({
   years,
   organizations,
   professions,
-  approvalOptions,
   severityOptions,
   reportTypeOptions,
   onChange,
@@ -65,19 +63,13 @@ export default function DashboardFilters({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         <FilterSelect label="Năm" value={filters.year} options={years} onChange={(value) => onChange('year', value)} />
         <FilterSelect
           label="Đơn vị"
           value={filters.organization}
           options={organizations}
           onChange={(value) => onChange('organization', value)}
-        />
-        <FilterSelect
-          label="Trạng thái duyệt"
-          value={filters.approvalStatus}
-          options={approvalOptions}
-          onChange={(value) => onChange('approvalStatus', value)}
         />
         <FilterSelect
           label="Mức độ nghiêm trọng"

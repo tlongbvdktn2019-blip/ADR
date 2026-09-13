@@ -15,7 +15,6 @@ import DashboardDetailTable from '@/components/dashboard/DashboardDetailTable'
 import DashboardQualityPanel from '@/components/dashboard/DashboardQualityPanel'
 import {
   buildDashboardQueryParams,
-  DASHBOARD_APPROVAL_OPTIONS,
   DASHBOARD_REPORT_TYPE_OPTIONS,
   DASHBOARD_SECTION_META,
   DASHBOARD_SEVERITY_OPTIONS,
@@ -134,7 +133,6 @@ export default function DashboardPage() {
     session?.user?.id,
     filters.year,
     filters.organization,
-    filters.approvalStatus,
     filters.severity,
     filters.reportType,
     filters.profession,
@@ -164,7 +162,6 @@ export default function DashboardPage() {
   const activeFilterChips = [
     { key: 'year', label: yearOptions.find((option) => option.value === filters.year)?.label },
     { key: 'organization', label: organizationOptions.find((option) => option.value === filters.organization)?.label },
-    { key: 'approvalStatus', label: DASHBOARD_APPROVAL_OPTIONS.find((option) => option.value === filters.approvalStatus)?.label },
     { key: 'severity', label: DASHBOARD_SEVERITY_OPTIONS.find((option) => option.value === filters.severity)?.label },
     { key: 'reportType', label: DASHBOARD_REPORT_TYPE_OPTIONS.find((option) => option.value === filters.reportType)?.label },
     { key: 'profession', label: professionOptions.find((option) => option.value === filters.profession)?.label },
@@ -233,7 +230,6 @@ export default function DashboardPage() {
             years={yearOptions}
             organizations={organizationOptions}
             professions={professionOptions}
-            approvalOptions={DASHBOARD_APPROVAL_OPTIONS}
             severityOptions={DASHBOARD_SEVERITY_OPTIONS}
             reportTypeOptions={DASHBOARD_REPORT_TYPE_OPTIONS}
             onChange={handleFilterChange}
@@ -256,7 +252,7 @@ export default function DashboardPage() {
         />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-          <DashboardQueue reports={stats.pendingQueue} />
+          <DashboardQueue reports={stats.incompleteQueue} />
           <DashboardQualityPanel qualitySignals={stats.qualitySignals} kpis={stats.kpis} />
         </div>
 

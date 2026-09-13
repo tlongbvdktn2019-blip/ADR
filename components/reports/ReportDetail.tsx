@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'react-hot-toast'
@@ -18,10 +17,7 @@ import {
   ExclamationTriangleIcon,
   BuildingOfficeIcon,
   PhoneIcon,
-  EnvelopeIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon
+  EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import SendEmailButton from './SendEmailButton'
 import { 
@@ -31,8 +27,7 @@ import {
   CAUSALITY_LABELS,
   GENDER_LABELS,
   REPORT_TYPE_LABELS,
-  DRUG_REACTION_LABELS,
-  APPROVAL_STATUS_LABELS
+  DRUG_REACTION_LABELS
 } from '@/types/report'
 import { getPatientAgeLabel } from '@/lib/patient-age'
 
@@ -41,16 +36,13 @@ interface ReportDetailProps {
 }
 
 export default function ReportDetail({ report: initialReport }: ReportDetailProps) {
-  const { data: session } = useSession()
-  const [report, setReport] = useState(initialReport)
+  const report = initialReport
   const [activeTab, setActiveTab] = useState('overview')
   const [openingPrintView, setOpeningPrintView] = useState(false)
-  const [approvingReport, setApprovingReport] = useState(false)
   
   // All authenticated users can edit and send email
   const canEdit = true
   const canSendEmail = true
-  const canApprove = session?.user?.role === 'admin'
 
   const formatDate = (dateString: string) => {
     try {
@@ -83,30 +75,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
     }
   }
 
-  const getApprovalStatusColor = (status: 'pending' | 'approved' | 'rejected') => {
-    switch (status) {
-      case 'approved':
-        return 'text-green-700 bg-green-100 border-green-300'
-      case 'rejected':
-        return 'text-red-700 bg-red-100 border-red-300'
-      case 'pending':
-      default:
-        return 'text-yellow-700 bg-yellow-100 border-yellow-300'
-    }
-  }
-
-  const getApprovalStatusIcon = (status: 'pending' | 'approved' | 'rejected') => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircleIcon className="w-5 h-5" />
-      case 'rejected':
-        return <XCircleIcon className="w-5 h-5" />
-      case 'pending':
-      default:
-        return <ClockIcon className="w-5 h-5" />
-    }
-  }
-
   const handlePrintReport = async (reportId: string) => {
     setOpeningPrintView(true)
     
@@ -126,58 +94,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
       toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi mở view in')
     } finally {
       setOpeningPrintView(false)
-    }
-  }
-
-  const handleApproveReport = async (status: 'approved' | 'rejected') => {
-    if (!canApprove) {
-      toast.error('Chỉ admin mới có quyền duyệt báo cáo')
-      return
-    }
-
-    const confirmMessage = status === 'approved' 
-      ? `Bạn có chắc chắn muốn DUYỆT báo cáo ${report.report_code}?`
-      : `Bạn có chắc chắn muốn TỪ CHỐI báo cáo ${report.report_code}?`
-
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    setApprovingReport(true)
-
-    try {
-      const response = await fetch(`/api/reports/${report.id}/approve`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          approval_status: status,
-          approval_note: null,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Không thể cập nhật trạng thái duyệt')
-      }
-
-      toast.success(data.message)
-      
-      // Update local report state
-      setReport((prev: ADRReport) => ({
-        ...prev,
-        approval_status: status,
-        approved_by: session?.user?.id || null,
-        approved_at: new Date().toISOString(),
-      }))
-      
-    } catch (error) {
-      console.error('Approve error:', error)
-      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra')
-    } finally {
-      setApprovingReport(false)
     }
   }
 
@@ -207,10 +123,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
               <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSeverityColor(report.severity_level)}`}>
                 {SEVERITY_LABELS[report.severity_level]}
               </span>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getApprovalStatusColor(report.approval_status)}`}>
-                <span className="mr-1.5">{getApprovalStatusIcon(report.approval_status)}</span>
-                {APPROVAL_STATUS_LABELS[report.approval_status]}
-              </span>
             </div>
             <p className="text-gray-600 mt-1">
               Báo cáo ADR cho bệnh nhân {report.patient_name}
@@ -219,31 +131,6 @@ export default function ReportDetail({ report: initialReport }: ReportDetailProp
         </div>
         
         <div className="flex items-center space-x-2">
-          {canApprove && (
-            <>
-              {report.approval_status !== 'approved' && (
-                <Button
-                  onClick={() => handleApproveReport('approved')}
-                  disabled={approvingReport}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <CheckCircleIcon className="w-4 h-4 mr-2" />
-                  {approvingReport ? 'Đang xử lý...' : 'Duyệt báo cáo'}
-                </Button>
-              )}
-              {report.approval_status !== 'rejected' && (
-                <Button
-                  onClick={() => handleApproveReport('rejected')}
-                  disabled={approvingReport}
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                >
-                  <XCircleIcon className="w-4 h-4 mr-2" />
-                  {approvingReport ? 'Đang xử lý...' : 'Từ chối'}
-                </Button>
-              )}
-            </>
-          )}
           {canSendEmail && (
             <SendEmailButton 
               reportId={report.id}

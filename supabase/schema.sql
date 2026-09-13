@@ -7,6 +7,7 @@ CREATE TYPE causality_assessment AS ENUM ('certain', 'probable', 'possible', 'un
 CREATE TYPE assessment_scale AS ENUM ('who', 'naranjo');
 CREATE TYPE report_type AS ENUM ('initial', 'follow_up');
 CREATE TYPE drug_reaction_assessment AS ENUM ('yes', 'no', 'not_stopped', 'no_information', 'not_rechallenged');
+CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
 
 -- Create users table
 CREATE TABLE users (
@@ -56,6 +57,12 @@ CREATE TABLE adr_reports (
     reporter_email VARCHAR(255),
     report_type report_type NOT NULL,
     report_date DATE NOT NULL,
+
+    -- Legacy compatibility fields. Reports are valid immediately after submission.
+    approval_status approval_status DEFAULT 'approved' NOT NULL,
+    approved_by UUID REFERENCES users(id),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    approval_note TEXT,
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())

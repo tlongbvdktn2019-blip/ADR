@@ -13,7 +13,6 @@ import {
   DashboardReportRow,
   DashboardSectionKey,
   DashboardStatsResponse,
-  getApprovalLabel,
   getPreventabilityLabel,
   getReportSectionStatus,
   getReportTypeLabel,
@@ -54,7 +53,6 @@ const REPORT_SELECT = [
   'report_date',
   'severity_assessment_result',
   'preventability_assessment_result',
-  'approval_status',
   'created_at',
 ].join(', ')
 
@@ -70,10 +68,6 @@ function applyReportFilters(query: any, filters: DashboardFilters) {
     if (!Number.isNaN(year)) {
       nextQuery = nextQuery.gte('report_date', `${year}-01-01`).lte('report_date', `${year}-12-31`)
     }
-  }
-
-  if (filters.approvalStatus !== 'all') {
-    nextQuery = nextQuery.eq('approval_status', filters.approvalStatus)
   }
 
   if (filters.severity !== 'all') {
@@ -236,7 +230,7 @@ export async function GET(request: NextRequest) {
         const reportConcurrentDrugs = concurrentDrugsByReportId.get(report.id) || []
         const sectionStatus = getReportSectionStatus(report, reportDrugs)
         const completedSections = Object.values(sectionStatus).filter(Boolean).length
-        const queueReasons = buildQueueReasons(report, sectionStatus)
+        const queueReasons = buildQueueReasons(sectionStatus)
 
         return {
           id: report.id,
@@ -247,8 +241,6 @@ export async function GET(request: NextRequest) {
           createdAt: report.created_at,
           severityLevel: report.severity_level || 'unknown',
           severityLabel: getSeverityLabel(report.severity_level),
-          approvalStatus: report.approval_status || 'pending',
-          approvalLabel: getApprovalLabel(report.approval_status),
           reportType: report.report_type || 'initial',
           reportTypeLabel: getReportTypeLabel(report.report_type),
           reporterName: report.reporter_name,
@@ -266,7 +258,9 @@ export async function GET(request: NextRequest) {
 
     const totalReports = reportPreviews.length
     const seriousReports = reportPreviews.filter((report) => SERIOUS_SEVERITY_KEYS.has(report.severityLevel)).length
-    const pendingReports = reportPreviews.filter((report) => report.approvalStatus === 'pending').length
+    const incompleteReports = reportPreviews.filter(
+      (report) => report.completedSections < DASHBOARD_SECTION_META.length,
+    ).length
     const followUpReports = reportPreviews.filter((report) => report.reportType === 'follow_up').length
     const completeReports = reportPreviews.filter((report) => report.completedSections === DASHBOARD_SECTION_META.length).length
     const preventableReports = reports.filter(
@@ -325,12 +319,9 @@ export async function GET(request: NextRequest) {
 
     const missingFields = buildMissingFieldSummary(reports, drugsByReportId)
 
-    const pendingQueue = [...reportPreviews]
-      .filter((report) => report.queueReasons.length > 0)
+    const incompleteQueue = [...reportPreviews]
+      .filter((report) => report.completedSections < DASHBOARD_SECTION_META.length)
       .sort((left, right) => {
-        const pendingScore = Number(right.approvalStatus === 'pending') - Number(left.approvalStatus === 'pending')
-        if (pendingScore !== 0) return pendingScore
-
         const seriousScore =
           Number(SERIOUS_SEVERITY_KEYS.has(right.severityLevel)) - Number(SERIOUS_SEVERITY_KEYS.has(left.severityLevel))
         if (seriousScore !== 0) return seriousScore
@@ -348,7 +339,7 @@ export async function GET(request: NextRequest) {
       kpis: {
         totalReports,
         seriousReports,
-        pendingReports,
+        incompleteReports,
         completenessRate: toPercentage(completeReports, totalReports),
         followUpRate: toPercentage(followUpReports, totalReports),
         preventableRate: toPercentage(preventableReports, totalReports),
@@ -358,7 +349,7 @@ export async function GET(request: NextRequest) {
       sectionSummaries,
       qualitySignals,
       missingFields,
-      pendingQueue,
+      incompleteQueue,
       reportPreviews: reportPreviews.slice(0, 20),
     }
 

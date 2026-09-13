@@ -11,10 +11,10 @@ interface DashboardQueueProps {
 
 export default function DashboardQueue({ reports }: DashboardQueueProps) {
   return (
-    <Card title="Hàng Chờ Xử Lý" subtitle="Ưu tiên phê duyệt hoặc hoàn thiện các hồ sơ còn thiếu">
+    <Card title="Báo Cáo Cần Bổ Sung" subtitle="Ưu tiên hoàn thiện các hồ sơ còn thiếu thông tin A-F">
       {reports.length === 0 ? (
         <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
-          Không có báo cáo nào đang chờ xử lý trong bộ lọc hiện tại.
+          Không có báo cáo nào cần bổ sung trong bộ lọc hiện tại.
         </div>
       ) : (
         <div className="space-y-3">
@@ -28,9 +28,6 @@ export default function DashboardQueue({ reports }: DashboardQueueProps) {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold text-gray-900">{report.reportCode}</h3>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-200">
-                      {report.approvalLabel}
-                    </span>
                     <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 ring-1 ring-rose-200">
                       {report.severityLabel}
                     </span>

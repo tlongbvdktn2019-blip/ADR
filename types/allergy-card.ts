@@ -187,7 +187,6 @@ export interface EligibleReportSummary {
   organization: string;
   organization_id: string;
   report_date: string;
-  approval_status: 'pending' | 'approved' | 'rejected';
   suspected_drug_names: string[];
   missing_fields: string[];
 }

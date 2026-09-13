@@ -5,7 +5,7 @@
 
 'use client';
 
-import { ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 interface ReportTimelineItem {
@@ -13,7 +13,6 @@ interface ReportTimelineItem {
   report_code: string;
   organization: string;
   severity_level: string;
-  approval_status: string;
   created_at: string;
 }
 
@@ -39,12 +38,6 @@ const SEVERITY_COLORS: Record<string, string> = {
   not_serious: 'text-gray-600 bg-gray-50',
 };
 
-const APPROVAL_STATUS_LABELS: Record<string, string> = {
-  pending: 'Chưa duyệt',
-  approved: 'Đã duyệt',
-  rejected: 'Từ chối',
-};
-
 export default function ReportTimeline({ reports }: ReportTimelineProps) {
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -57,30 +50,6 @@ export default function ReportTimeline({ reports }: ReportTimelineProps) {
     if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày trước`;
     
     return date.toLocaleDateString('vi-VN');
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'rejected':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      case 'pending':
-      default:
-        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'rejected':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'pending':
-      default:
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    }
   };
 
   if (reports.length === 0) {
@@ -108,20 +77,17 @@ export default function ReportTimeline({ reports }: ReportTimelineProps) {
             
             {/* Timeline dot */}
             <div className="absolute left-0 top-1.5">
-              {getStatusIcon(report.approval_status)}
+              <DocumentTextIcon className="w-5 h-5 text-blue-500" />
             </div>
 
             {/* Content card */}
             <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow group-hover:border-blue-300">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="mb-1">
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {report.report_code}
                     </h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${getStatusColor(report.approval_status)}`}>
-                      {APPROVAL_STATUS_LABELS[report.approval_status] || report.approval_status}
-                    </span>
                   </div>
                   <p className="text-sm text-gray-600 truncate">
                     {report.organization}

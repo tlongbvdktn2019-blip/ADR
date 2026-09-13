@@ -1,17 +1,15 @@
 import {
-  APPROVAL_STATUS_LABELS,
   CAUSALITY_LABELS,
   OUTCOME_LABELS,
   REPORT_TYPE_LABELS,
   SEVERITY_LABELS,
-} from '@/types/report'
+} from '../types/report'
 
 export type DashboardSectionKey = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 
 export interface DashboardFilters {
   year: string
   organization: string
-  approvalStatus: string
   severity: string
   reportType: string
   profession: string
@@ -38,7 +36,7 @@ export interface DashboardSectionSummary extends DashboardSectionMeta {
 export interface DashboardKpis {
   totalReports: number
   seriousReports: number
-  pendingReports: number
+  incompleteReports: number
   completenessRate: number
   followUpRate: number
   preventableRate: number
@@ -70,8 +68,6 @@ export interface DashboardReportPreview {
   createdAt: string
   severityLevel: string
   severityLabel: string
-  approvalStatus: string
-  approvalLabel: string
   reportType: string
   reportTypeLabel: string
   reporterName: string
@@ -90,7 +86,7 @@ export interface DashboardStatsResponse {
   sectionSummaries: DashboardSectionSummary[]
   qualitySignals: DashboardQualitySignal[]
   missingFields: DashboardMissingField[]
-  pendingQueue: DashboardReportPreview[]
+  incompleteQueue: DashboardReportPreview[]
   reportPreviews: DashboardReportPreview[]
 }
 
@@ -153,7 +149,6 @@ export interface DashboardReportRow {
   report_date: string | null
   severity_assessment_result: string | null
   preventability_assessment_result: string | null
-  approval_status: string | null
   created_at: string
 }
 
@@ -180,7 +175,6 @@ export interface DashboardConcurrentDrugRow {
 export const DEFAULT_DASHBOARD_FILTERS: DashboardFilters = {
   year: 'all',
   organization: 'all',
-  approvalStatus: 'all',
   severity: 'all',
   reportType: 'all',
   profession: 'all',
@@ -223,13 +217,6 @@ export const DASHBOARD_SECTION_META: DashboardSectionMeta[] = [
     title: 'Đánh giá',
     description: 'Mức độ nặng và khả năng phòng tránh ADR',
   },
-]
-
-export const DASHBOARD_APPROVAL_OPTIONS: DashboardFilterOption[] = [
-  { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'pending', label: APPROVAL_STATUS_LABELS.pending },
-  { value: 'approved', label: APPROVAL_STATUS_LABELS.approved },
-  { value: 'rejected', label: APPROVAL_STATUS_LABELS.rejected },
 ]
 
 export const DASHBOARD_SEVERITY_OPTIONS: DashboardFilterOption[] = [
@@ -275,7 +262,6 @@ export function parseDashboardFilters(searchParams: URLSearchParams): DashboardF
   return {
     year: searchParams.get('year') || DEFAULT_DASHBOARD_FILTERS.year,
     organization: searchParams.get('organization') || DEFAULT_DASHBOARD_FILTERS.organization,
-    approvalStatus: searchParams.get('approvalStatus') || DEFAULT_DASHBOARD_FILTERS.approvalStatus,
     severity: searchParams.get('severity') || DEFAULT_DASHBOARD_FILTERS.severity,
     reportType: searchParams.get('reportType') || DEFAULT_DASHBOARD_FILTERS.reportType,
     profession: searchParams.get('profession') || DEFAULT_DASHBOARD_FILTERS.profession,
@@ -317,14 +303,6 @@ export function getCausalityLabel(value: string | null | undefined): string {
   }
 
   return CAUSALITY_LABELS[value as keyof typeof CAUSALITY_LABELS] || value
-}
-
-export function getApprovalLabel(value: string | null | undefined): string {
-  if (!value) {
-    return 'Chưa xác định'
-  }
-
-  return APPROVAL_STATUS_LABELS[value as keyof typeof APPROVAL_STATUS_LABELS] || value
 }
 
 export function getReportTypeLabel(value: string | null | undefined): string {
@@ -453,24 +431,15 @@ export function getReportSectionStatus(
 }
 
 export function buildQueueReasons(
-  report: DashboardReportRow,
   sectionStatus: Record<DashboardSectionKey, boolean>,
 ): string[] {
   const reasons: string[] = []
-
-  if (report.approval_status === 'pending') {
-    reasons.push('Chưa duyệt')
-  }
 
   DASHBOARD_SECTION_META.forEach((section) => {
     if (!sectionStatus[section.key]) {
       reasons.push(`Thiếu ${section.shortLabel}`)
     }
   })
-
-  if (SERIOUS_SEVERITY_KEYS.has(report.severity_level || '')) {
-    reasons.push('Ca nghiêm trọng')
-  }
 
   return reasons.slice(0, 4)
 }

@@ -6,6 +6,7 @@ import {
   ReportCodeError,
 } from '@/lib/report-code'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
+import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
 
 /**
  * POST /api/public/reports
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
           preventability_assessment_result:
             body.preventability_assessment_result || null,
 
-          approval_status: 'pending',
+          approval_status: REPORT_SUBMISSION_STATUS,
         },
       })
 
@@ -192,7 +193,6 @@ export async function POST(request: NextRequest) {
     const reportResponse = {
       id: reportData.id,
       report_code: reportData.report_code,
-      approval_status: reportData.approval_status,
     }
 
     return NextResponse.json(
