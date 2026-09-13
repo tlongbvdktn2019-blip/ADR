@@ -2,12 +2,16 @@
 
 import { HeartIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 
-export default function Footer() {
+interface FooterProps {
+  fullWidth?: boolean
+}
+
+export default function Footer({ fullWidth = false }: FooterProps) {
   const currentYear = new Date().getFullYear()
 
   return (
     <footer className="bg-blue-800 border-t border-blue-700" style={{ paddingBottom: '0.05cm' }}>
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className={`${fullWidth ? 'w-full' : 'max-w-7xl mx-auto'} px-2 sm:px-4 lg:px-6`}>
         <div className="flex justify-between items-center h-14">
           
           {/* Version Info - Trái */}

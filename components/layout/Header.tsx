@@ -68,7 +68,7 @@ export default function Header() {
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
       
       <header className="bg-blue-800 shadow-sm border-b border-blue-700">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6" onClick={handleClickOutside}>
+        <div className="w-full px-2 sm:px-4 lg:px-6" onClick={handleClickOutside}>
           <div className="flex justify-between items-center h-14">
             {/* Mobile menu button */}
             <button
@@ -257,4 +257,3 @@ export default function Header() {
     </>
   )
 }
-

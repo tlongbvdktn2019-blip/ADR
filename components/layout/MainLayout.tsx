@@ -66,19 +66,18 @@ export default function MainLayout({
   return (
     <div className="min-h-screen bg-gray-50 sm:bg-gray-100 flex flex-col">
       <Header />
-      <div className="flex flex-1 w-full overflow-hidden">
+      <div className="flex min-w-0 flex-1 w-full overflow-hidden">
         {/* Desktop Sidebar - Hidden on mobile, navigation is in mobile menu */}
         <Sidebar />
         
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto w-full py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="w-full py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
             {children}
           </div>
         </main>
       </div>
-      <Footer />
+      <Footer fullWidth />
     </div>
   )
 }
-
