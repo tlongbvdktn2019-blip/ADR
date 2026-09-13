@@ -1,5 +1,8 @@
 {
   "functions": {
+    "app/api/reports/[id]/send-email/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/**": {
       "maxDuration": 10
     }

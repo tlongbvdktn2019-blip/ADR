@@ -7,7 +7,7 @@ const nextConfig = {
   compress: true,
   // Set default port to avoid conflicts
   experimental: {
-    serverComponentsExternalPackages: [],
+    serverComponentsExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
   },
   async redirects() {
     return []

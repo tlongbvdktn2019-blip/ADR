@@ -42,6 +42,29 @@ export interface EmailOptions {
   subject: string
   html: string
   text: string
+  attachments?: EmailAttachment[]
+}
+
+export interface EmailAttachment {
+  filename: string
+  content: Buffer
+  contentType: string
+}
+
+export function buildEmailMessage(options: EmailOptions) {
+  return {
+    from: `${EMAIL_CONFIG.senderName} <${EMAIL_CONFIG.senderEmail}>`,
+    to: options.to || EMAIL_CONFIG.targetEmail,
+    subject: options.subject,
+    text: options.text,
+    html: options.html,
+    attachments: options.attachments,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high'
+    }
+  }
 }
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean, messageId?: string, previewURL?: string, error?: string }> {
@@ -50,19 +73,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
 
     // For development mode, using existing configuration
 
-    const mailOptions = {
-      from: `${EMAIL_CONFIG.senderName} <${EMAIL_CONFIG.senderEmail}>`,
-      to: options.to || EMAIL_CONFIG.targetEmail,
-      subject: options.subject,
-      text: options.text,
-      html: options.html,
-      // Add headers for better deliverability
-      headers: {
-        'X-Priority': '1',
-        'X-MSMail-Priority': 'High',
-        'Importance': 'high'
-      }
-    }
+    const mailOptions = buildEmailMessage(options)
 
     const info = await transporter.sendMail(mailOptions)
     
@@ -110,5 +121,4 @@ export function getEmailConfig() {
     hasSmtpConfig: !!(process.env.SMTP_HOST && process.env.SMTP_USER)
   }
 }
-
 

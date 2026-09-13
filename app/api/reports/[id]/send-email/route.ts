@@ -1,15 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth-config'
 import { createClient } from '@supabase/supabase-js'
+import { authOptions } from '@/lib/auth-config'
 import { config } from '@/lib/config'
-import { Database } from '@/types/supabase'
 import { sendEmail } from '@/lib/email-service'
-import { generateADRReportEmailHTML, generateADRReportEmailSubject, generateADRReportEmailText } from '@/lib/email-templates/adr-report'
-import { ADRReport } from '@/types/report'
 import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
+import {
+  ADR_REPORT_PDF_RECIPIENT,
+  buildReportPdfEmailContent,
+  buildReportPdfEmailSubject,
+} from '@/lib/report-pdf-email'
+import { buildReportPdfFilename, generateReportPdf } from '@/lib/report-pdf-service'
+import { ADRReport } from '@/types/report'
+import { Database } from '@/types/supabase'
 
-// Create Supabase admin client
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
 const supabaseAdmin = createClient<Database>(
   config.supabase.url,
   config.supabase.serviceRoleKey
@@ -21,30 +29,27 @@ interface RouteParams {
   }
 }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(_request: Request, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const reportId = params.id
-
     const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
+
     if (!accessContext) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get the report with suspected drugs
     let query = supabaseAdmin
       .from('adr_reports')
       .select(`
         *,
-        suspected_drugs(*)
+        suspected_drugs(*),
+        concurrent_drugs(*)
       `)
       .eq('id', reportId)
 
@@ -56,82 +61,85 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: report, error } = await scopedQuery.single()
 
     if (error || !report) {
-      return NextResponse.json(
-        { error: 'Không tìm thấy báo cáo' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Không tìm thấy báo cáo' }, { status: 404 })
     }
 
-    // Get custom email from request body (optional)
-    const body = await request.json()
-    const customEmail = body.email // Optional override
+    const typedReport = report as ADRReport
+    let pdfBuffer: Buffer
 
-    // Generate email content
-    const emailSubject = generateADRReportEmailSubject(report as ADRReport)
-    const emailHTML = generateADRReportEmailHTML(report as ADRReport)
-    const emailText = generateADRReportEmailText(report as ADRReport)
-
-    // Send email
-    const emailResult = await sendEmail({
-      to: customEmail, // Will use default if not provided
-      subject: emailSubject,
-      html: emailHTML,
-      text: emailText
-    })
-
-    if (!emailResult.success) {
-      console.error('Email sending failed:', emailResult.error)
+    try {
+      pdfBuffer = await generateReportPdf(typedReport)
+    } catch (pdfError) {
+      console.error('Report PDF generation failed', {
+        reportId,
+        reportCode: typedReport.report_code,
+        userId: session.user.id,
+        error: pdfError,
+      })
       return NextResponse.json(
-        { error: 'Không thể gửi email: ' + emailResult.error },
+        { error: 'Không thể tạo file PDF của báo cáo' },
         { status: 500 }
       )
     }
 
-    // Return success response
-    const response = {
-      success: true,
-      message: 'Email đã được gửi thành công',
-      messageId: emailResult.messageId,
-      recipient: customEmail || 'di.pvcenter@gmail.com',
-      // Include preview URL for development
-      ...(emailResult.previewURL && { previewURL: emailResult.previewURL })
+    const filename = buildReportPdfFilename(typedReport.report_code)
+    const emailContent = buildReportPdfEmailContent(typedReport)
+    const emailResult = await sendEmail({
+      to: ADR_REPORT_PDF_RECIPIENT,
+      subject: buildReportPdfEmailSubject(typedReport),
+      html: emailContent.html,
+      text: emailContent.text,
+      attachments: [{
+        filename,
+        content: pdfBuffer,
+        contentType: 'application/pdf',
+      }],
+    })
+
+    if (!emailResult.success) {
+      console.error('Report PDF email failed', {
+        reportId,
+        reportCode: typedReport.report_code,
+        userId: session.user.id,
+        error: emailResult.error,
+      })
+      return NextResponse.json({ error: 'Không thể gửi email báo cáo' }, { status: 500 })
     }
 
-    return NextResponse.json(response)
-
+    return NextResponse.json({
+      success: true,
+      message: 'Đã gửi file PDF của báo cáo qua email',
+      messageId: emailResult.messageId,
+      recipient: ADR_REPORT_PDF_RECIPIENT,
+      attachment: {
+        filename,
+        contentType: 'application/pdf',
+      },
+      ...(emailResult.previewURL && { previewURL: emailResult.previewURL }),
+    })
   } catch (error) {
-    console.error('Send email API error:', error)
-    return NextResponse.json(
-      { error: 'Lỗi máy chủ nội bộ' },
-      { status: 500 }
-    )
+    console.error('Send report PDF email API error:', error)
+    return NextResponse.json({ error: 'Lỗi máy chủ nội bộ' }, { status: 500 })
   }
 }
 
-// GET method to check email sending capability
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
-    const reportId = params.id
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const accessContext = await getReportAccessContext(session.user.id, supabaseAdmin)
     if (!accessContext) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check if report exists and user has permission
     let query = supabaseAdmin
       .from('adr_reports')
       .select('id, reporter_id, report_code, organization_id')
-      .eq('id', reportId)
+      .eq('id', params.id)
 
     const scopedQuery = applyReportAccessScope(query, accessContext)
     if (!scopedQuery) {
@@ -139,27 +147,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { data: report, error } = await scopedQuery.single()
-
     if (error || !report) {
-      return NextResponse.json(
-        { error: 'Không tìm thấy báo cáo' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Không tìm thấy báo cáo' }, { status: 404 })
     }
 
-    // Return email configuration info
     return NextResponse.json({
       canSendEmail: true,
       reportCode: (report as any)?.report_code || 'unknown',
-      defaultRecipient: 'di.pvcenter@gmail.com',
-      isProduction: process.env.NODE_ENV === 'production'
+      defaultRecipient: ADR_REPORT_PDF_RECIPIENT,
+      isProduction: process.env.NODE_ENV === 'production',
     })
-
   } catch (error) {
-    console.error('Check email API error:', error)
-    return NextResponse.json(
-      { error: 'Lỗi máy chủ nội bộ' },
-      { status: 500 }
-    )
+    console.error('Check report PDF email API error:', error)
+    return NextResponse.json({ error: 'Lỗi máy chủ nội bộ' }, { status: 500 })
   }
 }
