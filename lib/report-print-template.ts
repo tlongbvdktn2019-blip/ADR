@@ -125,8 +125,8 @@ export function generateReportPrintHTML(
   // Generate reaction checkboxes exactly like template
   const drugReactionsRows = ['i', 'ii', 'iii', 'iv'].map((roman, index) => {
     const drug = report.suspected_drugs?.[index]
-    const dechallengeValue = drug?.reaction_improved_after_stopping || 'no_information'
-    const rechallengeValue = drug?.reaction_reoccurred_after_rechallenge || 'no_information'
+    const dechallengeValue = drug?.reaction_improved_after_stopping
+    const rechallengeValue = drug?.reaction_reoccurred_after_rechallenge
 
     return `
       <tr>
@@ -375,7 +375,7 @@ export function generateReportPrintHTML(
                     <table style="border: 2px solid black;">
                         <tr><td>Nơi báo cáo: <input type="text" value="${report.organization}"></td></tr>
                         <tr><td>Mã số báo cáo của đơn vị: <input type="text" value="${report.report_code}"></td></tr>
-                        <tr><td>Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text" value="${report.report_code}"></td></tr>
+                        <tr><td>Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text" value=""></td></tr>
                     </table>
                 </td>
             </tr>

@@ -81,7 +81,32 @@ function createReport(overrides: Partial<ADRReport> = {}): ADRReport {
   }
 }
 
+function extractDrugReactionRows(html: string): string[] {
+  const sectionStart = html.indexOf('14. Sau khi ngừng/giảm liều')
+  const sectionEnd = html.indexOf('<!-- Section 16', sectionStart)
+  const section = html.slice(sectionStart, sectionEnd)
+
+  return Array.from(
+    section.matchAll(/<tr>\s*<td class="center">(?:i{1,3}|iv)<\/td>[\s\S]*?<\/tr>/g),
+    match => match[0]
+  )
+}
+
 describe('report print template', () => {
+  it('fills only the organization report code field', () => {
+    const html = generateReportPrintHTML(createReport())
+
+    expect(html).toContain(
+      'Mã số báo cáo của đơn vị: <input type="text" value="ADR-2026-0001">'
+    )
+    expect(html).toContain(
+      'Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text" value="">'
+    )
+    expect(html).not.toContain(
+      'Mã số báo cáo (do Trung tâm quốc gia quản lý): <input type="text" value="ADR-2026-0001">'
+    )
+  })
+
   it('renders a non-interactive, escaped PDF document with related drugs', () => {
     const html = generateReportPrintHTML(createReport({
       patient_name: '<script>alert("x")</script>',
@@ -94,6 +119,25 @@ describe('report print template', () => {
     expect(html).not.toContain('<script>alert')
     expect(html).not.toContain('class="print-actions')
     expect(html).not.toContain('<script>')
+  })
+
+  it('leaves reaction assessments unchecked for rows without a drug', () => {
+    const rows = extractDrugReactionRows(generateReportPrintHTML(createReport()))
+
+    expect(rows).toHaveLength(4)
+    expect(rows[0]).toContain('<input type="checkbox" checked> Có')
+    expect(rows[0]).toContain('<input type="checkbox" checked> Không tái sử dụng')
+    rows.slice(1).forEach(row => expect(row).not.toContain(' checked'))
+  })
+
+  it('checks no information when it is stored for an existing drug', () => {
+    const report = createReport()
+    report.suspected_drugs![0].reaction_improved_after_stopping = 'no_information'
+    report.suspected_drugs![0].reaction_reoccurred_after_rechallenge = 'no_information'
+
+    const [firstRow] = extractDrugReactionRows(generateReportPrintHTML(report))
+
+    expect(firstRow.match(/checked> Không có thông tin/g)).toHaveLength(2)
   })
 })
 
