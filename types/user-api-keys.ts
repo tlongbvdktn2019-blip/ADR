@@ -1,5 +1,4 @@
 // User API Keys Management Types
-import { ADRChatContext, ChatMessage } from '@/lib/ai-chatbot-service'
 
 export interface UserAPIKey {
   id: string
@@ -66,22 +65,4 @@ export interface APIKeyValidationResult {
     tokens_used: number
     response_time_ms: number
   }
-}
-
-// Chat context with user's API keys
-export interface UserChatContext extends ADRChatContext {
-  userAPIKeys: {
-    openai?: UserAPIKey
-    gemini?: UserAPIKey
-  }
-  selectedProvider?: 'openai' | 'gemini'
-}
-
-// API request with user's API key
-export interface ChatbotRequestWithUserKey {
-  message: string
-  context: ADRChatContext
-  provider: 'openai' | 'gemini'
-  userAPIKeyId: string // Reference to user's API key
-  chatHistory?: ChatMessage[]
 }
