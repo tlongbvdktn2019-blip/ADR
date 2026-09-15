@@ -562,6 +562,11 @@ function DrugsTab({ report, formatDate }: { report: ADRReport, formatDate: (date
 }
 
 function AssessmentTab({ report }: { report: ADRReport }) {
+  const consultations = ((report as any).ai_consultations || []) as any[]
+  const latestConsultation = consultations
+    .filter((item) => ['ready', 'reviewed'].includes(item.status))
+    .sort((a, b) => String(b.completed_at || '').localeCompare(String(a.completed_at || '')))[0]
+
   return (
     <Card title="Phần D. Thẩm định ADR của đơn vị">
       <div className="space-y-6">
@@ -586,6 +591,42 @@ function AssessmentTab({ report }: { report: ADRReport }) {
             <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">
               {report.medical_staff_comment}
             </dd>
+          </div>
+        )}
+
+        {latestConsultation?.ai_drug_assessments?.length > 0 && (
+          <div className="border-t border-gray-200 pt-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="font-semibold text-gray-900">Đánh giá chi tiết theo từng thuốc</h4>
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">
+                {latestConsultation.model_id} · {latestConsultation.ruleset_version}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {latestConsultation.ai_drug_assessments.map((assessment: any) => (
+                <div key={assessment.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <strong className="text-sm text-gray-900">{assessment.drug_snapshot?.name || 'Thuốc nghi ngờ'}</strong>
+                    <span className="text-xs text-gray-500">{assessment.review_status === 'edited' ? 'Đã chỉnh sửa và xác nhận' : assessment.review_status === 'accepted' ? 'Đã xác nhận' : assessment.review_status === 'rejected' ? 'Không sử dụng' : 'Chưa xác nhận'}</span>
+                  </div>
+                  <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                    <div>WHO-UMC: <strong>{CAUSALITY_LABELS[(assessment.final_who_level || assessment.who_level) as keyof typeof CAUSALITY_LABELS]}</strong></div>
+                    <div>Naranjo: <strong>{assessment.naranjo_score} điểm · {CAUSALITY_LABELS[(assessment.final_naranjo_level || assessment.naranjo_level) as keyof typeof CAUSALITY_LABELS]}</strong></div>
+                  </div>
+                  {assessment.final_comment && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{assessment.final_comment}</p>}
+                </div>
+              ))}
+            </div>
+            {latestConsultation.ai_evidence_sources?.length > 0 && (
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-medium text-indigo-700">Nguồn tham khảo đã dùng</summary>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {latestConsultation.ai_evidence_sources.map((source: any) => (
+                    <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer" className="text-blue-700 hover:underline">{source.title}</a> <span className="text-xs text-gray-500">(cấp {source.quality_tier})</span></li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         )}
       </div>

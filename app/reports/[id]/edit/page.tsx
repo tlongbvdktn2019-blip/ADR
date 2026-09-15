@@ -20,9 +20,11 @@ import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { ADRReport } from '@/types/report'
+import { createClientRef } from '@/lib/client-ref'
 
 export interface SuspectedDrug {
   id: string
+  client_ref: string
   drug_name: string
   commercial_name: string
   dosage_form: string
@@ -66,6 +68,9 @@ export interface ADRFormData {
   causality_assessment: 'certain' | 'probable' | 'possible' | 'unlikely' | 'unclassified' | 'unclassifiable'
   assessment_scale: 'who' | 'naranjo'
   medical_staff_comment: string
+  ai_consultation_id?: string
+  ai_context_hash?: string
+  ai_summary_drug_ref?: string
   
   // Phần E: Thông tin người báo cáo
   reporter_name: string
@@ -112,6 +117,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
     outcome_after_treatment: 'unknown',
     suspected_drugs: [{
       id: '1',
+      client_ref: createClientRef(),
       drug_name: '',
       commercial_name: '',
       dosage_form: '',
@@ -188,6 +194,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
           // Suspected drugs
           suspected_drugs: reportData.suspected_drugs?.map((drug, index) => ({
             id: (index + 1).toString(),
+            client_ref: drug.client_ref || createClientRef(),
             drug_name: drug.drug_name,
             commercial_name: drug.commercial_name || '',
             dosage_form: drug.dosage_form || '',
@@ -204,6 +211,7 @@ export default function EditReportPage({ params }: EditReportPageProps) {
             reaction_reoccurred_after_rechallenge: drug.reaction_reoccurred_after_rechallenge,
           })) || [{
             id: '1',
+            client_ref: createClientRef(),
             drug_name: '',
             commercial_name: '',
             dosage_form: '',

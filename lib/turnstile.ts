@@ -12,7 +12,8 @@ export interface TurnstileValidationResult {
 
 export async function validateTurnstileToken(
   token: string,
-  remoteIp?: string
+  remoteIp?: string,
+  expectedAction = 'allergy_card_update'
 ): Promise<TurnstileValidationResult> {
   const secret = process.env.TURNSTILE_SECRET_KEY
   if (!secret) return { success: false, code: 'CAPTCHA_UNAVAILABLE' }
@@ -32,7 +33,7 @@ export async function validateTurnstileToken(
     const configuredHostname = process.env.TURNSTILE_ALLOWED_HOSTNAME
     if (!result.success) return { success: false, code: result['error-codes']?.[0] || 'CAPTCHA_INVALID' }
     if (configuredHostname && result.hostname !== configuredHostname) return { success: false, code: 'CAPTCHA_HOSTNAME_MISMATCH' }
-    if (result.action !== 'allergy_card_update') return { success: false, code: 'CAPTCHA_ACTION_MISMATCH' }
+    if (result.action !== expectedAction) return { success: false, code: 'CAPTCHA_ACTION_MISMATCH' }
     return { success: true }
   } catch (error) {
     console.error('Turnstile validation failed:', error)

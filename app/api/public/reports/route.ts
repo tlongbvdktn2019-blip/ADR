@@ -7,6 +7,8 @@ import {
 } from '@/lib/report-code'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
 import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
+import { completeAIAttachment, prepareAIAttachment } from '@/lib/ai-consultant/attach'
+import { AIConsultantError } from '@/lib/ai-consultant/errors'
 
 /**
  * POST /api/public/reports
@@ -15,6 +17,7 @@ import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const aiAttachment = await prepareAIAttachment(request, body, 'public')
 
     const requiredFields = [
       'organization',
@@ -118,6 +121,7 @@ export async function POST(request: NextRequest) {
 
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
+      client_ref: drug.client_ref,
       drug_name: drug.drug_name,
       commercial_name: drug.commercial_name || null,
       dosage_form: drug.dosage_form || null,
@@ -156,6 +160,14 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 }
       )
+    }
+
+    try {
+      await completeAIAttachment(aiAttachment, reportData.id)
+    } catch (attachmentError) {
+      console.error('AI consultation attachment error:', attachmentError)
+      await (supabaseAdmin.from('adr_reports') as any).delete().eq('id', reportData.id)
+      return NextResponse.json({ success: false, error: 'Không thể liên kết kết quả AI đã xác nhận với báo cáo.' }, { status: 409 })
     }
 
     if (body.concurrent_drugs && body.concurrent_drugs.length > 0) {
@@ -206,6 +218,12 @@ export async function POST(request: NextRequest) {
     )
   } catch (error: any) {
     console.error('API error:', error)
+    if (error instanceof AIConsultantError) {
+      return NextResponse.json(
+        { success: false, error: error.message, code: error.code, details: error.details },
+        { status: error.status }
+      )
+    }
     return NextResponse.json(
       {
         success: false,

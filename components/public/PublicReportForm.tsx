@@ -17,6 +17,7 @@ import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ADRFormData, SuspectedDrug } from '@/app/reports/new/page'
 import { XMarkIcon, TrophyIcon, BookOpenIcon } from '@heroicons/react/24/outline'
+import { createClientRef } from '@/lib/client-ref'
 
 export default function PublicReportForm() {
   const router = useRouter()
@@ -53,6 +54,7 @@ export default function PublicReportForm() {
     suspected_drugs: [
       {
         id: '1',
+        client_ref: createClientRef(),
         drug_name: '',
         commercial_name: '',
         dosage_form: '',
@@ -212,7 +214,7 @@ export default function PublicReportForm() {
           updateConcurrentDrugs={updateConcurrentDrugs}
         />
       case 3:
-        return <AssessmentSection data={formData} updateData={updateFormData} />
+        return <AssessmentSection data={formData} updateData={updateFormData} publicMode />
       case 4:
         return <ReporterInfoSection data={formData} updateData={updateFormData} />
       case 5:
@@ -364,4 +366,3 @@ export default function PublicReportForm() {
     </div>
   )
 }
-

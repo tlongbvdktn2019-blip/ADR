@@ -32,7 +32,17 @@ async function getReport(id: string, userId: string): Promise<ADRReport | null> 
       .from('adr_reports')
       .select(`
         *,
-        suspected_drugs(*)
+        suspected_drugs(*),
+        ai_consultations(
+          id,
+          status,
+          model_id,
+          prompt_version,
+          ruleset_version,
+          completed_at,
+          ai_drug_assessments(*),
+          ai_evidence_sources(*)
+        )
       `)
       .eq('id', id)
 
@@ -97,4 +107,3 @@ export async function generateMetadata({ params }: ReportPageProps) {
     description: `Chi tiết báo cáo ADR cho bệnh nhân ${report.patient_name}`,
   }
 }
-

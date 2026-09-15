@@ -16,9 +16,11 @@ import { PatientAgeError, calculateValidatedPatientAge } from '@/lib/patient-age
 import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, XMarkIcon, TrophyIcon, BookOpenIcon } from '@heroicons/react/24/outline'
+import { createClientRef } from '@/lib/client-ref'
 
 export interface SuspectedDrug {
   id: string
+  client_ref: string
   drug_name: string
   commercial_name: string
   dosage_form: string
@@ -66,6 +68,9 @@ export interface ADRFormData {
   causality_assessment: 'certain' | 'probable' | 'possible' | 'unlikely' | 'unclassified' | 'unclassifiable'
   assessment_scale: 'who' | 'naranjo'
   medical_staff_comment: string
+  ai_consultation_id?: string
+  ai_context_hash?: string
+  ai_summary_drug_ref?: string
   
   // Phần E: Thông tin người báo cáo
   reporter_name: string
@@ -115,6 +120,7 @@ export default function PublicReportPage() {
     suspected_drugs: [
       {
         id: '1',
+        client_ref: createClientRef(),
         drug_name: '',
         commercial_name: '',
         dosage_form: '',
@@ -272,7 +278,7 @@ export default function PublicReportPage() {
           updateConcurrentDrugs={updateConcurrentDrugs}
         />
       case 3:
-        return <AssessmentSection data={formData} updateData={updateFormData} />
+        return <AssessmentSection data={formData} updateData={updateFormData} publicMode />
       case 4:
         return <ReporterInfoSection data={formData} updateData={updateFormData} />
       case 5:
@@ -425,4 +431,3 @@ export default function PublicReportPage() {
     </div>
   )
 }
-

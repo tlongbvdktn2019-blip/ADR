@@ -49,6 +49,7 @@ export interface ADRReport {
 
 export interface SuspectedDrug {
   id: string
+  client_ref?: string
   report_id: string
   drug_name: string
   commercial_name: string | null

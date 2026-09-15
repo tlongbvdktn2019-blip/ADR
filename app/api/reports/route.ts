@@ -14,6 +14,8 @@ import {
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
 import { REPORT_SUBMISSION_STATUS } from '@/lib/report-submission'
 import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
+import { completeAIAttachment, prepareAIAttachment } from '@/lib/ai-consultant/attach'
+import { AIConsultantError } from '@/lib/ai-consultant/errors'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const aiAttachment = await prepareAIAttachment(request, body, 'internal')
 
     const { data: reportCreator } = await (supabaseAdmin
       .from('users')
@@ -156,6 +159,7 @@ export async function POST(request: NextRequest) {
     // Create suspected drugs entries
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportData.id,
+      client_ref: drug.client_ref,
       drug_name: drug.drug_name,
       commercial_name: drug.commercial_name || null,
       dosage_form: drug.dosage_form || null,
@@ -189,6 +193,14 @@ export async function POST(request: NextRequest) {
         { error: 'Kh??ng th??? t???o th??ng tin thu???c: ' + drugsError.message },
         { status: 500 }
       )
+    }
+
+    try {
+      await completeAIAttachment(aiAttachment, reportData.id)
+    } catch (attachmentError) {
+      console.error('AI consultation attachment error:', attachmentError)
+      await supabaseAdmin.from('adr_reports').delete().eq('id', reportData.id)
+      return NextResponse.json({ error: 'Không thể liên kết kết quả AI đã xác nhận với báo cáo.' }, { status: 409 })
     }
 
     // Create concurrent drugs entries (optional)
@@ -270,6 +282,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('API error:', error)
+    if (error instanceof AIConsultantError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, details: error.details },
+        { status: error.status }
+      )
+    }
     return NextResponse.json(
       {
         error:

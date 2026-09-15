@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { SuspectedDrug } from '@/app/reports/new/page'
 import { ConcurrentDrugFormData, createEmptyConcurrentDrug, CONCURRENT_DRUG_LABELS } from '@/types/concurrent-drug'
+import { createClientRef } from '@/lib/client-ref'
 
 interface SuspectedDrugsSectionProps {
   drugs: SuspectedDrug[]
@@ -129,6 +130,7 @@ export default function SuspectedDrugsSection({
   const addDrug = () => {
     const newDrug: SuspectedDrug = {
       id: Date.now().toString(),
+      client_ref: createClientRef(),
       drug_name: '',
       commercial_name: '',
       dosage_form: '',

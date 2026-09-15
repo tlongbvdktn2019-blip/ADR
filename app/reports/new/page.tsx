@@ -18,9 +18,11 @@ import AssessmentResultSection from '@/components/forms/AssessmentResultSection'
 import ReportGuideModal from '@/components/forms/ReportGuideModal'
 import { ArrowLeftIcon, BookOpenIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
+import { createClientRef } from '@/lib/client-ref'
 
 export interface SuspectedDrug {
   id: string
+  client_ref: string
   drug_name: string
   commercial_name: string
   dosage_form: string
@@ -68,6 +70,9 @@ export interface ADRFormData {
   causality_assessment: 'certain' | 'probable' | 'possible' | 'unlikely' | 'unclassified' | 'unclassifiable'
   assessment_scale: 'who' | 'naranjo'
   medical_staff_comment: string
+  ai_consultation_id?: string
+  ai_context_hash?: string
+  ai_summary_drug_ref?: string
   
   // Phần E: Thông tin người báo cáo
   reporter_name: string
@@ -116,6 +121,7 @@ export default function NewReportPage() {
     suspected_drugs: [
       {
         id: '1',
+        client_ref: createClientRef(),
         drug_name: '',
         commercial_name: '',
         dosage_form: '',

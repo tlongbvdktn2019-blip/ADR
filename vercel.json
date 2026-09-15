@@ -3,8 +3,26 @@
     "app/api/reports/[id]/send-email/route.ts": {
       "maxDuration": 60
     },
+    "app/api/ai/consultations/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/ai/consultations/[id]/evidence/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/ai/consultations/[id]/assessment/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/ai/consultations/[id]/messages/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/**": {
       "maxDuration": 10
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-ai-consultations",
+      "schedule": "17 2 * * *"
+    }
+  ]
 }

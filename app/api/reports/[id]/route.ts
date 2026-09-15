@@ -7,6 +7,8 @@ import { Database } from '@/types/supabase'
 import { notifyAllUsersAboutReportUpdate } from '@/lib/notification-service'
 import { PatientAgeError, calculateReportPatientAgeYears } from '@/lib/patient-age'
 import { applyReportAccessScope, getReportAccessContext } from '@/lib/report-access'
+import { completeAIAttachment, prepareAIAttachment } from '@/lib/ai-consultant/attach'
+import { AIConsultantError } from '@/lib/ai-consultant/errors'
 
 // Create Supabase admin client
 const supabaseAdmin = createClient<Database>(
@@ -95,6 +97,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
+    const aiAttachment = await prepareAIAttachment(request, body, 'internal')
 
     // First, check if report exists and user has permission
     let existingReportQuery = supabaseAdmin
@@ -242,6 +245,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Insert new suspected drugs
     const drugsToInsert = body.suspected_drugs.map((drug: any) => ({
       report_id: reportId,
+      client_ref: drug.client_ref,
       drug_name: drug.drug_name,
       commercial_name: drug.commercial_name || null,
       dosage_form: drug.dosage_form || null,
@@ -269,6 +273,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { error: 'Không thể cập nhật thông tin thuốc: ' + drugsError.message },
         { status: 500 }
       )
+    }
+
+    try {
+      await completeAIAttachment(aiAttachment, reportId)
+    } catch (attachmentError) {
+      console.error('AI consultation attachment error:', attachmentError)
+      return NextResponse.json({ error: 'Báo cáo đã cập nhật nhưng chưa thể liên kết chi tiết AI. Vui lòng thử lưu lại.' }, { status: 409 })
     }
 
     // Update concurrent drugs: Delete old ones and insert new ones
@@ -317,6 +328,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   } catch (error) {
     console.error('API error:', error)
+    if (error instanceof AIConsultantError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, details: error.details },
+        { status: error.status }
+      )
+    }
     return NextResponse.json(
       { error: 'Có lỗi xảy ra khi cập nhật báo cáo' },
       { status: 500 }

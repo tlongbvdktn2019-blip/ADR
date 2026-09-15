@@ -210,6 +210,7 @@ export interface Database {
       suspected_drugs: {
         Row: {
           id: string
+          client_ref: string
           report_id: string
           drug_name: string
           commercial_name: string | null
@@ -234,6 +235,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          client_ref?: string
           report_id: string
           drug_name: string
           commercial_name?: string | null
@@ -257,6 +259,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          client_ref?: string
           report_id?: string
           drug_name?: string
           commercial_name?: string | null
